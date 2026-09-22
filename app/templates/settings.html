@@ -1,61 +1,99 @@
 {% extends "base.html" %}
 {% block title %}Setelan · Monetary{% endblock %}
 {% block content %}
-<div class="two" style="margin-top:0">
+
 <section class="card">
-  <div class="sec"><h2>Saldo awal</h2><small>sebelum bulan pertama</small></div>
-  <form method="post" action="/settings/opening">
-    <label>Bulan pertama pembukuan</label><input type="month" name="first_month" value="{{ first_month }}">
-    <label>Saldo kas sebelumnya</label><input class="money num" name="opening_balance" inputmode="numeric" value="{{ opening }}">
-    <label>Dana darurat sebelumnya</label><input class="money num" name="opening_emergency" inputmode="numeric" value="{{ opening_ef }}">
+  <div class="sec"><h2>Saldo awal</h2><small>posisi sebelum bulan pertama dicatat</small></div>
+  <form method="post" action="/settings/opening" class="sform">
+    <div class="f2">
+      <div><label>Bulan pertama</label><input type="month" name="first_month" value="{{ first_month }}"></div>
+      <div><label>Saldo kas</label><input class="money num" name="opening_balance" inputmode="numeric" value="{{ opening }}"></div>
+    </div>
+    <label>Dana darurat</label><input class="money num" name="opening_emergency" inputmode="numeric" value="{{ opening_ef }}">
     <div class="actions"><button class="primary" type="submit">Simpan</button></div>
   </form>
 </section>
 
-<section class="card" id="categories">
-  <div class="sec"><h2>Kategori</h2></div>
-  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-    {% for c in cats %}
-    <form method="post" action="/settings/category/{{ c.id }}/hide" data-confirm="Sembunyikan kategori {{ c.name }}?" style="display:inline">
-      <button class="sm" type="submit" title="Sembunyikan"><span class="cat" style="background:transparent;padding:0;color:{{ 'var(--ok)' if c.kind=='income' else 'inherit' }}">{{ c.name }}</span> ×</button>
+<section class="card" id="categories" style="margin-top:10px">
+  <div class="sec"><h2>Kategori</h2><small>ketuk × untuk menyembunyikan</small></div>
+  {% for kind, title in [('expense','Pengeluaran'),('income','Pemasukan')] %}
+  <div class="k" style="margin:8px 0 6px">{{ title }}</div>
+  <div class="chips">
+    {% for c in cats if c.kind==kind %}
+    <form method="post" action="/settings/category/{{ c.id }}/hide" data-confirm="Sembunyikan kategori {{ c.name }}?" class="cchip" style="--h:{{ c.name | hue }}">
+      <span>{{ c.name }}</span><button type="submit" aria-label="Sembunyikan {{ c.name }}">×</button>
     </form>
     {% endfor %}
+    <button type="button" class="cchip add" data-open="sheet-cat" data-fill='{{ {"kind":kind} | tojson }}'>+ Tambah</button>
   </div>
-  <form method="post" action="/settings/category">
-    <div class="f2">
-      <div><label>Nama</label><input name="name" placeholder="mis. CIMB" required autocomplete="off"></div>
-      <div><label>Jenis</label><select name="kind"><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select></div>
-    </div>
-    <div class="actions"><button type="submit">Tambah kategori</button></div>
-  </form>
+  {% endfor %}
 </section>
-</div>
 
 <section class="card" id="recurring" style="margin-top:10px">
-  <div class="sec"><h2>Template rutin bulanan</h2><small>dipakai tombol “Isi bulan ini”</small></div>
+  <div class="sec"><h2>Template rutin</h2><small>dipakai tombol “Isi bulan ini”</small></div>
+  <div class="panel-wrap" style="padding:0">
   {% for r in recurring %}
-  <div class="row" style="cursor:default">
-    <div><div class="name"><span>{{ r.description or r.category or '—' }}</span></div>
-      <div class="meta">{% if r.category %}<span class="cat">{{ r.category }}</span>{% endif %}<span class="pill">{{ 'masuk' if r.kind=='income' else 'keluar' }}</span>{% if r.day_of_month %}<span>tgl {{ r.day_of_month }}</span>{% endif %}</div></div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="amt num {{ 'in' if r.kind=='income' }}">{{ r.amount | rupiah }}</div>
-      <form method="post" action="/settings/recurring/{{ r.id }}/delete" data-confirm="Hapus template ini?"><button class="sm ghost danger" type="submit">×</button></form>
+  <div class="row static tpl" style="--i:{{ loop.index0 }}">
+    <span class="av {{ 'in' if r.kind=='income' }}" style="--h:{{ (r.category or r.description or 'X') | hue }}">{{ (r.category or r.description or '·')[:2] }}</span>
+    <div class="main">
+      <div class="name">{{ r.description or r.category or '—' }}</div>
+      <div class="meta">{% if r.category and r.description %}<span>{{ r.category }}</span>{% endif %}<span>{{ 'pemasukan' if r.kind=='income' else 'pengeluaran' }}</span>{% if r.day_of_month %}<span>tgl {{ r.day_of_month }}</span>{% endif %}</div>
     </div>
+    <div class="amt num {{ 'in' if r.kind=='income' }}">{{ r.amount | rupiah }}</div>
+    <form method="post" action="/settings/recurring/{{ r.id }}/delete" class="tgl" data-confirm="Hapus template ini?"><button class="ck del" type="submit" aria-label="Hapus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
   </div>
-  {% else %}<div class="empty">Belum ada template. Tambahkan KPR, tagihan CC, gaji, dsb.</div>{% endfor %}
-  <form method="post" action="/settings/recurring" style="margin-top:12px;border-top:1px solid var(--line);padding-top:4px">
-    <div class="f2">
-      <div><label>Jenis</label><select name="kind"><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select></div>
-      <div><label>Kategori</label><select name="category_id"><option value="">—</option>{% for c in cats %}<option value="{{ c.id }}">{{ c.name }} ({{ 'masuk' if c.kind=='income' else 'keluar' }})</option>{% endfor %}</select></div>
-    </div>
-    <label>Deskripsi</label><input name="description" placeholder="mis. KPR rumah" autocomplete="off">
-    <div class="f2">
-      <div><label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off"></div>
-      <div><label>Tanggal (1–28)</label><input type="number" name="day_of_month" min="1" max="28" inputmode="numeric"></div>
-    </div>
-    <div class="actions"><button type="submit">Tambah template</button></div>
-  </form>
+  {% else %}<div class="empty"><b>Belum ada template.</b><span>Tambahkan KPR, tagihan kartu, gaji — hal yang berulang tiap bulan.</span></div>{% endfor %}
+  </div>
+  <div class="actions" style="margin-top:8px"><button type="button" data-open="sheet-tpl">+ Tambah template</button></div>
 </section>
 
-<p class="hint" style="text-align:center;margin-top:20px"><a href="/logout">Keluar</a></p>
+<section class="card" id="account" style="margin-top:10px">
+  <div class="sec"><h2>Akun</h2><small>satu pengguna</small></div>
+  <div class="row static" style="grid-template-columns:36px minmax(0,1fr) auto;display:grid;gap:12px;align-items:center;padding:8px 0 4px">
+    <span class="av" style="--h:270">RF</span>
+    <div class="main"><div class="name">Rian Fathany</div><div class="meta"><span>password tersimpan terenkripsi di database</span></div></div>
+    <a class="btn" href="/logout">Keluar</a>
+  </div>
+  <details class="acc" {{ 'open' if pw }}>
+    <summary>Ganti password</summary>
+    {% if pw=='ok' %}<div class="note ok">Password diperbarui.</div>{% elif pw=='wrong' %}<div class="note bad">Password saat ini salah.</div>{% elif pw=='mismatch' %}<div class="note bad">Password baru minimal 6 karakter dan harus sama dengan konfirmasi.</div>{% endif %}
+    <form method="post" action="/settings/password" autocomplete="off">
+      <label>Password saat ini</label><input type="password" name="current" autocomplete="current-password" required>
+      <div class="f2">
+        <div><label>Password baru</label><input type="password" name="new" autocomplete="new-password" minlength="6" required></div>
+        <div><label>Ulangi</label><input type="password" name="confirm" autocomplete="new-password" minlength="6" required></div>
+      </div>
+      <div class="actions"><button class="primary" type="submit">Simpan password</button></div>
+    </form>
+  </details>
+</section>
+
+<dialog class="sheet" id="sheet-tpl"><div class="panel"><div class="grab"></div>
+  <h3>Template rutin baru</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <form method="post" action="/settings/recurring">
+    <div class="seg" style="margin-top:8px">
+      <label><input type="radio" name="kind" value="expense" checked><span>Pengeluaran</span></label>
+      <label><input type="radio" name="kind" value="income"><span>Pemasukan</span></label>
+    </div>
+    <label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
+    <label>Deskripsi</label><input name="description" placeholder="mis. KPR rumah" autocomplete="off">
+    <div class="f2">
+      <div><label>Kategori</label><select name="category_id"><option value="">—</option>{% for c in cats %}<option value="{{ c.id }}">{{ c.name }} · {{ 'masuk' if c.kind=='income' else 'keluar' }}</option>{% endfor %}</select></div>
+      <div><label>Tanggal (1–28)</label><input type="number" name="day_of_month" min="1" max="28" inputmode="numeric" placeholder="25"></div>
+    </div>
+    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+  </form>
+</div></dialog>
+
+<dialog class="sheet" id="sheet-cat"><div class="panel"><div class="grab"></div>
+  <h3>Kategori baru</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <form method="post" action="/settings/category">
+    <div class="seg" style="margin-top:8px">
+      <label><input type="radio" name="kind" value="expense" checked><span>Pengeluaran</span></label>
+      <label><input type="radio" name="kind" value="income"><span>Pemasukan</span></label>
+    </div>
+    <label>Nama</label><input name="name" placeholder="mis. CIMB" required autocomplete="off" style="text-transform:uppercase">
+    <div class="actions"><button class="primary" type="submit">Tambah</button></div>
+  </form>
+</div></dialog>
 {% endblock %}

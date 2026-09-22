@@ -77,9 +77,36 @@ templates.env.filters["month_label"] = month_label
 templates.env.filters["fmt_date"] = fmt_date
 
 
+def hue(name) -> int:
+    """Warna avatar kategori yang stabil per nama."""
+    h = 0
+    for ch in str(name or ""):
+        h = (h * 31 + ord(ch)) % 360
+    return h
+
+
+def short_rupiah(n) -> str:
+    n = int(n or 0)
+    a = abs(n)
+    if a >= 1_000_000_000:
+        v = f"{a/1_000_000_000:.1f}".rstrip("0").rstrip(".") + " M"
+    elif a >= 1_000_000:
+        v = f"{a/1_000_000:.1f}".rstrip("0").rstrip(".") + " jt"
+    elif a >= 1_000:
+        v = f"{a/1_000:.0f} rb"
+    else:
+        v = str(a)
+    return ("-" if n < 0 else "") + v
+
+
+templates.env.filters["hue"] = hue
+templates.env.filters["short"] = short_rupiah
+
+
 @app.on_event("startup")
 def _startup():
     init_db()
+    auth.bootstrap()
 
 
 def require_login(request: Request):
@@ -88,9 +115,18 @@ def require_login(request: Request):
     return None
 
 
+def asset_version() -> str:
+    """Versi cache untuk aset statis: mtime terbaru di seluruh folder static."""
+    try:
+        return str(int(max(p.stat().st_mtime for p in (BASE / "static").rglob("*") if p.is_file())))
+    except (ValueError, FileNotFoundError):
+        return "0"
+
+
 def render(request: Request, name: str, **ctx):
     ctx.setdefault("request", request)
     ctx.setdefault("today", date.today().isoformat())
+    ctx.setdefault("asset_v", asset_version())
     return templates.TemplateResponse(request, name, ctx)
 
 
@@ -101,11 +137,12 @@ def month_summary(db, mk: str) -> dict:
     first = get_setting(db, "first_month", "") or ""
     prev = db.execute(
         "SELECT COALESCE(SUM(CASE kind WHEN 'income' THEN amount ELSE -amount END),0) AS v "
-        "FROM transactions WHERE month_key < ? AND (? = '' OR month_key >= ?)", (mk, first, first)
+        "FROM transactions WHERE to_fund=0 AND month_key < ? AND (? = '' OR month_key >= ?)", (mk, first, first)
     ).fetchone()["v"]
     prev_balance = opening + prev if (not first or mk >= first) else 0
 
-    inc = db.execute("SELECT COALESCE(SUM(amount),0) v FROM transactions WHERE month_key=? AND kind='income'", (mk,)).fetchone()["v"]
+    inc = db.execute("SELECT COALESCE(SUM(amount),0) v FROM transactions WHERE month_key=? AND kind='income' AND to_fund=0", (mk,)).fetchone()["v"]
+    inc_fund = db.execute("SELECT COALESCE(SUM(amount),0) v FROM transactions WHERE month_key=? AND kind='income' AND to_fund=1", (mk,)).fetchone()["v"]
     exp = db.execute("SELECT COALESCE(SUM(amount),0) v FROM transactions WHERE month_key=? AND kind='expense'", (mk,)).fetchone()["v"]
     unpaid = db.execute("SELECT COALESCE(SUM(amount),0) v FROM transactions WHERE month_key=? AND kind='expense' AND status='planned'", (mk,)).fetchone()["v"]
 
@@ -121,7 +158,7 @@ def month_summary(db, mk: str) -> dict:
         assets_total = db.execute("SELECT COALESCE(SUM(amount),0) v FROM assets WHERE month_key=?", (asset_month,)).fetchone()["v"]
 
     return dict(
-        month=mk, prev_balance=prev_balance, income=inc, expense=exp, unpaid=unpaid,
+        month=mk, prev_balance=prev_balance, income=inc, income_fund=inc_fund, expense=exp, unpaid=unpaid,
         balance=prev_balance + inc - exp,
         ef_prev=ef_prev, ef_in=ef_in, ef_out=ef_out, ef_cur=ef_cur,
         assets_total=assets_total, asset_month=asset_month,
@@ -160,7 +197,7 @@ def months_available(db) -> list[str]:
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, next: str = "/", error: str = ""):
-    return render(request, "login.html", next=next, error=error, configured=bool(auth.PASSWORD))
+    return render(request, "login.html", next=next, error=error, configured=auth.is_configured())
 
 
 @app.post("/login")
@@ -204,10 +241,15 @@ def month_page(request: Request, mk: str):
         cats_inc = categories(db, "income")
         has_recurring = db.execute("SELECT COUNT(*) c FROM recurring WHERE active=1").fetchone()["c"] > 0
         months = months_available(db)
+        # tren 6 bulan terakhir (termasuk bulan ini) untuk grafik mini
+        trend = [month_summary(db, shift_month(mk, -i)) for i in range(5, -1, -1)]
+        trend_max = max([max(t["income"], t["expense"]) for t in trend] + [1])
+    # strip bulan: semua bulan yang ada + 1 bulan ke depan, selalu memuat bulan aktif
+    strip = sorted(set(months) | {mk, shift_month(mk, 1), shift_month(months[-1], 1)})
     return render(
         request, "month.html", s=s, **lists, cats_exp=cats_exp, cats_inc=cats_inc,
-        prev=shift_month(mk, -1), next=shift_month(mk, 1), months=months, has_recurring=has_recurring,
-        is_empty=not (lists["expenses"] or lists["incomes"]), page="month",
+        prev=shift_month(mk, -1), next=shift_month(mk, 1), months=months, strip=strip, has_recurring=has_recurring,
+        is_empty=not (lists["expenses"] or lists["incomes"]), page="month", trend=trend, trend_max=trend_max,
     )
 
 
@@ -217,18 +259,26 @@ def month_page(request: Request, mk: str):
 def tx_add(
     request: Request, mk: str, kind: str = Form(...), amount: str = Form(...),
     category_id: str = Form(""), description: str = Form(""), tx_date: str = Form(""), status: str = Form("paid"),
+    dest: str = Form("cash"),
 ):
     if (r := require_login(request)):
         return r
     amt = parse_amount(amount)
     if amt <= 0 or kind not in ("expense", "income"):
         return RedirectResponse(f"/m/{mk}", status_code=303)
+    to_fund = 1 if (kind == "income" and dest == "fund") else 0
     with get_db() as db:
-        db.execute(
-            "INSERT INTO transactions(month_key, kind, tx_date, category_id, description, amount, status) VALUES (?,?,?,?,?,?,?)",
+        cur = db.execute(
+            "INSERT INTO transactions(month_key, kind, tx_date, category_id, description, amount, status, to_fund) VALUES (?,?,?,?,?,?,?,?)",
             (mk, kind, clean_date(tx_date), int(category_id) if category_id else None, description.strip() or None, amt,
-             status if status in ("planned", "paid") else "paid"),
+             status if status in ("planned", "paid") else "paid", to_fund),
         )
+        if to_fund:
+            # pemasukan langsung ke dana darurat: catat setoran berpasangan
+            db.execute(
+                "INSERT INTO emergency_fund(month_key, tx_date, description, amount, linked_tx_id) VALUES (?,?,?,?,?)",
+                (mk, clean_date(tx_date), (description.strip() or "Pemasukan") + " → dana darurat", amt, cur.lastrowid),
+            )
     return RedirectResponse(f"/m/{mk}#{kind}", status_code=303)
 
 
@@ -343,7 +393,7 @@ def apply_recurring(request: Request, mk: str):
 
 
 @app.get("/settings", response_class=HTMLResponse)
-def settings_page(request: Request):
+def settings_page(request: Request, pw: str = ""):
     if (r := require_login(request)):
         return r
     with get_db() as db:
@@ -355,7 +405,19 @@ def settings_page(request: Request):
         opening_ef = get_setting(db, "opening_emergency", "0")
         first_month = get_setting(db, "first_month", "")
     return render(request, "settings.html", recurring=rec, cats=cats, opening=int(opening or 0),
-                  opening_ef=int(opening_ef or 0), first_month=first_month, page="settings", mk=this_month())
+                  opening_ef=int(opening_ef or 0), first_month=first_month, page="settings", mk=this_month(), pw=pw)
+
+
+@app.post("/settings/password")
+def settings_password(request: Request, current: str = Form(""), new: str = Form(...), confirm: str = Form(...)):
+    if (r := require_login(request)):
+        return r
+    if auth.is_configured() and not auth.check_password(current):
+        return RedirectResponse("/settings?pw=wrong#account", status_code=303)
+    if len(new) < 6 or new != confirm:
+        return RedirectResponse("/settings?pw=mismatch#account", status_code=303)
+    auth.set_password(new)
+    return RedirectResponse("/settings?pw=ok#account", status_code=303)
 
 
 @app.post("/settings/opening")

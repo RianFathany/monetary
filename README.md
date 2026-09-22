@@ -8,9 +8,10 @@ Pengganti spreadsheet `MRFNIP - Cashflow.xlsx` — satu user, satu file SQLite, 
 ```bash
 cd monetary
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env            # isi MONETARY_PASSWORD dan MONETARY_SECRET
-set -a; source .env; set +a
 .venv/bin/uvicorn app.main:app --port 8765 --reload
+# Pertama kali: set password sekali lewat
+#   .venv/bin/python -c "from app import auth; auth.bootstrap(); auth.set_password('PASSWORD')"
+# Setelah itu ganti lewat Setelan > Akun > Ganti password.
 ```
 
 Buka http://127.0.0.1:8765
@@ -18,8 +19,9 @@ Buka http://127.0.0.1:8765
 ## Jalankan dengan Docker
 
 ```bash
-cp .env.example .env            # isi password + secret
 docker compose up -d --build    # http://127.0.0.1:8765
+# Set password pertama kali (sekali saja):
+#   docker compose exec monetary python -c "from app import auth; auth.bootstrap(); auth.set_password('PASSWORD')"
 ```
 
 Database ada di `./data/monetary.db` (volume). Backup = salin file itu.
@@ -39,7 +41,6 @@ brew install flyctl && fly auth login
 cd monetary
 fly launch --copy-config --no-deploy        # pakai fly.toml yang ada, region sin
 fly volumes create monetary_data --size 1 --region sin
-fly secrets set MONETARY_PASSWORD='...' MONETARY_SECRET="$(openssl rand -hex 32)"
 fly deploy
 fly certs add monetary.rianfathany.com      # lalu tambah CNAME di Cloudflare (DNS only, bukan proxied, saat validasi)
 ```
@@ -48,7 +49,7 @@ Setelah deploy, jalankan import sekali: `fly ssh console -C "python scripts/impo
 
 ## Login
 
-Satu password (`MONETARY_PASSWORD`), cookie 30 hari. Halaman login memakai rule yang sama dengan rianfathany.com: klip Jakarta sesuai jam (pagi/siang/senja/malam) dan otomatis klip hujan bila sedang hujan (Open-Meteo), plus jam dan nama kota dari geolocation browser (fallback Jakarta). Klip disalin dari `application/assets/video/`. Tombol keluar ada di header kanan atas.
+Satu password, disimpan sebagai hash PBKDF2 di tabel `settings` bersama secret cookie (dibuat otomatis) — tidak butuh `.env`. Ganti lewat Setelan › Akun. Cookie 30 hari. Halaman login memakai rule yang sama dengan rianfathany.com: klip Jakarta sesuai jam (pagi/siang/senja/malam) dan otomatis klip hujan bila sedang hujan (Open-Meteo), plus jam dan nama kota dari geolocation browser (fallback Jakarta). Klip disalin dari `application/assets/video/`. Tombol keluar ada di header kanan atas.
 
 ## Struktur
 

@@ -15,6 +15,7 @@ function openSheet(id, data){
     if (f.type === 'checkbox') f.checked = !!v; else if (f.tomselect) f.tomselect.setValue(v ?? '', true); else f.value = v ?? '';
     if (f.classList.contains('money')) fmtMoney(f);
   }
+  if (window.syncPickers) window.syncPickers(dlg);
   dlg.showModal();
   const first = dlg.querySelector('input.money, input:not([type=hidden])');
   if (first && window.matchMedia('(min-width:720px)').matches) setTimeout(() => first.focus(), 60);
@@ -114,4 +115,136 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
 (function(){
   if (!location.hash) return;
   requestAnimationFrame(() => document.querySelectorAll('.grid .v').forEach((el, i) => setTimeout(() => el.classList.add('tick'), 350 + i * 40)));
+})();
+
+// ===== Halaman bulan v2 =====
+// Tab transaksi: indikator geser, ingat tab terakhir; #expense/#income/#ef membuka tab terkait.
+(function(){
+  const tabs = document.getElementById('tabs'); if (!tabs) return;
+  const btns = [...tabs.querySelectorAll('[data-tab]')];
+  const panels = [...document.querySelectorAll('.tpanel')];
+  function show(name, save){
+    const i = Math.max(0, btns.findIndex(b => b.dataset.tab === name));
+    btns.forEach((b, j) => { b.classList.toggle('on', i === j); b.setAttribute('aria-selected', i === j); });
+    panels.forEach(p => { const on = p.dataset.panel === btns[i].dataset.tab; if (on !== p.classList.contains('on')) { p.classList.toggle('on', on); } });
+    tabs.style.setProperty('--x', i);
+    if (save) { try { localStorage.setItem('monetary-tab', btns[i].dataset.tab); } catch (e) {} }
+  }
+  btns.forEach(b => b.addEventListener('click', () => show(b.dataset.tab, true)));
+  const hashMap = { '#expense': 'expense', '#income': 'income', '#ef': 'fund', '#fund': 'fund' };
+  let initial = hashMap[location.hash];
+  if (!initial) { try { initial = localStorage.getItem('monetary-tab'); } catch (e) {} }
+  show(initial || 'expense', false);
+  if (location.hash && hashMap[location.hash]) history.replaceState(null, '', location.pathname);
+  // geser kiri/kanan di area panel untuk pindah tab (ponsel)
+  const wrap = document.querySelector('.panel-wrap'); let x0 = null, y0 = null;
+  wrap.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > 40) return;
+    const i = btns.findIndex(b => b.classList.contains('on')); const n = Math.min(btns.length - 1, Math.max(0, i + (dx < 0 ? 1 : -1)));
+    if (n !== i) show(btns[n].dataset.tab, true);
+  });
+})();
+
+// Strip bulan: bulan aktif selalu terlihat di tengah.
+(function(){
+  const on = document.querySelector('.mstrip .chip.on'); if (!on) return;
+  const strip = on.parentElement;
+  const left = on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2;
+  strip.scrollTo({ left, behavior: 'instant' in strip ? 'instant' : 'auto' });
+})();
+
+// Angka count-up saat halaman terbuka (hormati prefers-reduced-motion).
+(function(){
+  const els = document.querySelectorAll('[data-count]'); if (!els.length) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const fmt = n => { const s = Math.abs(Math.round(n)).toLocaleString('id-ID'); return (n < 0 ? '-' : '') + 'Rp ' + s; };
+  els.forEach((el, k) => {
+    const target = Number(el.dataset.count); if (!isFinite(target)) return;
+    const dur = 700, t0 = performance.now() + 120 + k * 60;
+    function step(now){
+      const p = Math.min(1, Math.max(0, (now - t0) / dur)); const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(target * e);
+      if (p < 1) requestAnimationFrame(step); else el.textContent = fmt(target);
+    }
+    el.textContent = fmt(0); requestAnimationFrame(step);
+  });
+})();
+
+// ===== Picker tanggal & bulan bertema (mengganti input date/month bawaan) =====
+(function(){
+  const M = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const ML = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const D = ['Sen','Sel','Rab','Kam','Jum','Sab','Min'];
+  const pad = n => String(n).padStart(2, '0');
+  const today = new Date(); const todayKey = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+  function label(kind, v){
+    if (!v) return kind === 'month' ? 'Pilih bulan' : 'Pilih tanggal';
+    const [y, m, d] = v.split('-').map(Number);
+    return kind === 'month' ? `${M[m-1]} ${y}` : `${d} ${M[m-1]} ${y}`;
+  }
+  let open = null;
+  function close(){ if (open) { open.pop.remove(); open = null; document.removeEventListener('pointerdown', onDoc, true); } }
+  function onDoc(e){ if (open && !open.pop.contains(e.target) && e.target !== open.btn) close(); }
+
+  function build(input, btn){
+    const kind = input.dataset.kind;
+    const pop = document.createElement('div'); pop.className = 'dp'; pop.setAttribute('role', 'dialog');
+    let view = input.value ? input.value.slice(0, 7) : todayKey.slice(0, 7);
+    let [vy, vm] = view.split('-').map(Number);
+    if (kind === 'month') vm = 0;
+    function set(v){ input.value = v; btn.querySelector('span').textContent = label(kind, v); btn.classList.toggle('empty', !v); input.dispatchEvent(new Event('change', { bubbles: true })); close(); }
+    function render(){
+      const cur = input.value;
+      let h = `<div class="dp-h"><button type="button" class="dp-nav" data-go="-1" aria-label="Sebelumnya">‹</button><b>${kind === 'month' ? vy : ML[vm-1] + ' ' + vy}</b><button type="button" class="dp-nav" data-go="1" aria-label="Berikutnya">›</button></div>`;
+      if (kind === 'month') {
+        h += '<div class="dp-grid m">' + M.map((n, i) => { const v = `${vy}-${pad(i+1)}`; return `<button type="button" data-v="${v}" class="${v === cur ? 'on' : ''} ${v === todayKey.slice(0,7) ? 'today' : ''}">${n}</button>`; }).join('') + '</div>';
+      } else {
+        h += '<div class="dp-grid w">' + D.map(d => `<i>${d}</i>`).join('') + '</div><div class="dp-grid d">';
+        const first = new Date(vy, vm - 1, 1); const off = (first.getDay() + 6) % 7; const days = new Date(vy, vm, 0).getDate();
+        for (let i = 0; i < off; i++) h += '<s></s>';
+        for (let d = 1; d <= days; d++) { const v = `${vy}-${pad(vm)}-${pad(d)}`; h += `<button type="button" data-v="${v}" class="${v === cur ? 'on' : ''} ${v === todayKey ? 'today' : ''}">${d}</button>`; }
+        h += '</div>';
+      }
+      h += `<div class="dp-f"><button type="button" class="dp-x" data-clear>Kosongkan</button><button type="button" class="dp-x" data-today>${kind === 'month' ? 'Bulan ini' : 'Hari ini'}</button></div>`;
+      pop.innerHTML = h;
+    }
+    pop.addEventListener('click', e => {
+      const go = e.target.closest('[data-go]'); if (go) { const n = +go.dataset.go; if (kind === 'month') vy += n; else { vm += n; if (vm < 1) { vm = 12; vy--; } if (vm > 12) { vm = 1; vy++; } } render(); return; }
+      const v = e.target.closest('[data-v]'); if (v) { set(v.dataset.v); return; }
+      if (e.target.closest('[data-clear]')) { set(''); return; }
+      if (e.target.closest('[data-today]')) { set(kind === 'month' ? todayKey.slice(0, 7) : todayKey); return; }
+    });
+    render();
+    return pop;
+  }
+  function place(pop, btn){
+    const r = btn.getBoundingClientRect(); const w = Math.min(320, window.innerWidth - 24);
+    pop.style.width = w + 'px';
+    let left = Math.min(Math.max(12, r.left), window.innerWidth - w - 12);
+    let top = r.bottom + 6; const hgt = pop.offsetHeight || 320;
+    if (top + hgt > window.innerHeight - 12) top = Math.max(12, r.top - hgt - 6);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+  function upgrade(input){
+    if (input.dataset.picker) return;
+    const kind = input.type === 'month' ? 'month' : 'date';
+    input.dataset.picker = '1'; input.dataset.kind = kind; input.type = 'hidden';
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'pick' + (input.value ? '' : ' empty');
+    btn.innerHTML = `<span>${label(kind, input.value)}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>`;
+    input.after(btn);
+    btn.addEventListener('click', () => {
+      if (open && open.btn === btn) { close(); return; } close();
+      const pop = build(input, btn);
+      (btn.closest('dialog[open]') || document.body).appendChild(pop);
+      place(pop, btn); open = { pop, btn };
+      setTimeout(() => document.addEventListener('pointerdown', onDoc, true), 0);
+    });
+    input.addEventListener('sync', () => { btn.querySelector('span').textContent = label(kind, input.value); btn.classList.toggle('empty', !input.value); });
+  }
+  document.querySelectorAll('input[type=date],input[type=month]').forEach(upgrade);
+  window.syncPickers = root => (root || document).querySelectorAll('input[data-picker]').forEach(i => i.dispatchEvent(new Event('sync')));
+  document.addEventListener('close', e => { if (e.target.matches('dialog')) close(); }, true);
+  window.addEventListener('resize', () => { if (open) place(open.pop, open.btn); });
 })();

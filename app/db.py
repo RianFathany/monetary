@@ -96,9 +96,19 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
+MIGRATIONS = [
+    # pemasukan yang langsung disetor ke dana darurat (tidak dihitung kas operasional)
+    "ALTER TABLE transactions ADD COLUMN to_fund INTEGER NOT NULL DEFAULT 0",
+]
+
+
 def init_db() -> None:
     with get_db() as db:
         db.executescript(SCHEMA)
+        cols = {r["name"] for r in db.execute("PRAGMA table_info(transactions)")}
+        if "to_fund" not in cols:
+            for m in MIGRATIONS:
+                db.execute(m)
         for name, kind, sort in DEFAULT_CATEGORIES:
             db.execute("INSERT OR IGNORE INTO categories(name, kind, sort) VALUES (?,?,?)", (name, kind, sort))
         for k, v in DEFAULT_SETTINGS.items():
