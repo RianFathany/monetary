@@ -31,11 +31,48 @@ def get_db():
         conn.close()
 
 
+def _adopt_prepared_db() -> bool:
+    """Pakai database hasil migrasi yang sudah ditaruh di sebelah database lama.
+
+    Dipakai saat deploy ke server yang volumenya masih berisi skema lama dan kita
+    tidak bisa menjalankan perintah di sana: cukup unggah `<nama>-v2.db`, lalu
+    aplikasi menukarnya sekali waktu start. Database lama disimpan sebagai
+    `<nama>-v1-backup.db`, tidak dihapus.
+    """
+    cur = Path(DB_PATH)
+    prepared = cur.with_name(f"{cur.stem}-v2{cur.suffix}")
+    if not prepared.exists():
+        return False
+    probe = sqlite3.connect(f"file:{prepared}?mode=ro", uri=True)
+    try:
+        is_v2 = probe.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='accounts'").fetchone()
+    finally:
+        probe.close()
+    if not is_v2:
+        return False
+    if cur.exists():
+        # rapikan WAL milik database lama dulu supaya tidak ada tulisan yang tertinggal,
+        # lalu sisihkan berkasnya sebagai cadangan
+        old = sqlite3.connect(str(cur))
+        try:
+            old.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        finally:
+            old.close()
+        cur.replace(cur.with_name(f"{cur.stem}-v1-backup{cur.suffix}"))
+        for side in ("-wal", "-shm"):
+            Path(str(cur) + side).unlink(missing_ok=True)
+    prepared.replace(cur)
+    return True
+
+
 def init_db() -> None:
     with get_db() as db:
         legacy = db.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='emergency_fund'"
         ).fetchone()
+    if legacy and _adopt_prepared_db():
+        legacy = None
+    with get_db() as db:
         if legacy:
             raise RuntimeError(
                 f"{DB_PATH} masih memakai skema lama. Jalankan: python3 scripts/migrate_v2.py --apply"
