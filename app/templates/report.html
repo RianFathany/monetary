@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Laporan {{ mk | month_label }} · Monetary{% endblock %}
+{% block content %}
+
+<div class="sec"><h2 style="font-size:18px">Laporan {{ mk | month_label }}</h2>
+  <form method="get" action="/report" style="display:flex;gap:6px;align-items:center">
+    <select name="mk" data-plain onchange="this.form.submit()" style="height:34px;width:auto;font-size:13px">
+      {% for m in months | reverse %}<option value="{{ m }}" {{ 'selected' if m==mk }}>{{ m | month_label }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Ringkasan -->
+<section class="card hero">
+  <div class="k">Ringkasan</div>
+  <p style="font-size:16px;line-height:1.55;margin:6px 0 12px;font-weight:500">{{ r.summary }}</p>
+  <div class="legend" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+    <div><b class="dot in"></b>Pemasukan <span class="num">{{ m.income | rupiah }}</span><small>rata-rata {{ m.avg_income | short }}</small></div>
+    <div><b class="dot out"></b>Pengeluaran <span class="num">{{ m.expense | rupiah }}</span><small>rata-rata {{ m.avg_expense | short }}</small></div>
+    <div><b class="dot"></b>Sisa kas <span class="num">{{ m.cash | rupiah }}</span><small>{{ '+' if m.cash_delta >= 0 else '−' }}{{ (m.cash_delta if m.cash_delta >= 0 else -m.cash_delta) | short }} bulan ini</small></div>
+  </div>
+</section>
+
+<!-- Indikator kesehatan -->
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>Kesehatan keuangan</h2><small>dihitung dari transaksimu sendiri</small></div>
+  <div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px">
+    {% for h in r.health %}
+    <div class="card stat" style="margin:0">
+      <div class="k">{{ h.label }}</div>
+      <div class="v num {{ 'bad' if h.tone=='bad' }}" style="{{ 'color:var(--ok)' if h.tone=='ok' }}">{{ h.value }}</div>
+      <div class="s">{{ h.note }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+{% if r.highlights %}
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>Sorotan</h2><small>dibanding rata-rata 3 bulan</small></div>
+  <ul style="margin:6px 0 0;padding-left:18px;line-height:1.7;font-size:14px">
+    {% for h in r.highlights %}<li>{{ h }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if r.tips %}
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>Saran</h2><small>maksimal empat, yang paling berdampak</small></div>
+  {% for t in r.tips %}
+  <div class="row static" style="--i:{{ loop.index0 }};display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--line2)">
+    <span class="av" style="--h:{{ loop.index0 * 70 }};width:28px;height:28px;font-size:12px">{{ loop.index }}</span>
+    <div class="main"><div class="name" style="white-space:normal;font-weight:500;line-height:1.5">{{ t.text }}</div></div>
+    <a class="btn" href="{{ t.href }}">{{ t.label }}</a>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<div class="two">
+<!-- Pengeluaran per kategori -->
+<section class="card">
+  <div class="sec"><h2>Pengeluaran per kategori</h2><small>bulan ini vs rata-rata 3 bulan</small></div>
+  <div class="comp">
+  {% set cmax = m.categories[0].value if m.categories else 1 %}
+  {% for c in m.categories[:10] %}
+  <a class="crow" href="/overview?m={{ mk }}&q={{ c.name | urlencode }}" style="--i:{{ loop.index0 }};--h:{{ c.name | hue }}">
+    <span class="cname"><i class="dot"></i>{{ c.name }}<small>{{ c.count }}×</small></span>
+    <span class="cbar"><i style="--w:{{ (c.value / cmax * 100) | round(1) }}%"></i></span>
+    <span class="cval num">{{ c.value | short }}<small>{% if c.avg %}{{ '+' if c.delta >= 0 else '−' }}{{ (c.delta if c.delta >= 0 else -c.delta) | short }} vs rata²{% else %}{{ (c.share * 100) | round(0) | int }}%{% endif %}</small></span>
+  </a>
+  {% else %}<div class="empty">Belum ada pengeluaran bulan ini.</div>{% endfor %}
+  </div>
+</section>
+
+<!-- Rencana bulan berjalan -->
+<section class="card">
+  <div class="sec"><h2>Belum tercatat</h2><small>dari template rutin</small></div>
+  {% for p in r.plan %}
+  <div class="row static" style="--i:{{ loop.index0 }};display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 4px;border-top:1px solid var(--line2)">
+    <span class="av" style="--h:{{ p.desc | hue }}">{{ p.desc[:2] }}</span>
+    <div class="main"><div class="name">{{ p.desc }}</div><div class="meta">{% if p.day %}<span>biasanya tgl {{ p.day }}</span>{% endif %}</div></div>
+    <b class="num">{{ p.amount | rupiah }}</b>
+  </div>
+  {% else %}<div class="empty"><b>Semua template rutin sudah tercatat.</b><span>Atur templatenya di <a href="/settings#recurring">Setelan</a>.</span></div>{% endfor %}
+  {% if r.plan %}
+  <form method="post" action="/m/{{ mk }}/apply-recurring" style="margin-top:8px">
+    <button class="primary" type="submit" style="width:100%">Isi yang belum tercatat</button>
+  </form>
+  {% endif %}
+</section>
+</div>
+
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>Tentang laporan ini</h2></div>
+  <p class="hint" style="margin:0">Disusun dari transaksimu sendiri dengan aturan tetap — tidak ada data yang
+  dikirim ke mana pun. Dibuat {{ r.generated_at | stamp }} lalu disimpan, jadi membukanya lagi tidak menghitung ulang.
+  <a href="/report?mk={{ mk }}&refresh=1">Buat ulang</a> kalau kamu baru mengubah transaksi bulan ini.</p>
+</section>
+{% endblock %}

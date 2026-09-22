@@ -1,68 +1,131 @@
 {% extends "base.html" %}
-{% block title %}Aset · Monetary{% endblock %}
+{% block title %}Aset · {{ mk | month_label }} · Monetary{% endblock %}
 {% block content %}
-<div class="sec"><h2 style="font-size:18px">Portofolio aset</h2>
+
+<div class="sec"><h2 style="font-size:18px">Aset</h2>
   <form method="get" action="/assets" style="display:flex;gap:6px;align-items:center">
     <select name="mk" data-plain onchange="this.form.submit()" style="height:34px;width:auto;font-size:13px">
-      {% for m in months %}<option value="{{ m }}" {{ 'selected' if m==mk }}>{{ m | month_label }}</option>{% endfor %}
-      {% if mk not in months %}<option value="{{ mk }}" selected>{{ mk | month_label }}</option>{% endif %}
+      {% for m in months | reverse %}<option value="{{ m }}" {{ 'selected' if m==mk }}>{{ m | month_label }}</option>{% endfor %}
     </select>
   </form>
 </div>
 
+<!-- Total & komposisi -->
 <section class="card hero">
   <div class="k">Total aset · {{ mk | month_label }}</div>
-  <div class="v big num" data-count="{{ total }}">{{ total | rupiah }}</div>
-  {% if total %}
-  <div class="flow" style="margin-top:14px">{% for c, v in by_cat.items() %}<i style="--w:{{ (v / total * 100) | round(1) }}%;background:hsl({{ c | hue }} 65% 55%)"></i>{% endfor %}</div>
-  <div class="legend" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-    {% for c, v in by_cat.items() %}<div><b class="dot" style="background:hsl({{ c | hue }} 65% 55%)"></b>{{ c }} <span class="num">{{ v | rupiah }}</span><small>{{ (v / total * 100) | round(0) | int }}%</small></div>{% endfor %}
+  <div class="v big num" data-count="{{ v.total }}">{{ v.total | rupiah }}</div>
+  {% set delta = v.total - prev_total %}
+  <div class="s">
+    {% if prev_total %}<span class="delta {{ 'up' if delta >= 0 else 'down' }}">{{ '▲' if delta >= 0 else '▼' }} {{ (delta if delta >= 0 else -delta) | short }}</span>
+    ({{ (delta / prev_total * 100) | round(1) }}%) vs bulan lalu{% else %}posisi awal{% endif %}
+    · termasuk kas jadi <b class="num">{{ (v.total + cash) | short }}</b>
+  </div>
+
+  {% if trend | length > 1 %}
+  <div class="trend" style="grid-template-columns:repeat({{ trend | length }},1fr)" aria-label="Tren total aset">
+    {% for t in trend %}
+    <a class="tm {{ 'on' if t.month == mk }}" href="/assets?mk={{ t.month }}" style="--i:{{ loop.index0 }}"
+       title="{{ t.month | month_label }}: {{ t.total | short }} (tabungan {{ t.fund | short }}, investasi {{ t.invest | short }})">
+      <span class="bars">
+        <i class="in" style="--h:{{ (t.fund / trend_max * 100) | round(1) }}%"></i>
+        <i class="out" style="--h:{{ (t.invest / trend_max * 100) | round(1) }}%"></i>
+      </span>
+      <span class="lbl">{{ (t.month | month_label)[:3] }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if v.total %}
+  <div class="flow" style="margin-top:14px">
+    {% for p in v.pots %}<i style="--w:{{ (p.value / v.total * 100) | round(1) }}%;background:hsl({{ p.name | hue }} 65% 55%)"></i>{% endfor %}
+  </div>
+  <div class="legend" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+    {% for p in v.pots %}
+    <div><b class="dot" style="background:hsl({{ p.name | hue }} 65% 55%)"></b>{{ p.name }}
+      <span class="num">{{ p.value | rupiah }}</span><small>{{ (p.value / v.total * 100) | round(0) | int }}%</small></div>
+    {% endfor %}
   </div>
   {% endif %}
 </section>
 
 <div class="two">
+<!-- Per kantong: modal vs nilai pasar -->
 <section class="card">
-  <div class="sec"><h2>Rincian</h2><small>ketuk untuk edit · geser kiri untuk hapus</small></div>
+  <div class="sec"><h2>Per kantong</h2><small>nilai pasar vs modal yang disetor</small></div>
+  <div class="panel-wrap" style="padding:0">
+    {% for p in v.pots %}
+    <div class="row arow" style="--i:{{ loop.index0 }}">
+      <span class="av" style="--h:{{ p.name | hue }}">{{ p.name[:2] }}</span>
+      <div class="main">
+        <div class="name">{{ p.name }}</div>
+        <div class="meta">
+          {% if p.type == 'investment' %}<span>modal {{ p.invested | short }}</span>
+            {% if p.gain %}<span class="pill {{ 'ok' if p.gain > 0 }}">{{ '+' if p.gain > 0 else '−' }}{{ (p.gain if p.gain > 0 else -p.gain) | short }}{% if p.invested %} · {{ ((p.gain if p.gain > 0 else -p.gain) / p.invested * 100) | round(1) }}%{% endif %}</span>{% endif %}
+            {% if p.stale %}<span class="pill warn">belum diperbarui</span>{% endif %}
+          {% else %}<span>dihitung dari mutasi transfer</span>{% endif %}
+        </div>
+      </div>
+      <div class="amt num">{{ p.value | rupiah }}</div>
+    </div>
+    {% else %}<div class="empty"><b>Belum ada kantong tabungan/investasi.</b><span>Tambahkan lewat <a href="/accounts">Kantong</a>.</span></div>{% endfor %}
+    <div class="foot"><span>Total</span><b class="num">{{ v.total | rupiah }}</b></div>
+  </div>
+</section>
+
+<!-- Rincian per simbol -->
+<section class="card">
+  <div class="sec"><h2>Rincian investasi</h2>
+    <small>{% if v.snap_month %}snapshot {{ v.snap_month | month_label }}{% if v.snap_month != mk %} (dipakai untuk {{ mk | month_label }}){% endif %}{% else %}belum ada snapshot{% endif %}</small>
+  </div>
   {% for a in rows %}
-  <div class="sw" data-del="/assets/{{ a.id }}/delete" data-del-title="{{ a.symbol }}" data-del-sub="{{ a.category }} · {{ a.amount | rupiah }} · {{ mk | month_label }}"><div class="sw-track">
-  <div class="row arow" style="--i:{{ loop.index0 }}" data-open="sheet-asset" data-fill='{{ {"month_key":mk,"category":a.category,"symbol":a.symbol,"amount":a.amount} | tojson }}'>
-    <span class="av" style="--h:{{ a.category | hue }}">{{ a.symbol[:3] }}</span>
-    <div class="main"><div class="name">{{ a.symbol }}</div><div class="meta"><span>{{ a.category }}</span>{% if total %}<span>{{ (a.amount / total * 100) | round(1) }}%</span>{% endif %}</div></div>
+  <div class="sw" data-del="/assets/{{ a.id }}/delete" data-del-title="{{ a.symbol }}" data-del-sub="{{ a.account }} · {{ a.amount | rupiah }} · {{ a.month_key | month_label }}"><div class="sw-track">
+  <div class="row arow" style="--i:{{ loop.index0 }}" data-open="sheet-asset" data-fill='{{ {"month_key":a.month_key,"account_id":a.account_id,"symbol":a.symbol,"amount":a.amount} | tojson }}'>
+    <span class="av" style="--h:{{ a.account | hue }}">{{ a.symbol[:3] }}</span>
+    <div class="main"><div class="name">{{ a.symbol }}</div>
+      <div class="meta"><span>{{ a.account }}</span>
+        {% if v.invest %}<span>{{ (a.amount / v.invest * 100) | round(1) }}%</span>{% endif %}
+        {% if a.prev is not none and a.prev != a.amount %}
+          {% set d = a.amount - a.prev %}
+          <span class="pill {{ 'ok' if d > 0 }}">{{ '+' if d > 0 else '−' }}{{ (d if d > 0 else -d) | short }} vs {{ v.prev_snap | month_label }}</span>
+        {% endif %}
+      </div>
+    </div>
     <div class="amt num">{{ a.amount | rupiah }}</div>
   </div>
   {% include "_swact.html" %}</div></div>
-  {% else %}<div class="empty">Belum ada snapshot untuk bulan ini.</div>{% endfor %}
-</section>
-
-<section class="card">
-  <div class="sec"><h2>Snapshot baru</h2></div>
-  <form method="post" action="/assets/copy">
-    <div class="f2">
-      <div><label>Salin dari</label><select name="from_month">{% for m in months %}<option value="{{ m }}">{{ m | month_label }}</option>{% endfor %}</select></div>
-      <div><label>Ke bulan</label><input type="month" name="to_month" value="{{ today[:7] }}" required></div>
-    </div>
-    <div class="actions"><button type="submit" {{ 'disabled' if not months }}>Salin snapshot</button></div>
-    <p class="hint">Salin posisi bulan lalu, lalu ketuk baris untuk memperbarui nilainya.</p>
-  </form>
+  {% else %}<div class="empty"><b>Belum ada nilai investasi.</b><span>Ketuk “+ Perbarui nilai” untuk mengisi.</span></div>{% endfor %}
 </section>
 </div>
 
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>Perbarui bulan ini</h2><small>salin posisi lalu ubah angkanya</small></div>
+  <form method="post" action="/assets/copy">
+    <div class="f2">
+      <div><label>Salin dari</label><select name="from_month">{% for m in months | reverse %}<option value="{{ m }}" {{ 'selected' if m==v.snap_month }}>{{ m | month_label }}</option>{% endfor %}</select></div>
+      <div><label>Ke bulan</label><input type="month" name="to_month" value="{{ today[:7] }}" required></div>
+    </div>
+    <div class="actions"><button type="submit" {{ 'disabled' if not v.snap_month }}>Salin snapshot</button></div>
+    <p class="hint">Setoran modal ke sekuritas/exchange dicatat sebagai <a href="/accounts">transfer</a>, bukan
+    pengeluaran. Selisih nilai pasar dengan modal itulah untung/rugi yang tampil di atas.</p>
+  </form>
+</section>
+
 <dialog class="sheet" id="sheet-asset"><div class="panel"><div class="grab"></div>
-  <h3>Aset</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>Nilai investasi</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
   <form method="post" action="/assets">
     <label>Bulan</label><input type="month" name="month_key" value="{{ mk }}" required>
     <div class="f2">
-      <div><label>Kategori</label><input name="category" list="asset-cats" placeholder="SAHAM / CRYPTO" required autocomplete="off"><datalist id="asset-cats"><option>SAHAM</option><option>CRYPTO</option><option>DEPOSITO</option><option>EMAS</option></datalist></div>
+      <div><label>Kantong</label><select name="account_id">{% for a in invest_accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
       <div><label>Simbol</label><input name="symbol" placeholder="BMRI, BTC, IDLE" required autocomplete="off"></div>
     </div>
-    <label>Nilai (Rp)</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
+    <label>Nilai pasar (Rp)</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
     <div class="actions"><button class="primary" type="submit">Simpan</button></div>
   </form>
 </div></dialog>
 {% endblock %}
 {% block fab %}
 <div class="fab"><div class="in" style="grid-template-columns:1fr">
-  <button type="button" class="primary" data-open="sheet-asset" data-fill='{{ {"month_key":mk} | tojson }}'><b>+</b> Tambah aset</button>
+  <button type="button" class="primary" data-open="sheet-asset" data-fill='{{ {"month_key":today[:7]} | tojson }}'><b>+</b> Perbarui nilai</button>
 </div></div>
 {% endblock %}

@@ -1,6 +1,11 @@
 """Import spreadsheet 'MRFNIP - Cashflow' ke SQLite Monetary.
 
-  python scripts/import_xlsx.py "reference/MRFNIP - Cashflow (2).xlsx" [--reset]
+  python scripts/import_xlsx.py "reference/MRFNIP - Cashflow (2).xlsx" [--reset] [--db data/monetary-v1.db]
+
+Spreadsheet ini memakai bentuk lama (kas & dana darurat terpisah), jadi hasilnya
+ditulis ke database v1 lalu dikonversi ke skema aplikasi dengan:
+
+  python scripts/migrate_v2.py --apply --src data/monetary-v1.db
 
 Layout tiap sheet bulanan (mis. NOV-25):
   A-D  : Tanggal, Category, Deskripsi, Amount  (pengeluaran, mulai baris 7)
@@ -16,8 +21,54 @@ from datetime import datetime, date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import sqlite3  # noqa: E402
+from contextlib import contextmanager  # noqa: E402
+
 import openpyxl  # noqa: E402
-from app.db import get_db, init_db, set_setting  # noqa: E402
+
+# Skema v1 sengaja ditulis ulang di sini: aplikasi sudah pakai skema v2, sementara
+# spreadsheet sumbernya masih berbentuk lama. Impor -> v1 -> migrate_v2 -> v2.
+V1_SCHEMA = """
+CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY, name TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('expense','income')),
+    sort INTEGER NOT NULL DEFAULT 100, active INTEGER NOT NULL DEFAULT 1, UNIQUE(name, kind));
+CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY, month_key TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('expense','income')), tx_date TEXT,
+    category_id INTEGER REFERENCES categories(id), description TEXT, amount INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'paid', to_fund INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS emergency_fund (
+    id INTEGER PRIMARY KEY, month_key TEXT NOT NULL, tx_date TEXT, description TEXT,
+    amount INTEGER NOT NULL, linked_tx_id INTEGER);
+CREATE TABLE IF NOT EXISTS assets (
+    id INTEGER PRIMARY KEY, month_key TEXT NOT NULL, category TEXT NOT NULL, symbol TEXT NOT NULL,
+    amount INTEGER NOT NULL, UNIQUE(month_key, category, symbol));
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+"""
+DB_OUT = "data/monetary-v1.db"
+
+
+@contextmanager
+def get_db():
+    Path(DB_OUT).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_OUT)
+    conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def init_db():
+    with get_db() as db:
+        db.executescript(V1_SCHEMA)
+
+
+def set_setting(db, key, value):
+    db.execute("INSERT INTO settings(key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+               (key, str(value)))
 
 SHEET_MONTHS = {"JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "MEI": 5, "JUN": 6, "JUL": 7,
                 "AUG": 8, "AGU": 8, "SEP": 9, "OKT": 10, "OCT": 10, "NOV": 11, "DES": 12, "DEC": 12}
@@ -150,4 +201,8 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
+    if "--db" in sys.argv:
+        DB_OUT = sys.argv[sys.argv.index("--db") + 1]
     main(sys.argv[1], "--reset" in sys.argv)
+    print(f"\nDitulis ke {DB_OUT} (skema lama). Lanjutkan dengan:\n"
+          f"  python3 scripts/migrate_v2.py --src {DB_OUT} --apply")

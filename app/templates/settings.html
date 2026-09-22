@@ -3,44 +3,56 @@
 {% block content %}
 
 <section class="card">
-  <div class="sec"><h2>Saldo awal</h2><small>posisi sebelum bulan pertama dicatat</small></div>
-  <form method="post" action="/settings/opening" class="sform">
-    <div class="f2">
-      <div><label>Bulan pertama</label><input type="month" name="first_month" value="{{ first_month }}"></div>
-      <div><label>Saldo kas</label><input class="money num" name="opening_balance" inputmode="numeric" value="{{ opening }}"></div>
-    </div>
-    <label>Dana darurat</label><input class="money num" name="opening_emergency" inputmode="numeric" value="{{ opening_ef }}">
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
-  </form>
+  <div class="sec"><h2>Perapihan</h2><small>transaksi impor yang kategorinya perlu dicek</small></div>
+  <a class="btn tall" href="/review" style="display:block"><b>Buka layar perapihan</b><span>aplikasi menyarankan kategori dari deskripsi; kamu yang memutuskan</span></a>
 </section>
 
 <section class="card" id="categories" style="margin-top:10px">
-  <div class="sec"><h2>Kategori</h2><small>ketuk × untuk menyembunyikan</small></div>
+  <div class="sec"><h2>Kategori</h2><small>ketuk untuk mengubah nama, urutan, atau menandai cicilan</small></div>
   {% for kind, title in [('expense','Pengeluaran'),('income','Pemasukan')] %}
-  <div class="k" style="margin:8px 0 6px">{{ title }}</div>
-  <div class="chips">
-    {% for c in cats if c.kind==kind %}
-    <form method="post" action="/settings/category/{{ c.id }}/hide" data-confirm="Sembunyikan kategori?" data-confirm-yes="Sembunyikan" data-confirm-what="{{ c.name }}" data-confirm-sub="{{ title }}" data-confirm-note="Kategori hanya disembunyikan dari pilihan; transaksi lama tetap utuh." class="cchip" style="--h:{{ c.name | hue }}">
-      <span>{{ c.name }}</span><button type="submit" aria-label="Sembunyikan {{ c.name }}">×</button>
-    </form>
+  <div class="k" style="margin:10px 0 6px">{{ title }}</div>
+  <div class="panel-wrap" style="padding:0">
+    {% for c in cats if c.kind==kind and not c.deleted_at %}
+    <div class="row {{ '' if c.active else 'planned' }}" style="--i:{{ loop.index0 }}"
+         data-open="sheet-cat-edit" data-fill='{{ {"id":c.id,"name":c.name,"sort":c.sort,"is_debt":c.is_debt,"active":"1" if c.active else "0","is_system":c.is_system} | tojson }}'>
+      <span class="av {{ 'in' if kind=='income' }}" style="--h:{{ c.name | hue }}">{{ c.name[:2] }}</span>
+      <div class="main">
+        <div class="name">{{ c.name }}</div>
+        <div class="meta">
+          {% if c.is_debt %}<span class="pill">cicilan</span>{% endif %}
+          {% if c.is_system %}<span class="pill">bawaan</span>{% endif %}
+          {% if not c.active %}<span class="pill warn">disembunyikan</span>{% endif %}
+          <span>{{ used.get(c.id, 0) }} transaksi</span>
+        </div>
+      </div>
+      <div class="amt num" style="font-size:13px;opacity:.5">#{{ c.sort }}</div>
+    </div>
     {% endfor %}
-    <button type="button" class="cchip add" data-open="sheet-cat" data-fill='{{ {"kind":kind} | tojson }}'>+ Tambah</button>
+  </div>
+  <div class="actions" style="margin-top:8px">
+    <button type="button" data-open="sheet-cat" data-fill='{{ {"kind":kind} | tojson }}'>+ Kategori {{ title | lower }}</button>
   </div>
   {% endfor %}
+  <p class="hint">Kategori bertanda <b>cicilan</b> dipakai menghitung rasio cicilan terhadap pemasukan di laporan bulanan.
+  Kategori <b>bawaan</b> tidak bisa dihapus karena dipakai sebagai penampung saat kategori lain dihapus.</p>
 </section>
 
 <section class="card" id="recurring" style="margin-top:10px">
   <div class="sec"><h2>Template rutin</h2><small>dipakai “Isi bulan ini” · geser kiri untuk hapus</small></div>
   <div class="panel-wrap" style="padding:0">
   {% for r in recurring %}
-  <div class="sw" data-del="/settings/recurring/{{ r.id }}/delete" data-del-title="{{ r.description or r.category or '—' }}" data-del-sub="{{ 'pemasukan' if r.kind=='income' else 'pengeluaran' }} · {{ r.amount | rupiah }}" data-del-note="Template dihapus; entri yang sudah dibuat di bulan-bulan sebelumnya tidak ikut terhapus."><div class="sw-track">
+  <div class="sw" data-del="/settings/recurring/{{ r.id }}/delete" data-del-title="{{ r.description or r.category or '—' }}" data-del-sub="{{ r.type }} · {{ r.amount | rupiah }}" data-del-note="Template dihapus; entri yang sudah dibuat tidak ikut terhapus."><div class="sw-track">
   <div class="row static tpl" style="--i:{{ loop.index0 }}">
-    <span class="av {{ 'in' if r.kind=='income' }}" style="--h:{{ (r.category or r.description or 'X') | hue }}">{{ (r.category or r.description or '·')[:2] }}</span>
+    <span class="av {{ 'in' if r.type=='income' }}" style="--h:{{ (r.category or r.description or 'X') | hue }}">{{ '⇄' if r.type=='transfer' else (r.category or r.description or '·')[:2] }}</span>
     <div class="main">
       <div class="name">{{ r.description or r.category or '—' }}</div>
-      <div class="meta">{% if r.category and r.description %}<span>{{ r.category }}</span>{% endif %}<span>{{ 'pemasukan' if r.kind=='income' else 'pengeluaran' }}</span>{% if r.day_of_month %}<span>tgl {{ r.day_of_month }}</span>{% endif %}</div>
+      <div class="meta">
+        {% if r.type=='transfer' %}<span>{{ r.account }} → {{ r.to_account }}</span>
+        {% else %}{% if r.category %}<span>{{ r.category }}</span>{% endif %}<span>{{ 'pemasukan' if r.type=='income' else 'pengeluaran' }}</span>{% endif %}
+        {% if r.day_of_month %}<span>tgl {{ r.day_of_month }}</span>{% endif %}
+      </div>
     </div>
-    <div class="amt num {{ 'in' if r.kind=='income' }}">{{ r.amount | rupiah }}</div>
+    <div class="amt num {{ 'in' if r.type=='income' }}">{{ r.amount | rupiah }}</div>
   </div>
   {% include "_swact.html" %}</div></div>
   {% else %}<div class="empty"><b>Belum ada template.</b><span>Tambahkan KPR, tagihan kartu, gaji — hal yang berulang tiap bulan.</span></div>{% endfor %}
@@ -49,10 +61,18 @@
 </section>
 
 <section class="card" style="margin-top:10px">
+  <div class="sec"><h2>Buku</h2><small>kantong & saldo awal diatur di <a href="/accounts">Kantong</a></small></div>
+  <form method="post" action="/settings/opening" class="sform">
+    <label>Bulan pertama yang dicatat</label><input type="month" name="first_month" value="{{ first_month }}">
+    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+  </form>
+</section>
+
+<section class="card" style="margin-top:10px">
   <div class="sec"><h2>Backup & ekspor</h2><small>data Anda, milik Anda</small></div>
   <div class="grid2" style="margin-top:4px">
     <a class="btn tall" href="/backup.db" download><b>Unduh backup</b><span>file .db lengkap, bisa dipulihkan</span></a>
-    <a class="btn tall" href="/export.xlsx" download><b>Ekspor Excel</b><span>satu sheet per bulan, seperti spreadsheet asal</span></a>
+    <a class="btn tall" href="/export.xlsx" download><b>Ekspor Excel</b><span>ringkasan + satu sheet per bulan</span></a>
   </div>
 </section>
 
@@ -81,14 +101,19 @@
   <h3>Template rutin baru</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
   <form method="post" action="/settings/recurring">
     <div class="seg" style="margin-top:8px">
-      <label><input type="radio" name="kind" value="expense" checked><span>Pengeluaran</span></label>
-      <label><input type="radio" name="kind" value="income"><span>Pemasukan</span></label>
+      <label><input type="radio" name="type" value="expense" checked><span>Keluar</span></label>
+      <label><input type="radio" name="type" value="income"><span>Masuk</span></label>
+      <label><input type="radio" name="type" value="transfer"><span>Transfer</span></label>
     </div>
     <label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
     <label>Deskripsi</label><input name="description" placeholder="mis. KPR rumah" autocomplete="off">
     <div class="f2">
-      <div><label>Kategori</label><select name="category_id"><option value="">—</option>{% for c in cats %}<option value="{{ c.id }}">{{ c.name }} · {{ 'masuk' if c.kind=='income' else 'keluar' }}</option>{% endfor %}</select></div>
+      <div><label>Kategori</label><select name="category_id"><option value="">—</option>{% for c in cats if c.active %}<option value="{{ c.id }}">{{ c.name }} · {{ 'masuk' if c.kind=='income' else 'keluar' }}</option>{% endfor %}</select></div>
       <div><label>Tanggal (1–28)</label><input type="number" name="day_of_month" min="1" max="28" inputmode="numeric" placeholder="25"></div>
+    </div>
+    <div class="f2">
+      <div><label>Kantong</label><select name="account_id">{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+      <div><label>Ke kantong (transfer)</label><select name="to_account_id"><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
     </div>
     <div class="actions"><button class="primary" type="submit">Simpan</button></div>
   </form>
@@ -101,8 +126,37 @@
       <label><input type="radio" name="kind" value="expense" checked><span>Pengeluaran</span></label>
       <label><input type="radio" name="kind" value="income"><span>Pemasukan</span></label>
     </div>
-    <label>Nama</label><input name="name" placeholder="mis. CIMB" required autocomplete="off" style="text-transform:uppercase">
+    <label>Nama</label><input name="name" placeholder="mis. Langganan, Hewan peliharaan" required autocomplete="off">
+    <label class="check"><input type="checkbox" name="is_debt" value="1"><span>Hitung sebagai cicilan/utang<small>dipakai di rasio cicilan pada laporan bulanan</small></span></label>
     <div class="actions"><button class="primary" type="submit">Tambah</button></div>
   </form>
 </div></dialog>
+
+<dialog class="sheet" id="sheet-cat-edit"><div class="panel"><div class="grab"></div>
+  <h3>Ubah kategori</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <form method="post" action="" id="cat-form">
+    <label>Nama</label><input name="name" required autocomplete="off">
+    <div class="f2">
+      <div><label>Urutan</label><input name="sort" inputmode="numeric" value="100"></div>
+      <div><label>Status</label><select name="active"><option value="1">Tampil</option><option value="0">Sembunyikan</option></select></div>
+    </div>
+    <label class="check"><input type="checkbox" name="is_debt" value="1"><span>Hitung sebagai cicilan/utang</span></label>
+    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+  </form>
+  <form method="post" action="" id="cat-del" data-del data-confirm="Hapus kategori ini?"
+        data-confirm-note="Transaksi yang memakainya dipindah ke kategori “Lainnya” dan ditandai untuk ditinjau."
+        style="margin-top:8px"><button class="danger" type="submit" style="width:100%">Hapus</button></form>
+</div></dialog>
+
+<script>
+document.addEventListener('click', e => {
+  const row = e.target.closest('[data-open="sheet-cat-edit"]'); if (!row) return;
+  const d = JSON.parse(row.dataset.fill);
+  document.getElementById('cat-form').action = `/settings/category/${d.id}/edit`;
+  const del = document.getElementById('cat-del');
+  del.action = `/settings/category/${d.id}/delete`;
+  del.removeAttribute('data-ok');
+  del.hidden = !!d.is_system;      // kategori bawaan tidak bisa dihapus
+});
+</script>
 {% endblock %}

@@ -4,8 +4,8 @@
 {% set mx = (rows | map(attribute='income') | list + rows | map(attribute='expense') | list + [1]) | max %}
 {% set last = rows[-1] if rows else none %}
 <div class="grid2">
-  <section class="card stat"><div class="k">Sisa saldo terkini</div><div class="v num {{ 'bad' if last and last.balance < 0 }}" data-count="{{ last.balance if last else 0 }}">{{ (last.balance if last else 0) | rupiah }}</div><div class="s">{{ last.month | month_label if last }}</div></section>
-  <section class="card stat"><div class="k">Total assets</div><div class="v num" data-count="{{ last.total_assets if last else 0 }}">{{ (last.total_assets if last else 0) | rupiah }}</div><div class="s">dana darurat {{ (last.ef_cur if last else 0) | short }} · aset {{ (last.assets_total if last else 0) | short }}</div></section>
+  <section class="card stat"><div class="k">Sisa kas terkini</div><div class="v num {{ 'bad' if last and last.cash_balance < 0 }}" data-count="{{ last.cash_balance if last else 0 }}">{{ (last.cash_balance if last else 0) | rupiah }}</div><div class="s">{{ last.month | month_label if last }}</div></section>
+  <section class="card stat"><div class="k">Total assets</div><div class="v num" data-count="{{ last.total_assets if last else 0 }}">{{ (last.total_assets if last else 0) | rupiah }}</div><div class="s">dana darurat {{ (last.fund_balance if last else 0) | short }} · aset {{ (last.invest if last else 0) | short }}</div></section>
 </div>
 
 {# ===== Dashboard per bulan ===== #}
@@ -21,9 +21,9 @@
 
   {% set inc = qtot.i if q else s.income %}{% set exp = qtot.e if q else s.expense %}
   <div class="kpi kpi3">
-    <div><span class="k">Pemasukan</span><b class="num in" data-count="{{ inc }}">{{ inc | rupiah }}</b><small>{% if not q and s.income_fund %}+{{ s.income_fund | short }} ke dana darurat{% else %}{{ comp_inc | sum(attribute='n') }} entri{% endif %}</small></div>
+    <div><span class="k">Pemasukan</span><b class="num in" data-count="{{ inc }}">{{ inc | rupiah }}</b><small>{% if not q and s.saved %}{{ s.saved | short }} ditabung{% else %}{{ comp_inc | sum(attribute='n') }} entri{% endif %}</small></div>
     <div><span class="k">Pengeluaran</span><b class="num" data-count="{{ exp }}">{{ exp | rupiah }}</b><small>{% if not q and s.unpaid %}<span class="warn">{{ s.unpaid | short }} belum dibayar</span>{% else %}{{ comp_exp | sum(attribute='n') }} entri{% endif %}</small></div>
-    <div><span class="k">{{ 'Selisih (hasil cari)' if q else 'Sisa bulan ini' }}</span><b class="num {{ 'bad' if inc - exp < 0 }}" data-count="{{ inc - exp }}">{{ (inc - exp) | rupiah }}</b><small>{% if not q %}saldo akhir {{ s.balance | short }}{% else %}masuk − keluar{% endif %}</small></div>
+    <div><span class="k">{{ 'Selisih (hasil cari)' if q else 'Sisa bulan ini' }}</span><b class="num {{ 'bad' if inc - exp < 0 }}" data-count="{{ inc - exp }}">{{ (inc - exp) | rupiah }}</b><small>{% if not q %}sisa kas {{ s.cash_balance | short }}{% else %}masuk − keluar{% endif %}</small></div>
   </div>
 
   <div class="sec" style="margin-top:14px"><h2>{{ sel[:4] }} per bulan</h2><small>masuk vs keluar · ketuk untuk pindah</small></div>
@@ -60,10 +60,10 @@
   <div class="sec" style="margin-top:16px"><h2>Entri terbesar</h2><small>{{ sel | month_label }}</small></div>
   <div class="toplist">
     {% for t in top %}
-    <a class="trow" href="/m/{{ t.month_key }}#{{ 'income' if t.kind=='income' else 'expense' }}" style="--i:{{ loop.index0 }}">
-      <span class="av {{ 'in' if t.kind=='income' }}" style="--h:{{ (t.category or 'X') | hue }}">{{ (t.category or '·')[:2] }}</span>
-      <span class="main"><span class="name">{{ t.description or t.category or '—' }}</span><span class="meta">{{ 'pemasukan' if t.kind=='income' else 'pengeluaran' }}{% if t.category %} · {{ t.category }}{% endif %}{% if t.tx_date %} · {{ t.tx_date | fmt_date }}{% endif %}</span></span>
-      <b class="num {{ 'in' if t.kind=='income' }}">{{ '+' if t.kind=='income' else '−' }}{{ t.amount | rupiah | replace('Rp ','') }}</b>
+    <a class="trow" href="/m/{{ t.month_key }}#{{ 'income' if t.type=='income' else 'expense' }}" style="--i:{{ loop.index0 }}">
+      <span class="av {{ 'in' if t.type=='income' }}" style="--h:{{ (t.category or 'X') | hue }}">{{ (t.category or '·')[:2] }}</span>
+      <span class="main"><span class="name">{{ t.description or t.category or '—' }}</span><span class="meta">{{ 'pemasukan' if t.type=='income' else 'pengeluaran' }}{% if t.category %} · {{ t.category }}{% endif %}{% if t.tx_date %} · {{ t.tx_date | fmt_date }}{% endif %}</span></span>
+      <b class="num {{ 'in' if t.type=='income' }}">{{ '+' if t.type=='income' else '−' }}{{ t.amount | rupiah | replace('Rp ','') }}</b>
     </a>
     {% endfor %}
   </div>
@@ -77,7 +77,7 @@
   <div class="mlist">
   {% for r in rows | reverse %}
   <a class="mrow" href="/m/{{ r.month }}" style="--i:{{ loop.index0 }}">
-    <div class="mname"><b>{{ r.month | month_label }}</b><span class="{{ 'bad' if r.balance < 0 else '' }}">sisa {{ r.balance | short }}</span></div>
+    <div class="mname"><b>{{ r.month | month_label }}</b><span class="{{ 'bad' if r.cash_balance < 0 else '' }}">sisa {{ r.cash_balance | short }}</span></div>
     <div class="mbars">
       <i class="in" style="--w:{{ (r.income / mx * 100) | round(1) }}%"></i>
       <i class="out" style="--w:{{ (r.expense / mx * 100) | round(1) }}%"></i>
@@ -92,7 +92,7 @@
   <div class="sec"><h2>Dana darurat & assets</h2><small>posisi akhir bulan</small></div>
   <div class="tscroll"><table>
     <thead><tr><th>Bulan</th><th class="n">Saldo awal</th><th class="n">Sisa</th><th class="n">Dana darurat</th><th class="n">Total assets</th></tr></thead>
-    <tbody>{% for r in rows | reverse %}<tr><td><a href="/m/{{ r.month }}">{{ r.month | month_label }}</a></td><td class="n num">{{ r.prev_balance | rupiah }}</td><td class="n num" style="{{ 'color:var(--bad)' if r.balance < 0 }}"><b>{{ r.balance | rupiah }}</b></td><td class="n num">{{ r.ef_cur | rupiah }}</td><td class="n num">{{ r.total_assets | rupiah }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for r in rows | reverse %}<tr><td><a href="/m/{{ r.month }}">{{ r.month | month_label }}</a></td><td class="n num">{{ r.cash_prev | rupiah }}</td><td class="n num" style="{{ 'color:var(--bad)' if r.cash_balance < 0 }}"><b>{{ r.cash_balance | rupiah }}</b></td><td class="n num">{{ r.fund_balance | rupiah }}</td><td class="n num">{{ r.total_assets | rupiah }}</td></tr>{% endfor %}</tbody>
   </table></div>
 </section>
 {% endblock %}

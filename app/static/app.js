@@ -73,8 +73,12 @@ document.addEventListener('click', e => {
   dlg.querySelector('form').action = `/tx/${d.id}/edit`;
   const df = dlg.querySelector('[data-del]'); df.action = `/tx/${d.id}/delete`; delete df.dataset.ok;
   df.dataset.confirmWhat = d.description || r.querySelector('.name').textContent; df.dataset.confirmSub = r.querySelector('.amt').textContent + (d.tx_date ? ' · ' + d.tx_date : '');
-  dlg.querySelector('h3').textContent = d.kind === 'income' ? 'Edit pemasukan' : 'Edit pengeluaran';
+  const isT = d.kind === 'transfer';
+  dlg.querySelector('h3').textContent = isT ? 'Edit transfer' : (d.kind === 'income' ? 'Edit pemasukan' : 'Edit pengeluaran');
   dlg.querySelector('#edit-status-wrap').hidden = d.kind !== 'expense';
+  dlg.querySelector('#edit-category-wrap').hidden = isT;
+  dlg.querySelector('#edit-to-wrap').hidden = !isT;
+  dlg.querySelector('#edit-account-wrap label').textContent = isT ? 'Dari kantong' : 'Kantong';
 });
 // ===== Popup konfirmasi (pengganti confirm() bawaan) =====
 // confirmDialog({title, what, sub, note}) -> Promise<boolean>
