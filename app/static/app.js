@@ -346,3 +346,57 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   let t; f.q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => f.requestSubmit ? f.requestSubmit() : f.submit(), 550); });
   const on = f.querySelector('.fchips .chip.on'); if (on) { const st = on.parentElement; st.scrollTo({ left: on.offsetLeft - (st.clientWidth - on.offsetWidth) / 2 }); }
 })();
+
+// ===== Kolom wajib: tanda * pada label, catatan di footer, dan pesan jelas saat kosong =====
+(function(){
+  const MSG = { amount: 'Jumlah wajib diisi', password: 'Password wajib diisi', name: 'Nama wajib diisi', symbol: 'Simbol wajib diisi', category: 'Kategori wajib diisi' };
+  const label = f => { let el = f.previousElementSibling; while (el && el.tagName !== 'LABEL') el = el.previousElementSibling; if (!el) { const w = f.parentElement; el = w && w.querySelector(':scope > label'); } return el; };
+  document.querySelectorAll('form').forEach(form => {
+    const req = [...form.querySelectorAll('[required]')]; if (!req.length) return;
+    form.noValidate = true;                                   // pakai pesan kita, bukan balon bawaan browser
+    req.forEach(f => { const l = label(f); if (l) l.classList.add('req'); });
+    const act = form.querySelector('.actions');
+    if (act && !act.querySelector('.reqnote') && !form.closest('.doorcard')) act.insertAdjacentHTML('afterbegin', '<small class="reqnote"><b>*</b> wajib diisi</small>');
+  });
+  function fieldEl(f){ return f.tomselect ? f.tomselect.wrapper : (f.dataset.picker ? f.nextElementSibling : f); }
+  function msgFor(f){
+    if (f.classList.contains('money')) return (f.value.replace(/\D/g, '') === '' ? MSG.amount : 'Jumlah harus lebih dari 0');
+    if (MSG[f.name]) return MSG[f.name];
+    const l = label(f); return (l ? l.textContent.replace('*', '').trim() : 'Kolom ini') + ' wajib diisi';
+  }
+  function invalid(f){
+    if (f.disabled) return false;
+    if (f.classList.contains('money')) return !(Number(f.value.replace(/\D/g, '')) > 0);
+    return f.required && !f.value.trim();
+  }
+  function clear(f){ const el = fieldEl(f); el.classList.remove('invalid'); const m = el.nextElementSibling; if (m && m.classList.contains('fmsg')) m.remove(); }
+  function mark(f){
+    clear(f); const el = fieldEl(f); el.classList.add('invalid');
+    el.insertAdjacentHTML('afterend', `<div class="fmsg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>${msgFor(f)}</div>`);
+  }
+  document.addEventListener('submit', e => {
+    const form = e.target; if (!form.noValidate) return;
+    const bad = [...form.querySelectorAll('[required]')].filter(invalid);
+    if (!bad.length) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    bad.forEach(mark);
+    const first = bad[0]; const el = fieldEl(first);
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (navigator.vibrate) navigator.vibrate([12, 40, 12]);
+    (first.tomselect ? first.tomselect.control_input : (first.dataset.picker ? el : first)).focus({ preventScroll: true });
+    const text = bad.length === 1 ? 'Ada kolom wajib (*) yang belum diisi' : `${bad.length} kolom wajib (*) belum diisi`;
+    if (form.closest('dialog[open]')) {                       // di dalam sheet: toast tertutup backdrop, pakai banner di atas form
+      let b = form.querySelector('.fbanner'); if (!b) { b = document.createElement('div'); b.className = 'fbanner'; form.prepend(b); }
+      b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>${text}</span>`;
+      b.hidden = false; b.classList.add('on');
+      clearTimeout(b._h); b._h = setTimeout(() => { b.classList.remove('on'); b.hidden = true; }, 3000);
+    } else {
+      const t = document.getElementById('toast');
+      if (t) { t.textContent = text; t.classList.add('on', 'err'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on', 'err'), 2400); }
+    }
+  }, true);
+  document.addEventListener('input', e => { if (e.target.matches('[required]')) clear(e.target); });
+  document.addEventListener('change', e => { if (e.target.matches('[required]')) clear(e.target); });
+  // bersihkan tanda saat sheet dibuka lagi
+  document.querySelectorAll('dialog').forEach(d => d.addEventListener('close', () => { d.querySelectorAll('[required]').forEach(clear); d.querySelectorAll('.fbanner').forEach(b => { b.classList.remove('on'); b.hidden = true; }); }));
+})();
