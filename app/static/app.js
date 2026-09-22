@@ -71,14 +71,105 @@ document.addEventListener('click', e => {
   }
   openSheet('sheet-edit', d);
   dlg.querySelector('form').action = `/tx/${d.id}/edit`;
-  dlg.querySelector('[data-del]').action = `/tx/${d.id}/delete`;
+  const df = dlg.querySelector('[data-del]'); df.action = `/tx/${d.id}/delete`; delete df.dataset.ok;
+  df.dataset.confirmWhat = d.description || r.querySelector('.name').textContent; df.dataset.confirmSub = r.querySelector('.amt').textContent + (d.tx_date ? ' · ' + d.tx_date : '');
   dlg.querySelector('h3').textContent = d.kind === 'income' ? 'Edit pemasukan' : 'Edit pengeluaran';
   dlg.querySelector('#edit-status-wrap').hidden = d.kind !== 'expense';
 });
-// Konfirmasi hapus
+// ===== Popup konfirmasi (pengganti confirm() bawaan) =====
+// confirmDialog({title, what, sub, note}) -> Promise<boolean>
+window.confirmDialog = function(opt){
+  const dlg = document.getElementById('confirm');
+  if (!dlg || !dlg.showModal) return Promise.resolve(confirm(opt.title || 'Hapus?'));
+  dlg.querySelector('#confirm-title').textContent = opt.title || 'Hapus entri ini?';
+  const what = dlg.querySelector('#confirm-what');
+  what.hidden = !opt.what; what.querySelector('b').textContent = opt.what || ''; what.querySelector('span').textContent = opt.sub || '';
+  const note = dlg.querySelector('#confirm-note'); note.hidden = !opt.note; note.textContent = opt.note || '';
+  dlg.querySelector('[data-confirm-yes]').textContent = opt.yes || 'Hapus';
+  return new Promise(res => {
+    const yes = dlg.querySelector('[data-confirm-yes]'), no = dlg.querySelector('[data-confirm-no]');
+    function finish(v){
+      yes.onclick = no.onclick = dlg.oncancel = dlg.onclick = null;
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced) { dlg.close(); res(v); return; }
+      dlg.classList.add('closing');
+      const done = () => { dlg.classList.remove('closing'); dlg.close(); res(v); };
+      dlg.querySelector('.cbox').addEventListener('animationend', done, { once: true });
+      setTimeout(done, 300);
+    }
+    yes.onclick = () => finish(true); no.onclick = () => finish(false);
+    dlg.oncancel = e => { e.preventDefault(); finish(false); };
+    dlg.onclick = e => { if (e.target === dlg) finish(false); };
+    dlg.showModal();
+    if (navigator.vibrate) navigator.vibrate(8);
+    setTimeout(() => no.focus(), 50);
+  });
+};
+// form[data-confirm] -> tanya dulu lewat popup, lalu kirim
 document.addEventListener('submit', e => {
-  if (e.target.matches('[data-confirm]') && !confirm(e.target.dataset.confirm)) e.preventDefault();
+  const f = e.target; if (!f.matches('[data-confirm]') || f.dataset.ok) return;
+  e.preventDefault();
+  confirmDialog({ title: f.dataset.confirm, note: f.dataset.confirmNote, what: f.dataset.confirmWhat, sub: f.dataset.confirmSub, yes: f.dataset.confirmYes })
+    .then(ok => { if (ok) { f.dataset.ok = '1'; f.submit(); } });
 });
+
+// ===== Geser kiri pada baris untuk hapus =====
+(function(){
+  const W = 88, FULL = 0.5;                       // lebar tombol; rasio geser untuk langsung konfirmasi
+  let openEl = null;
+  function setX(el, x){ el.style.setProperty('--x', x + 'px'); }
+  function closeOpen(){ if (openEl) { openEl.classList.add('snap'); setX(openEl, 0); openEl.classList.remove('open', 'arm'); openEl = null; } }
+  function ask(el){
+    closeOpen(); el.classList.add('snap'); setX(el, W); el.classList.add('open'); openEl = el;
+    confirmDialog({ title: 'Hapus entri ini?', what: el.dataset.delTitle, sub: el.dataset.delSub, note: el.dataset.delNote }).then(ok => {
+      if (!ok) { closeOpen(); return; }
+      const f = document.getElementById('swform'); if (!f) return;
+      f.action = el.dataset.del;
+      el.style.height = el.offsetHeight + 'px'; el.classList.add('leaving');
+      el.addEventListener('animationend', () => f.submit(), { once: true });
+      setTimeout(() => f.submit(), 400);
+    });
+  }
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.sw-del'); if (b) { ask(b.closest('.sw')); return; }
+    if (openEl && !e.target.closest('.sw.open')) closeOpen();
+  });
+  document.querySelectorAll('.sw').forEach(el => {
+    let x0 = 0, y0 = 0, x = 0, base = 0, drag = null, id = null;
+    el.addEventListener('pointerdown', e => {
+      if (e.button) return;
+      x0 = e.clientX; y0 = e.clientY; base = el.classList.contains('open') ? W : 0; drag = null; id = e.pointerId;
+      el.classList.remove('snap');
+    });
+    el.addEventListener('pointermove', e => {
+      if (id !== e.pointerId) return;
+      const dx = e.clientX - x0, dy = e.clientY - y0;
+      if (drag === null) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; drag = Math.abs(dx) > Math.abs(dy) * 1.2; if (!drag) { id = null; return; } el.setPointerCapture(id); if (openEl && openEl !== el) closeOpen(); }
+      x = Math.max(0, base - dx);
+      const max = el.offsetWidth * FULL;
+      if (x > W) x = W + (x - W) * 0.55;             // tahanan setelah tombol terlihat
+      setX(el, x);
+      const arm = x > max; if (arm !== el.classList.contains('arm')) { el.classList.toggle('arm', arm); if (arm && navigator.vibrate) navigator.vibrate(6); }
+      e.preventDefault();
+    });
+    function end(e){
+      if (id !== e.pointerId) return; id = null;
+      if (!drag) return;
+      el.classList.add('snap');
+      const wasArm = el.classList.contains('arm'); el.classList.remove('arm');
+      if (wasArm) { ask(el); }
+      else if (x > W * 0.45) { setX(el, W); el.classList.add('open'); openEl = el; }
+      else { setX(el, 0); el.classList.remove('open'); if (openEl === el) openEl = null; }
+      // cegah klik (buka edit) & geser tab setelah drag
+      const stop = ev => { ev.stopPropagation(); ev.preventDefault(); };
+      el.addEventListener('click', stop, { capture: true, once: true }); setTimeout(() => el.removeEventListener('click', stop, { capture: true }), 350);
+      e.stopPropagation();
+    }
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    el.addEventListener('touchend', e => { if (drag || el.classList.contains('open')) e.stopPropagation(); }, true);
+    el.addEventListener('dragstart', e => e.preventDefault());
+  });
+})();
 // Pilih bulan
 document.addEventListener('change', e => { if (e.target.id === 'month-select') location.href = '/m/' + e.target.value; });
 
@@ -247,4 +338,11 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   window.syncPickers = root => (root || document).querySelectorAll('input[data-picker]').forEach(i => i.dispatchEvent(new Event('sync')));
   document.addEventListener('close', e => { if (e.target.matches('dialog')) close(); }, true);
   window.addEventListener('resize', () => { if (open) place(open.pop, open.btn); });
+})();
+
+// ===== Dashboard: pencarian kirim otomatis; chip bulan aktif digulir ke tengah =====
+(function(){
+  const f = document.getElementById('dash-filters'); if (!f) return;
+  let t; f.q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => f.requestSubmit ? f.requestSubmit() : f.submit(), 550); });
+  const on = f.querySelector('.fchips .chip.on'); if (on) { const st = on.parentElement; st.scrollTo({ left: on.offsetLeft - (st.clientWidth - on.offsetWidth) / 2 }); }
 })();

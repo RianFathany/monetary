@@ -1,10 +1,11 @@
 """Monetary — catatan kas masuk/keluar, dana darurat, dan aset. Satu user, satu file SQLite."""
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -477,6 +478,72 @@ def category_hide(request: Request, cid: int):
     return RedirectResponse("/settings#categories", status_code=303)
 
 
+# ---------- backup & ekspor ----------
+
+@app.get("/backup.db")
+def backup_db(request: Request):
+    """Salinan konsisten database SQLite (VACUUM INTO) untuk diunduh."""
+    if (r := require_login(request)):
+        return r
+    import tempfile
+    from .db import DB_PATH
+    tmp = Path(tempfile.mkdtemp()) / f"monetary-{date.today().isoformat()}.db"
+    with get_db() as db:
+        db.execute("VACUUM INTO ?", (str(tmp),))
+    return FileResponse(str(tmp), media_type="application/vnd.sqlite3", filename=tmp.name)
+
+
+@app.get("/export.xlsx")
+def export_xlsx(request: Request):
+    """Ekspor ke Excel dengan layout mirip spreadsheet asal: satu sheet per bulan + ringkasan + aset."""
+    if (r := require_login(request)):
+        return r
+    import io
+    import openpyxl
+    from openpyxl.styles import Font
+    wb = openpyxl.Workbook()
+    bold = Font(bold=True)
+    with get_db() as db:
+        months = months_available(db)
+        ws = wb.active
+        ws.title = "RINGKASAN"
+        ws.append(["Bulan", "Saldo awal", "Pemasukan", "Pengeluaran", "Sisa saldo", "Dana darurat", "Aset", "Total assets"])
+        for c in ws[1]:
+            c.font = bold
+        for mk in months:
+            s = month_summary(db, mk)
+            ws.append([mk, s["prev_balance"], s["income"], s["expense"], s["balance"], s["ef_cur"], s["assets_total"], s["total_assets"]])
+        for mk in months:
+            s = month_summary(db, mk)
+            lists = month_lists(db, mk)
+            w = wb.create_sheet(month_label(mk).upper().replace(" ", "-"))
+            w.append(["Saldo sebelumnya", s["prev_balance"]]); w.append(["Total Pengeluaran", s["expense"]])
+            w.append(["Total Pemasukan", s["income"]]); w.append(["Sisa Saldo", s["balance"]])
+            w.append([]); w.append(["Tanggal", "Category", "Deskripsi", "Amount", "Status", "", "Pemasukan", "Amount", "Ke dana darurat", "", "Dana darurat", "Amount", "Tanggal"])
+            for c in w[6]:
+                c.font = bold
+            ex, inc, ef = lists["expenses"], lists["incomes"], lists["ef_rows"]
+            for i in range(max(len(ex), len(inc), len(ef))):
+                row = [None] * 13
+                if i < len(ex):
+                    t = ex[i]; row[0:5] = [t["tx_date"], t["category"], t["description"], t["amount"], t["status"]]
+                if i < len(inc):
+                    t = inc[i]; row[6:9] = [t["description"] or t["category"], t["amount"], "ya" if t["to_fund"] else ""]
+                if i < len(ef):
+                    e = ef[i]; row[10:13] = [e["description"], e["amount"], e["tx_date"]]
+                w.append(row)
+        wa = wb.create_sheet("ASET")
+        wa.append(["Bulan", "Category", "Sub Category", "Amount"])
+        for c in wa[1]:
+            c.font = bold
+        for a in db.execute("SELECT month_key, category, symbol, amount FROM assets ORDER BY month_key, category, symbol"):
+            wa.append([a["month_key"], a["category"], a["symbol"], a["amount"]])
+    buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+    name = f"monetary-{date.today().isoformat()}.xlsx"
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
 # ---------- assets ----------
 
 @app.get("/assets", response_class=HTMLResponse)
@@ -532,9 +599,35 @@ def assets_delete(request: Request, aid: int, month_key: str = Form(...)):
 # ---------- overview ----------
 
 @app.get("/overview", response_class=HTMLResponse)
-def overview(request: Request):
+def overview(request: Request, m: str = "", q: str = ""):
+    """Ringkasan + dashboard per bulan: pilih bulan -> pemasukan, pengeluaran, kategori, entri terbesar."""
     if (r := require_login(request)):
         return r
+    q = (q or "").strip()[:60]
     with get_db() as db:
-        rows = [month_summary(db, mk) for mk in months_available(db)]
-    return render(request, "overview.html", rows=rows, page="overview", mk=this_month())
+        all_months = months_available(db)
+        rows = [month_summary(db, mk) for mk in all_months]
+        sel = m if re.fullmatch(r"\d{4}-\d{2}", m or "") else this_month()
+        s = next((r for r in rows if r["month"] == sel), None) or month_summary(db, sel)
+        # grafik: semua bulan di tahun yang sama dengan bulan terpilih
+        year_rows = [r for r in rows if r["month"][:4] == sel[:4]]
+        series_max = max([r["income"] for r in year_rows] + [r["expense"] for r in year_rows] + [1])
+
+        where = ["t.month_key = ?"]; args: list = [sel]
+        if q:
+            where.append("(t.description LIKE ? OR c.name LIKE ?)"); args += [f"%{q}%", f"%{q}%"]
+        base = f"FROM transactions t LEFT JOIN categories c ON c.id = t.category_id WHERE {' AND '.join(where)}"
+        comp = db.execute(
+            f"SELECT t.kind, COALESCE(c.name,'—') name, SUM(t.amount) v, COUNT(*) n {base} "
+            "GROUP BY t.kind, t.category_id ORDER BY v DESC", args
+        ).fetchall()
+        comp_exp = [c for c in comp if c["kind"] == "expense"]
+        comp_inc = [c for c in comp if c["kind"] == "income"]
+        top = db.execute(f"SELECT t.*, c.name AS category {base} ORDER BY t.amount DESC, t.id DESC LIMIT 8", args).fetchall()
+        qtot = db.execute(f"SELECT COALESCE(SUM(CASE t.kind WHEN 'expense' THEN t.amount END),0) e, "
+                          f"COALESCE(SUM(CASE t.kind WHEN 'income' THEN t.amount END),0) i, COUNT(*) n {base}", args).fetchone()
+    return render(
+        request, "overview.html", rows=rows, page="overview", mk=this_month(),
+        sel=sel, s=s, q=q, qtot=qtot, months=all_months, year_rows=year_rows, series_max=series_max,
+        comp_exp=comp_exp, comp_inc=comp_inc, top=top,
+    )

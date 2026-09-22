@@ -389,3 +389,102 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mi
 .acc summary::-webkit-details-marker{display:none}
 .note{font-size:13px;padding:8px 10px;border-radius:8px;margin:4px 0 6px;background:color-mix(in srgb,var(--fg) 6%,transparent)}
 .note.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}.note.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+
+.btn.tall{height:auto;padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:color-mix(in srgb,var(--fg) 5%,transparent);border:0}
+.btn.tall b{font-size:13.5px;color:var(--fg)}.btn.tall span{font-size:11.5px;color:var(--muted);font-weight:400;white-space:normal}
+.btn.tall:hover{background:color-mix(in srgb,var(--fg) 9%,transparent);box-shadow:none}
+
+/* ===== Geser kiri untuk hapus ===== */
+.sw{position:relative;overflow:hidden;border-top:1px solid var(--line2);touch-action:pan-y;--x:0px}
+.sw:first-child{border-top:0}
+.sw>.sw-track>.row{border-top:0;margin:0}
+.sw-track{position:relative}
+.sw-track>.row{width:calc(100% - var(--x));box-sizing:border-box}
+.sw.snap .sw-track>.row{transition:width var(--base) var(--ease-out)}
+.sw-act{position:absolute;right:0;top:0;bottom:0;width:max(88px,var(--x));transform:translateX(calc(max(88px,var(--x)) - var(--x)));display:flex;align-items:center;justify-content:center;padding-left:6px;box-sizing:border-box}
+.sw.snap .sw-act{transition:transform var(--base) var(--ease-out),width var(--base) var(--ease-out)}
+.sw-del{height:calc(100% - 8px);min-height:44px;width:76px;flex-direction:column;gap:3px;padding:0;border:0;border-radius:12px;background:var(--bad);color:#fff;font-size:11px;font-weight:600;letter-spacing:.02em;box-shadow:0 4px 14px color-mix(in srgb,var(--bad) 35%,transparent);transition:transform var(--fast) var(--ease),background var(--fast),width var(--base) var(--ease-out)}
+.sw-del:hover{background:color-mix(in srgb,var(--bad) 88%,#000);transform:none;box-shadow:0 4px 14px color-mix(in srgb,var(--bad) 35%,transparent)}
+.sw-del svg{width:20px;height:20px}
+.sw.arm .sw-del{width:calc(100% - 10px);transform:scale(1.02)}
+.sw.leaving{animation:sw-leave var(--base) var(--ease) both}
+@keyframes sw-leave{to{height:0;opacity:0;border-top-width:0;transform:translateX(-30px)}}
+
+/* ===== Popup konfirmasi ===== */
+dialog.confirm{border:0;padding:0;margin:0;max-width:none;width:100%;background:transparent;color:var(--fg);position:fixed;inset:0;height:100%;max-height:100%}
+dialog.confirm::backdrop{background:rgba(0,0,0,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);animation:fade var(--base) var(--ease) both}
+dialog.confirm.closing::backdrop{animation:fade var(--fast) var(--ease) reverse both}
+.cbox{position:absolute;left:50%;top:50%;width:min(320px,calc(100% - 48px));transform:translate(-50%,-50%);text-align:center;padding:26px 20px 18px;border-radius:18px;background:var(--cardhz),linear-gradient(165deg,color-mix(in srgb,var(--card) 97%,transparent),color-mix(in srgb,var(--card) 94%,transparent));-webkit-backdrop-filter:blur(2px) saturate(170%);backdrop-filter:blur(2px) saturate(170%);box-shadow:var(--shadow-lift);animation:cbox-in .42s cubic-bezier(.2,1.2,.3,1) both}
+dialog.confirm.closing .cbox{animation:cbox-out var(--fast) var(--ease) both}
+@keyframes cbox-in{from{opacity:0;transform:translate(-50%,-50%) scale(.82) translateY(14px)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes cbox-out{to{opacity:0;transform:translate(-50%,-50%) scale(.94)}}
+.cicon{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 12px;border-radius:50%;color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent);box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 30%,transparent);animation:cicon .6s var(--ease-out) .08s both}
+.cicon svg{width:26px;height:26px;animation:wiggle .7s var(--ease) .35s both}
+@keyframes cicon{from{transform:scale(.4);opacity:0}60%{transform:scale(1.08);box-shadow:0 0 0 10px transparent}to{transform:scale(1);opacity:1}}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-9deg)}55%{transform:rotate(7deg)}80%{transform:rotate(-3deg)}}
+.cbox h4{margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em}
+.cwhat{margin:10px auto 0;padding:9px 12px;border-radius:12px;background:color-mix(in srgb,var(--fg) 5%,transparent);display:grid;gap:1px;max-width:100%}
+.cwhat b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cwhat span{font-size:12px;color:var(--muted)}
+.cnote{margin:10px 0 0;font-size:12px;color:var(--muted);line-height:1.45}
+.cbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+.cbtns button{height:40px;font-size:14px;font-weight:600;border-radius:12px}
+.cbtns button.danger{background:var(--bad);color:#fff;border:0;box-shadow:0 6px 16px color-mix(in srgb,var(--bad) 30%,transparent)}.cbtns button.danger:hover{background:color-mix(in srgb,var(--bad) 88%,#000)}
+.cbtns .ghost{background:color-mix(in srgb,var(--fg) 6%,transparent);border:0}
+
+/* ===== Dashboard (Ringkasan) ===== */
+.filters{display:grid;gap:8px;margin:4px 0 14px}
+.fchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0;margin:0 -2px}
+.fchips::-webkit-scrollbar{display:none}
+.fchips .chip{height:30px;padding:0 12px;font-size:12.5px;border:0;cursor:pointer}
+.frow.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.filters select{margin:0;height:36px;font-size:13px}
+.fsearch{position:relative}
+.fsearch svg{position:absolute;left:10px;top:50%;translate:0 -50%;width:15px;height:15px;color:var(--muted);pointer-events:none}
+.fsearch input{margin:0;height:36px;padding-left:32px;font-size:13px}
+.freset{font-size:12px;color:var(--muted);justify-self:end;text-decoration:none}
+.freset:hover{color:var(--bad)}
+.kpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kpi3>div:last-child{grid-column:1/-1;grid-template-columns:1fr auto;align-items:end}.kpi3>div:last-child b{font-size:clamp(20px,6vw,26px)}.kpi3>div:last-child .k{grid-column:1/-1}.kpi b.bad{color:var(--bad)}.kpi small .warn{color:var(--warn)}
+.kpi>div{display:grid;gap:2px;padding:10px 10px;border-radius:12px;background:color-mix(in srgb,var(--fg) 4%,transparent)}
+.kpi .k{font-size:11px}
+.kpi b{font-size:clamp(14px,4vw,18px);font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi b.in{color:var(--ok)}
+.kpi small{font-size:11px;color:var(--muted)}
+.dchart{display:flex;align-items:flex-end;gap:5px;height:130px;margin-top:14px;padding:10px 6px 4px;border-radius:12px;background:color-mix(in srgb,var(--fg) 4%,transparent)}
+.dbar{flex:1;min-width:0;display:grid;grid-template-rows:1fr auto;align-items:end;justify-items:center;height:100%;gap:5px;color:var(--muted);text-decoration:none;border-radius:6px;transition:background var(--fast)}
+.dbar:hover{background:color-mix(in srgb,var(--fg) 6%,transparent);color:var(--fg)}
+.dbar i{display:block;width:70%;max-width:26px;height:var(--h);min-height:3px;border-radius:4px 4px 2px 2px;background:var(--fg);opacity:.32;transform-origin:bottom;animation:grow .7s var(--ease-out) both;animation-delay:calc(.15s + var(--i) * 35ms)}
+.dbar i.in{background:var(--ok);opacity:.7}
+.dbar.peak i{opacity:1}.dbar.zero i{opacity:.1}
+.dbar span{font-size:10.5px;font-weight:600;display:grid;justify-items:center;line-height:1.1}
+.dbar span em{font-style:normal;font-weight:400;font-size:9px;opacity:.7}
+.dchart.many{gap:2px}.dchart.many .dbar span{font-size:9px}.dchart.many .dbar:nth-child(even) span{visibility:hidden}
+.comp{display:grid;gap:2px}
+.crow{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 6px;margin:0 -6px;border-radius:10px;color:var(--fg);text-decoration:none;animation:rise .45s var(--ease-out) both;animation-delay:calc(var(--i) * 28ms);transition:background var(--fast)}
+.crow:hover{background:color-mix(in srgb,var(--fg) 5%,transparent)}
+.cname{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cname .dot{width:8px;height:8px;border-radius:50%;flex:none;background:hsl(var(--h) 60% 55%);animation:none;box-shadow:none}
+.cname small{font-weight:400;font-size:11px;color:var(--muted)}
+.cbar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--fg) 7%,transparent);overflow:hidden}
+.cbar i{display:block;height:100%;width:var(--w);border-radius:3px;background:hsl(var(--h) 60% 55%);animation:widen .8s var(--ease-out) .2s both}
+.cval{font-size:13px;font-weight:700;white-space:nowrap;display:grid;justify-items:end;line-height:1.1}
+.cval small{font-size:10.5px;font-weight:500;color:var(--muted)}
+.toplist{display:grid}
+.trow{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 4px;border-top:1px solid var(--line2);color:var(--fg);text-decoration:none;border-radius:10px;animation:rise .45s var(--ease-out) both;animation-delay:calc(var(--i) * 28ms);transition:background var(--fast)}
+.trow:first-child{border-top:0}.trow:hover{background:color-mix(in srgb,var(--fg) 5%,transparent)}
+.trow .av{width:32px;height:32px;border-radius:10px;font-size:11px}
+.trow .main{display:grid;min-width:0}
+.trow .name{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .meta{font-size:11.5px;color:var(--muted)}
+.trow b{font-size:13.5px;white-space:nowrap}.trow b.in{color:var(--ok)}
+.fchips .chip em{font-style:normal;font-weight:400;opacity:.65;margin-left:2px;font-size:11px}
+.fchips a.chip{text-decoration:none}
+.fclear{position:absolute;right:8px;top:50%;translate:0 -50%;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--fg) 10%,transparent);color:var(--fg);font-size:14px;text-decoration:none}
+.dchart.pair .dbar{gap:6px}
+.dchart.pair .bars{display:flex;align-items:flex-end;gap:2px;height:100%;width:100%;justify-content:center}
+.dchart.pair .bars i{width:34%;max-width:12px;height:var(--h);min-height:3px;border-radius:3px 3px 1px 1px;transform-origin:bottom;animation:grow .7s var(--ease-out) both;animation-delay:calc(.15s + var(--i) * 35ms)}
+.dchart.pair .bars .in{background:var(--ok);opacity:.55}.dchart.pair .bars .out{background:var(--fg);opacity:.22}
+.dchart.pair .dbar.on{background:color-mix(in srgb,var(--fg) 7%,transparent);color:var(--fg)}
+.dchart.pair .dbar.on .bars .in{opacity:1}.dchart.pair .dbar.on .bars .out{opacity:.55}
+@media(min-width:720px){.comp2{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}}

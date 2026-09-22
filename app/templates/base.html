@@ -42,6 +42,15 @@
 <main class="wrap">{% block content %}{% endblock %}</main>
 {% block fab %}{% endblock %}
 <div class="toast" id="toast"></div>
+<form method="post" action="" id="swform" hidden><input type="hidden" name="month_key" value="{{ mk or '' }}"></form>
+<!-- Konfirmasi hapus (dipakai swipe baris & semua form[data-confirm]) -->
+<dialog class="confirm" id="confirm"><div class="cbox">
+  <span class="cicon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></span>
+  <h4 id="confirm-title">Hapus entri ini?</h4>
+  <div class="cwhat" id="confirm-what" hidden><b></b><span class="num"></span></div>
+  <p class="cnote" id="confirm-note" hidden></p>
+  <div class="cbtns"><button type="button" class="ghost" data-confirm-no>Batal</button><button type="button" class="danger" data-confirm-yes>Hapus</button></div>
+</div></dialog>
 <script src="/static/vendor/tom-select.complete.min.js"></script>
 <script src="/static/app.js?v={{ asset_v }}"></script>
 </body>

@@ -20,7 +20,7 @@
   <div class="k" style="margin:8px 0 6px">{{ title }}</div>
   <div class="chips">
     {% for c in cats if c.kind==kind %}
-    <form method="post" action="/settings/category/{{ c.id }}/hide" data-confirm="Sembunyikan kategori {{ c.name }}?" class="cchip" style="--h:{{ c.name | hue }}">
+    <form method="post" action="/settings/category/{{ c.id }}/hide" data-confirm="Sembunyikan kategori?" data-confirm-yes="Sembunyikan" data-confirm-what="{{ c.name }}" data-confirm-sub="{{ title }}" data-confirm-note="Kategori hanya disembunyikan dari pilihan; transaksi lama tetap utuh." class="cchip" style="--h:{{ c.name | hue }}">
       <span>{{ c.name }}</span><button type="submit" aria-label="Sembunyikan {{ c.name }}">×</button>
     </form>
     {% endfor %}
@@ -30,9 +30,10 @@
 </section>
 
 <section class="card" id="recurring" style="margin-top:10px">
-  <div class="sec"><h2>Template rutin</h2><small>dipakai tombol “Isi bulan ini”</small></div>
+  <div class="sec"><h2>Template rutin</h2><small>dipakai “Isi bulan ini” · geser kiri untuk hapus</small></div>
   <div class="panel-wrap" style="padding:0">
   {% for r in recurring %}
+  <div class="sw" data-del="/settings/recurring/{{ r.id }}/delete" data-del-title="{{ r.description or r.category or '—' }}" data-del-sub="{{ 'pemasukan' if r.kind=='income' else 'pengeluaran' }} · {{ r.amount | rupiah }}" data-del-note="Template dihapus; entri yang sudah dibuat di bulan-bulan sebelumnya tidak ikut terhapus."><div class="sw-track">
   <div class="row static tpl" style="--i:{{ loop.index0 }}">
     <span class="av {{ 'in' if r.kind=='income' }}" style="--h:{{ (r.category or r.description or 'X') | hue }}">{{ (r.category or r.description or '·')[:2] }}</span>
     <div class="main">
@@ -40,11 +41,19 @@
       <div class="meta">{% if r.category and r.description %}<span>{{ r.category }}</span>{% endif %}<span>{{ 'pemasukan' if r.kind=='income' else 'pengeluaran' }}</span>{% if r.day_of_month %}<span>tgl {{ r.day_of_month }}</span>{% endif %}</div>
     </div>
     <div class="amt num {{ 'in' if r.kind=='income' }}">{{ r.amount | rupiah }}</div>
-    <form method="post" action="/settings/recurring/{{ r.id }}/delete" class="tgl" data-confirm="Hapus template ini?"><button class="ck del" type="submit" aria-label="Hapus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></form>
   </div>
+  {% include "_swact.html" %}</div></div>
   {% else %}<div class="empty"><b>Belum ada template.</b><span>Tambahkan KPR, tagihan kartu, gaji — hal yang berulang tiap bulan.</span></div>{% endfor %}
   </div>
   <div class="actions" style="margin-top:8px"><button type="button" data-open="sheet-tpl">+ Tambah template</button></div>
+</section>
+
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>Backup & ekspor</h2><small>data Anda, milik Anda</small></div>
+  <div class="grid2" style="margin-top:4px">
+    <a class="btn tall" href="/backup.db" download><b>Unduh backup</b><span>file .db lengkap, bisa dipulihkan</span></a>
+    <a class="btn tall" href="/export.xlsx" download><b>Ekspor Excel</b><span>satu sheet per bulan, seperti spreadsheet asal</span></a>
+  </div>
 </section>
 
 <section class="card" id="account" style="margin-top:10px">
