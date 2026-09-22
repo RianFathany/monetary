@@ -12,7 +12,7 @@ tidak pernah dihitung oleh model.
 import json
 from datetime import date
 
-from .db import ASSET_TYPES, CASH_TYPES, balance_upto
+from .db import ASSET_TYPES, CASH_TYPES, asset_view, balance_upto
 
 LOOKBACK = 3          # bulan pembanding untuk rata-rata
 SPIKE = 0.30          # kenaikan kategori dianggap menonjol di atas 30%
@@ -101,7 +101,6 @@ def build_metrics(db, mk: str) -> dict:
             missing.append(dict(desc=rr["description"] or rr["category"] or "—", amount=rr["amount"],
                                 day=rr["day_of_month"]))
 
-    from .main import asset_view          # dipakai bersama halaman Aset agar angkanya satu sumber
     av = asset_view(db, mk)
     av_prev = asset_view(db, _shift(mk, -1))
 

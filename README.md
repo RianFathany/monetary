@@ -30,6 +30,19 @@ docker compose up -d --build    # http://127.0.0.1:8765
 
 Database ada di `./data/monetary.db` (volume). Backup = salin file itu.
 
+## Tes
+
+```bash
+.venv/bin/python -m unittest discover -s tests -t .
+```
+
+31 tes, tanpa dependensi tambahan (`unittest` bawaan) dan tanpa menyentuh database
+asli — tiap tes membuat datanya sendiri di memori. Yang dikunci: aturan saldo
+(transfer memindah, bukan menghabiskan), ringkasan bulan, untung/rugi investasi
+dihitung dari modal, indikator laporan, perilaku saat start (menolak skema lama,
+mengadopsi database siap-pakai), dan konversi dari bentuk lama — termasuk kasus
+satu kejadian yang tercatat dua kali di spreadsheet.
+
 ## Import dari spreadsheet
 
 Spreadsheet memakai bentuk lama (kas & dana darurat sebagai dua kolom terpisah), jadi
@@ -69,6 +82,7 @@ Satu password, disimpan sebagai hash PBKDF2 di tabel `settings` bersama secret c
 app/main.py        routes (bulan, transaksi, kantong, aset, laporan, ringkasan, setelan)
 app/report.py      laporan bulanan: build_metrics() hitung angka, render_rules() susun narasi
 app/suggest.py     tebakan kategori dari kata kunci deskripsi (dipakai layar perapihan)
+tests/            unittest, jalan tanpa server dan tanpa database asli
 app/db.py          koneksi SQLite + perhitungan saldo kantong
 app/schema.py      skema v2 + kategori/kantong bawaan
 app/auth.py        login satu user, cookie bertanda tangan

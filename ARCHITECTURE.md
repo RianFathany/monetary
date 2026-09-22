@@ -278,13 +278,26 @@ dan ekspor Excel (`/export.xlsx`) untuk membacanya di luar aplikasi.
 
 ---
 
-## 9. Yang belum ada
+## 9. Tes
 
-- **Tidak ada tes otomatis.** Untuk aplikasi uang, `balance_upto`, `month_summary`,
-  dan pemeriksaan migrasi layak dikunci dengan beberapa assert.
-- **`asset_view` tinggal di `main.py`**, padahal itu logika domain; `report.py`
-  mengimpornya saat dipanggil untuk menghindari impor melingkar. Tempat yang benar
-  adalah `db.py` atau modul domain sendiri.
-- **`fly.toml` tanpa health check**, jadi deploy yang rusak bisa lolos smoke check.
+`tests/` berisi 31 tes `unittest`, tanpa dependensi tambahan dan tanpa menyentuh
+database asli — tiap tes membangun datanya sendiri di memori.
+
+Yang dikunci bukan detail implementasi, melainkan aturan yang kalau berubah diam-diam
+akan membuat angka salah: transfer memindah dan bukan menghabiskan, transfer antar
+kantong sejenis tidak mengubah total, transaksi terhapus tidak ikut dihitung, untung
+investasi diukur dari modal dan bukan dari nol, rasio cicilan hanya menjumlahkan
+kategori bertanda `is_debt`, aplikasi menolak jalan di atas skema lama, dan — yang
+paling mudah salah — satu kejadian yang di spreadsheet tercatat dua kali tidak boleh
+masuk dua kali setelah migrasi.
+
+```bash
+.venv/bin/python -m unittest discover -s tests -t .
+```
+
+## 10. Yang belum ada
+
 - **Multi-user, sinkronisasi offline, aplikasi ponsel native** — belum, lihat §7.
 - **Lapis AI** — kerangkanya siap (`reports.engine`), belum dinyalakan.
+- **Tidak ada CI**, jadi tes hanya jalan kalau dipanggil sendiri; `fly deploy` juga
+  masih manual.

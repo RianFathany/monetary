@@ -144,3 +144,35 @@ def balance_upto(db, mk: str, types=CASH_TYPES, ids=None) -> int:
          f" WHEN type='transfer' AND to_account_id IN ({grp}) AND account_id    NOT IN ({grp}) THEN  amount"
          f" END),0) v FROM transactions WHERE deleted_at IS NULL AND month_key<=?")
     return int(total + (db.execute(q, (mk,)).fetchone()["v"] or 0))
+
+
+def asset_view(db, mk: str) -> dict:
+    """Posisi aset pada akhir bulan mk: tabungan (dihitung dari mutasi) + investasi (snapshot).
+
+    Dipakai halaman Aset, ringkasan bulan, dan laporan — satu sumber angka.
+    """
+    snap_month = db.execute("SELECT MAX(month_key) v FROM asset_snapshots WHERE month_key<=?", (mk,)).fetchone()["v"]
+    prev_snap = db.execute("SELECT MAX(month_key) v FROM asset_snapshots WHERE month_key<?",
+                           (snap_month or mk,)).fetchone()["v"] if snap_month else None
+
+    pots = []
+    for a in accounts(db, ("savings", "investment")):
+        if a["type"] == "savings":
+            value = balance_upto(db, mk, ids=[a["id"]])
+            pots.append(dict(id=a["id"], name=a["name"], type=a["type"], value=value, invested=value,
+                             gain=0, stale=False))
+        else:
+            invested = balance_upto(db, mk, ids=[a["id"]])
+            row = db.execute("SELECT COALESCE(SUM(amount),0) v FROM asset_snapshots WHERE account_id=? AND month_key=?",
+                             (a["id"], snap_month or "")).fetchone()
+            has_snap = db.execute("SELECT 1 FROM asset_snapshots WHERE account_id=? AND month_key=?",
+                                  (a["id"], snap_month or "")).fetchone() is not None
+            value = int(row["v"]) if has_snap else invested
+            pots.append(dict(id=a["id"], name=a["name"], type=a["type"], value=value, invested=invested,
+                             gain=value - invested if has_snap else 0,
+                             stale=bool(snap_month and snap_month < mk) or not has_snap))
+    pots = [p for p in pots if p["value"] or p["invested"]]
+    total = sum(p["value"] for p in pots)
+    return dict(mk=mk, pots=pots, total=total, snap_month=snap_month, prev_snap=prev_snap,
+                fund=sum(p["value"] for p in pots if p["type"] == "savings"),
+                invest=sum(p["value"] for p in pots if p["type"] == "investment"))

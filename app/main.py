@@ -15,7 +15,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import auth, report, suggest
-from .db import ASSET_TYPES, CASH_TYPES, accounts, balance_upto, balances, get_db, get_setting, init_db, set_setting
+from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, get_db, get_setting,
+                 init_db, set_setting)
 
 BASE = Path(__file__).resolve().parent
 app = FastAPI(title="Monetary", docs_url=None, redoc_url=None)
@@ -569,35 +570,6 @@ def settings_password(request: Request, current: str = Form(""), new: str = Form
 
 
 # ---------- aset ----------
-
-def asset_view(db, mk: str) -> dict:
-    """Posisi aset pada akhir bulan mk: tabungan (dihitung dari mutasi) + investasi (snapshot)."""
-    snap_month = db.execute("SELECT MAX(month_key) v FROM asset_snapshots WHERE month_key<=?", (mk,)).fetchone()["v"]
-    prev_snap = db.execute("SELECT MAX(month_key) v FROM asset_snapshots WHERE month_key<?",
-                           (snap_month or mk,)).fetchone()["v"] if snap_month else None
-
-    pots = []
-    for a in accounts(db, ("savings", "investment")):
-        if a["type"] == "savings":
-            value = balance_upto(db, mk, ids=[a["id"]])
-            pots.append(dict(id=a["id"], name=a["name"], type=a["type"], value=value, invested=value,
-                             gain=0, stale=False))
-        else:
-            invested = balance_upto(db, mk, ids=[a["id"]])
-            row = db.execute("SELECT COALESCE(SUM(amount),0) v FROM asset_snapshots WHERE account_id=? AND month_key=?",
-                             (a["id"], snap_month or "")).fetchone()
-            has_snap = db.execute("SELECT 1 FROM asset_snapshots WHERE account_id=? AND month_key=?",
-                                  (a["id"], snap_month or "")).fetchone() is not None
-            value = int(row["v"]) if has_snap else invested
-            pots.append(dict(id=a["id"], name=a["name"], type=a["type"], value=value, invested=invested,
-                             gain=value - invested if has_snap else 0,
-                             stale=bool(snap_month and snap_month < mk) or not has_snap))
-    pots = [p for p in pots if p["value"] or p["invested"]]
-    total = sum(p["value"] for p in pots)
-    return dict(mk=mk, pots=pots, total=total, snap_month=snap_month, prev_snap=prev_snap,
-                fund=sum(p["value"] for p in pots if p["type"] == "savings"),
-                invest=sum(p["value"] for p in pots if p["type"] == "investment"))
-
 
 @app.get("/assets", response_class=HTMLResponse)
 def assets_page(request: Request, mk: str = ""):
