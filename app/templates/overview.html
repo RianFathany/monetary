@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Ringkasan · Monetary{% endblock %}
+{% block content %}
+<div class="sec"><h2 style="font-size:18px">Ringkasan per bulan</h2><small>{{ rows | length }} bulan</small></div>
+<section class="card"><div class="tscroll">
+<table>
+  <thead><tr><th>Bulan</th><th class="n">Saldo awal</th><th class="n">Pemasukan</th><th class="n">Pengeluaran</th><th class="n">Sisa</th><th class="n">Dana darurat</th><th class="n">Total assets</th></tr></thead>
+  <tbody>
+  {% for r in rows | reverse %}
+  <tr>
+    <td><a href="/m/{{ r.month }}">{{ r.month | month_label }}</a></td>
+    <td class="n num">{{ r.prev_balance | rupiah }}</td>
+    <td class="n num" style="color:var(--ok)">{{ r.income | rupiah }}</td>
+    <td class="n num">{{ r.expense | rupiah }}</td>
+    <td class="n num" style="{{ 'color:var(--bad)' if r.balance < 0 }}"><b>{{ r.balance | rupiah }}</b></td>
+    <td class="n num">{{ r.ef_cur | rupiah }}</td>
+    <td class="n num">{{ r.total_assets | rupiah }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div></section>
+{% endblock %}

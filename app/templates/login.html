@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Masuk · Monetary{% endblock %}
+{% block bodyclass %}door-page{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="door" id="door" aria-hidden="true"></div>
+<button type="button" class="ibtn door-tools" id="theme-toggle" title="Ganti tema terang/gelap" aria-label="Ganti tema">
+  <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+</button>
+<div class="doorwrap">
+<h1 class="greet" id="greet"></h1>
+<div class="doorcard card">
+  <div class="brand" style="margin-bottom:6px"><span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18a1 1 0 0 1 1 1v1.5"/><path d="M4 7.5V17a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5z"/><circle cx="16" cy="14.5" r="1.1" fill="currentColor" stroke="none"/></svg></span><span><b>Monetary</b><span class="sub">Catatan keuangan pribadi</span></span></div>
+  {% if not configured %}
+  <p class="err">Password belum di-set. Isi <code>MONETARY_PASSWORD</code> di file <code>.env</code> lalu restart.</p>
+  {% endif %}
+  <form method="post" action="/login">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>Password</label>
+    <input type="password" name="password" autocomplete="current-password" placeholder="••••••••" autofocus required>
+    {% if error %}<div class="err">Password salah.</div>{% endif %}
+    <div class="actions"><button class="primary" type="submit">Masuk</button></div>
+  </form>
+  <div class="live" id="live" hidden>
+    <span class="dot" aria-hidden="true"></span>
+    <span id="place">Jakarta</span><span class="sep">·</span>
+    <span class="clock" id="clock"></span>
+    <span class="wx" id="wx"><b id="wx-t"></b><span id="wx-w"></span></span>
+  </div>
+</div>
+</div>
+<span class="slot" id="slot"></span>
+<script>
+// Pintu masuk — rule yang sama dengan rianfathany.com: klip kota menurut jam lokal,
+// ganti ke klip hujan bila di lokasi pengguna (fallback Jakarta) sedang hujan.
+// ?t=morning|day|dusk|night|rain memaksa slot tertentu.
+(function () {
+  var door = document.getElementById("door"), slotEl = document.getElementById("slot"), greet = document.getElementById("greet");
+  var slots = {
+    morning: { file: "morning", portrait: "morning-portrait", label: "pagi",  greet: "Selamat pagi." },
+    day:     { file: "day",     label: "siang", greet: "Selamat siang." },
+    dusk:    { file: "dusk",    label: "senja", greet: "Selamat sore." },
+    night:   { file: "night",   label: "malam", greet: "Selamat malam." },
+    rain:    { file: "rain",    portrait: "rain-portrait", label: "hujan", greet: null }
+  };
+  var h = new Date().getHours();
+  var timeKey = h >= 5 && h < 10 ? "morning" : h < 16 ? "day" : h < 19 ? "dusk" : "night";
+  var q = new URLSearchParams(location.search).get("t");
+  var forced = slots[q] ? q : null;
+  var portrait = window.matchMedia("(orientation: portrait)").matches;
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var saveData = navigator.connection && navigator.connection.saveData;
+  var video = null;
+
+  function apply(key) {
+    var slot = slots[key];
+    var base = "/static/video/" + (portrait && slot.portrait ? slot.portrait : slot.file);
+    document.documentElement.setAttribute("data-slot", key);
+    door.style.backgroundImage = "url(" + base + ".jpg)";
+    slotEl.textContent = key === "rain" ? slots[timeKey].label + " · hujan" : slot.label;
+    greet.textContent = slots[timeKey].greet;
+    if (reduced || saveData) return;
+    if (!video) {
+      video = document.createElement("video");
+      video.muted = true; video.loop = true; video.autoplay = true; video.playsInline = true;
+      video.setAttribute("playsinline", ""); video.setAttribute("aria-hidden", "true"); video.preload = "auto";
+      video.addEventListener("playing", function () { video.classList.add("ready"); });
+      door.appendChild(video);
+    }
+    video.classList.remove("ready");
+    video.poster = base + ".jpg"; video.src = base + ".mp4";
+    var p = video.play(); if (p && p.catch) p.catch(function () {});
+  }
+  apply(forced || timeKey);
+  if (forced) return;
+  // Hujan sungguhan, hujan lokal, atau badai. Gerimis/kabut tetap klip biasa; malam tetap klip malam.
+  var rainy = { 61:1, 63:1, 65:1, 66:1, 67:1, 80:1, 81:1, 82:1, 95:1, 96:1, 99:1 };
+  window.addEventListener("monetary-weather", function (e) {
+    if (timeKey !== "night" && rainy[e.detail.code]) apply("rain");
+  });
+})();
+
+// Jam, cuaca, dan lokasi. Mulai dari Jakarta (tanpa izin), lalu bila pengguna mengizinkan lokasi,
+// cuaca diambil di posisi sebenarnya dan nama kota dicari lewat reverse-geocode.
+(function () {
+  var live = document.getElementById("live"), clock = document.getElementById("clock"), place = document.getElementById("place"),
+      wt = document.getElementById("wx-t"), ww = document.getElementById("wx-w");
+  var loc = { lat: -6.2, lon: 106.8167, name: "Jakarta", tz: "Asia/Jakarta" };
+  var fmt = null;
+  function makeFmt() {
+    try { fmt = new Intl.DateTimeFormat("id-ID", { timeZone: loc.tz, hour: "2-digit", minute: "2-digit", hour12: false }); }
+    catch (e) { fmt = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }); }
+  }
+  function tick() { clock.textContent = fmt.format(new Date()).replace(".", ":"); live.hidden = false; }
+  makeFmt(); tick(); setInterval(tick, 15000);
+
+  var words = { 0: "cerah", 1: "cerah berawan", 2: "berawan sebagian", 3: "mendung", 45: "berkabut", 48: "berkabut",
+    51: "gerimis", 53: "gerimis", 55: "gerimis", 56: "gerimis", 57: "gerimis", 61: "hujan ringan", 63: "hujan", 65: "hujan lebat", 66: "hujan", 67: "hujan",
+    71: "salju", 73: "salju", 75: "salju", 80: "hujan lokal", 81: "hujan lokal", 82: "hujan deras", 95: "badai petir", 96: "badai petir", 99: "badai petir" };
+  function weather() {
+    if (!window.fetch) return;
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + loc.lat + "&longitude=" + loc.lon + "&current=temperature_2m,weather_code&timezone=auto")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.current) return;
+        wt.textContent = Math.round(d.current.temperature_2m) + "°C";
+        ww.textContent = words[d.current.weather_code] || "";
+        if (d.timezone && d.timezone !== loc.tz) { loc.tz = d.timezone; makeFmt(); tick(); }
+        window.dispatchEvent(new CustomEvent("monetary-weather", { detail: { code: d.current.weather_code } }));
+      }).catch(function () {});
+  }
+  weather(); setInterval(weather, 30 * 60 * 1000);
+
+  function reverseGeocode() {
+    fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + loc.lat + "&longitude=" + loc.lon + "&localityLanguage=id")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var name = d.city || d.locality || d.principalSubdivision || d.countryName;
+        if (name) { loc.name = name; place.textContent = name; }
+      }).catch(function () {});
+  }
+  if (!navigator.geolocation || !window.isSecureContext) return;   // geolocation hanya jalan di https / localhost
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    loc.lat = +pos.coords.latitude.toFixed(3); loc.lon = +pos.coords.longitude.toFixed(3);
+    place.textContent = "…";
+    weather(); reverseGeocode();
+  }, function () {}, { timeout: 8000, maximumAge: 10 * 60 * 1000 });
+})();
+</script>
+{% endblock %}

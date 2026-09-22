@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Setelan · Monetary{% endblock %}
+{% block content %}
+<div class="two" style="margin-top:0">
+<section class="card">
+  <div class="sec"><h2>Saldo awal</h2><small>sebelum bulan pertama</small></div>
+  <form method="post" action="/settings/opening">
+    <label>Bulan pertama pembukuan</label><input type="month" name="first_month" value="{{ first_month }}">
+    <label>Saldo kas sebelumnya</label><input class="money num" name="opening_balance" inputmode="numeric" value="{{ opening }}">
+    <label>Dana darurat sebelumnya</label><input class="money num" name="opening_emergency" inputmode="numeric" value="{{ opening_ef }}">
+    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+  </form>
+</section>
+
+<section class="card" id="categories">
+  <div class="sec"><h2>Kategori</h2></div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+    {% for c in cats %}
+    <form method="post" action="/settings/category/{{ c.id }}/hide" data-confirm="Sembunyikan kategori {{ c.name }}?" style="display:inline">
+      <button class="sm" type="submit" title="Sembunyikan"><span class="cat" style="background:transparent;padding:0;color:{{ 'var(--ok)' if c.kind=='income' else 'inherit' }}">{{ c.name }}</span> ×</button>
+    </form>
+    {% endfor %}
+  </div>
+  <form method="post" action="/settings/category">
+    <div class="f2">
+      <div><label>Nama</label><input name="name" placeholder="mis. CIMB" required autocomplete="off"></div>
+      <div><label>Jenis</label><select name="kind"><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select></div>
+    </div>
+    <div class="actions"><button type="submit">Tambah kategori</button></div>
+  </form>
+</section>
+</div>
+
+<section class="card" id="recurring" style="margin-top:10px">
+  <div class="sec"><h2>Template rutin bulanan</h2><small>dipakai tombol “Isi bulan ini”</small></div>
+  {% for r in recurring %}
+  <div class="row" style="cursor:default">
+    <div><div class="name"><span>{{ r.description or r.category or '—' }}</span></div>
+      <div class="meta">{% if r.category %}<span class="cat">{{ r.category }}</span>{% endif %}<span class="pill">{{ 'masuk' if r.kind=='income' else 'keluar' }}</span>{% if r.day_of_month %}<span>tgl {{ r.day_of_month }}</span>{% endif %}</div></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="amt num {{ 'in' if r.kind=='income' }}">{{ r.amount | rupiah }}</div>
+      <form method="post" action="/settings/recurring/{{ r.id }}/delete" data-confirm="Hapus template ini?"><button class="sm ghost danger" type="submit">×</button></form>
+    </div>
+  </div>
+  {% else %}<div class="empty">Belum ada template. Tambahkan KPR, tagihan CC, gaji, dsb.</div>{% endfor %}
+  <form method="post" action="/settings/recurring" style="margin-top:12px;border-top:1px solid var(--line);padding-top:4px">
+    <div class="f2">
+      <div><label>Jenis</label><select name="kind"><option value="expense">Pengeluaran</option><option value="income">Pemasukan</option></select></div>
+      <div><label>Kategori</label><select name="category_id"><option value="">—</option>{% for c in cats %}<option value="{{ c.id }}">{{ c.name }} ({{ 'masuk' if c.kind=='income' else 'keluar' }})</option>{% endfor %}</select></div>
+    </div>
+    <label>Deskripsi</label><input name="description" placeholder="mis. KPR rumah" autocomplete="off">
+    <div class="f2">
+      <div><label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off"></div>
+      <div><label>Tanggal (1–28)</label><input type="number" name="day_of_month" min="1" max="28" inputmode="numeric"></div>
+    </div>
+    <div class="actions"><button type="submit">Tambah template</button></div>
+  </form>
+</section>
+
+<p class="hint" style="text-align:center;margin-top:20px"><a href="/logout">Keluar</a></p>
+{% endblock %}

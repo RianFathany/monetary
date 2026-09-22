@@ -1,0 +1,10 @@
+services:
+  monetary:
+    build: .
+    container_name: monetary
+    ports:
+      - "8765:8000"
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
