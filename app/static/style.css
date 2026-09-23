@@ -1,4 +1,4 @@
-/* Monetary — mengikuti standar UI mac-monitoring: Plus Jakarta Sans, radius 5px, glass blur, gradient + horizon. */
+/* Muara — mengikuti standar UI mac-monitoring: Plus Jakarta Sans, radius 5px, glass blur, gradient + horizon. */
 :root{--bg:#f5f5f7;--card:#ffffff;--line:#e2e2e7;--line2:#ececf0;--fg:#1d1d1f;--fg2:#3a3a3c;--muted:#6e6e73;
  --accent:#0066cc;--ok:#1d7a3e;--warn:#9a5b00;--bad:#c92a2a;--bar:#e8e8ed;--seg:#e8e8ed;--segon:#ffffff;--r:10px;--brandfont:"Outfit";--ease:cubic-bezier(.2,.8,.2,1);--ease-out:cubic-bezier(.16,1,.3,1);--fast:.16s;--base:.28s;--slow:.5s;--shadow:0 0 0 .5px rgba(0,0,0,.06),0 1px 1px rgba(0,0,0,.04),0 2px 6px rgba(0,0,0,.05),0 10px 24px rgba(0,0,0,.07),0 24px 56px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.65);--shadow-lift:0 0 0 .5px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06),0 8px 18px rgba(0,0,0,.09),0 22px 48px rgba(0,0,0,.14),0 40px 90px rgba(0,0,0,.14),inset 0 1px 0 rgba(255,255,255,.7);--hz:#c3d6f7;
  --g1:#e3ecff;--g2:#f1e6ff;--g3:#ffe7ee;--g4:#e2f5ff;--glass:rgba(255,255,255,.72);--tint:rgba(0,102,204,.07);
@@ -213,7 +213,7 @@ body.door-page::before,body.door-page::after{display:none}
 .greet span.sp{width:.28em}
 @keyframes letter{from{opacity:0;transform:translateY(.45em) rotate(3deg);filter:blur(8px)}60%{filter:blur(0)}to{opacity:1;transform:none;filter:blur(0)}}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-.doorcard{width:100%;padding:24px 22px 20px;border-radius:16px;overflow:visible;
+.doorcard{width:100%;padding:24px;border-radius:16px;overflow:visible;
  background:radial-gradient(120% 70% at 50% -25%,rgba(255,255,255,.9) 0%,rgba(255,255,255,.3) 45%,transparent 75%),linear-gradient(165deg,rgba(255,255,255,.94) 0%,rgba(255,255,255,.86) 100%);
  border:0;
  -webkit-backdrop-filter:blur(2px) saturate(170%);backdrop-filter:blur(2px) saturate(170%);
@@ -226,9 +226,17 @@ body.door-page::before,body.door-page::after{display:none}
 @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .doorcard input{height:46px;font-size:17px}
 .doorcard button.primary{height:46px;font-size:15px}
-.door-tools{position:fixed;top:calc(12px + env(safe-area-inset-top));right:14px;background:rgba(0,0,0,.28);color:#fff;border:0;box-shadow:0 0 0 .5px rgba(0,0,0,.2),0 4px 12px rgba(0,0,0,.15);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.door-top{position:fixed;top:calc(12px + env(safe-area-inset-top));right:14px;z-index:5;display:flex;align-items:center;gap:8px;animation:fade var(--slow) .3s var(--ease) both}
+.door-tools{background:rgba(0,0,0,.28);color:#fff;border:0;box-shadow:0 0 0 .5px rgba(0,0,0,.2),0 4px 12px rgba(0,0,0,.15);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);flex:none}
 .door-tools:hover{background:rgba(0,0,0,.4);color:#fff}
-.live{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line2);color:var(--muted);font-size:12.5px}
+/* Tombol kembali di pojok kiri pintu masuk */
+.door-back{position:fixed;top:calc(12px + env(safe-area-inset-top));left:14px;z-index:5;animation:fade var(--slow) .3s var(--ease) both}
+/* Sakelar bahasa ikut jadi kaca gelap di atas video */
+.door-top .langtog{background:rgba(0,0,0,.28);box-shadow:0 0 0 .5px rgba(0,0,0,.2),0 4px 12px rgba(0,0,0,.15);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.door-top .langtog button{color:rgba(255,255,255,.62)}
+.door-top .langtog button:hover,.door-top .langtog button.on{color:#fff}
+.door-top .langtog .knob{background:rgba(255,255,255,.2);box-shadow:none}
+.live{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:20px -24px 0;padding:14px 24px 0;border-top:1px solid var(--line2);color:var(--muted);font-size:12.5px}
 .live .clock{font-family:"Bebas Neue","Plus Jakarta Sans",sans-serif;font-size:30px;letter-spacing:.04em;line-height:1;color:var(--fg);font-variant-numeric:tabular-nums;padding-top:2px}
 .live .sep{opacity:.5}
 .live .wx{margin-left:auto;text-align:right}
@@ -402,7 +410,7 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:color-mi
 .note{font-size:13px;padding:8px 10px;border-radius:8px;margin:4px 0 6px;background:color-mix(in srgb,var(--fg) 6%,transparent)}
 .note.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,transparent)}.note.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
 
-.btn.tall{height:auto;padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:color-mix(in srgb,var(--fg) 5%,transparent);border:0}
+.btn.tall{display:flex;width:100%;height:auto;padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:color-mix(in srgb,var(--fg) 5%,transparent);border:0}
 .btn.tall b{font-size:13.5px;color:var(--fg)}.btn.tall span{font-size:11.5px;color:var(--muted);font-weight:400;white-space:normal}
 .btn.tall:hover{background:color-mix(in srgb,var(--fg) 9%,transparent);box-shadow:none}
 
@@ -540,23 +548,30 @@ input.invalid,select.invalid,.ts-wrapper.invalid .ts-control,.pick.invalid{borde
 .lock .cbtns a.btn{height:40px;border-radius:12px}
 
 /* halaman masuk: Google jadi jalan utama, password jadi cadangan */
-.signup{margin:10px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted);text-align:center}
-.pwbox{margin-top:14px;border-top:1px solid color-mix(in srgb,var(--fg) 10%,transparent);padding-top:10px}
-.pwbox>summary{list-style:none;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--muted);text-align:center;padding:4px 0;transition:color var(--fast) var(--ease)}
-.pwbox>summary::-webkit-details-marker{display:none}
-.pwbox>summary:hover{color:var(--fg)}
-.pwbox[open]>summary{color:var(--fg);margin-bottom:6px}
-.pwbox .actions{margin-top:10px}
-.pwbox .actions button{height:42px;font-weight:600;background:color-mix(in srgb,var(--fg) 6%,transparent);border:1px solid var(--line);color:var(--fg)}
-.pwbox .actions button:hover{background:color-mix(in srgb,var(--fg) 10%,transparent)}
 .doorcard .hint{font-size:11px;margin:6px 0 0}
 
 /* halaman legal + tautannya */
-.legal h3{font-size:14px;margin:16px 0 4px}
-.legal p{font-size:13.5px;line-height:1.65;color:var(--fg);margin:0 0 8px}
-.legal code{font-size:12px;background:color-mix(in srgb,var(--fg) 7%,transparent);padding:1px 5px;border-radius:5px}
-.legal-foot{margin-top:20px;padding-top:12px;border-top:1px solid var(--line2);font-size:12px;color:var(--muted)}
+/* Halaman legal: lebar baca dibatasi, hierarki judul dipertegas */
+.card.legal{max-width:620px;margin:8px auto 24px;padding:28px 30px 22px}
+.legal .sec{display:block;margin:0 0 20px;padding-bottom:16px;border-bottom:1px solid color-mix(in srgb,var(--fg) 13%,transparent)}
+.legal .sec h2{font-size:22px;line-height:1.25;letter-spacing:-.015em}
+.legal .sec small{display:block;margin-top:5px;font-size:12px}
+.legal h3{font-size:15px;font-weight:700;letter-spacing:-.005em;margin:26px 0 7px}
+.legal h3:first-of-type{margin-top:0}
+.legal p{font-size:14px;line-height:1.75;color:var(--fg2);margin:0 0 10px}
+.legal p:last-of-type{margin-bottom:0}
+.legal p b{color:var(--fg);font-weight:600}
+.legal code{font-size:12.5px;background:color-mix(in srgb,var(--fg) 8%,transparent);padding:1px 4px;border-radius:5px}
+.legal-foot{margin-top:28px;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--fg) 13%,transparent);font-size:12px;color:var(--muted)}
+.legal-foot a{color:var(--muted)}.legal-foot a:hover{color:var(--fg)}
+@media(max-width:560px){.card.legal{padding:22px 20px 18px}.legal .sec h2{font-size:20px}}
 .legal-links{margin:12px 0 0;text-align:center;font-size:11.5px;color:var(--muted)}
+/* Irama jarak kartu pintu masuk: blok 18px, antar field 10px, tautan serumpun 6px */
+.doorcard .brand{margin-bottom:18px}
+.doorcard form>input+.pw{margin-top:10px}
+.doorcard .actions{margin-top:14px}
+.doorcard .legal-links{margin-top:14px}
+.doorcard .legal-links+.legal-links{margin-top:6px}
 .legal-links a{color:var(--muted);text-decoration:none}
 .legal-links a:hover{color:var(--fg)}
 .opt{font-weight:400;color:var(--muted);font-size:11px;text-transform:none;letter-spacing:0}
@@ -580,3 +595,173 @@ input.invalid,select.invalid,.ts-wrapper.invalid .ts-control,.pick.invalid{borde
 .sg-item:hover,.sg-item.on{background:color-mix(in srgb,var(--fg) 7%,transparent);transform:none;box-shadow:none}
 .sg-t{font-size:13.5px;font-weight:500;color:var(--fg)}
 .sg-m{font-size:11px;color:var(--muted)}
+
+/* Badge jumlah di chip bulan (layar Rapikan) */
+.chip b{margin-left:7px;padding:1px 6px;border-radius:999px;font-size:11px;font-weight:700;
+ background:color-mix(in srgb,var(--fg) 12%,transparent);color:var(--fg)}
+.chip.on b{background:color-mix(in srgb,var(--bg) 25%,transparent);color:var(--bg)}
+
+/* ============================ Halaman depan publik ============================
+   Alur muara: garis sungai menurun, tiap bagian berlabuh di simpulnya.
+   Videonya satu lapisan tetap di belakang seluruh halaman — tidak ada panel
+   yang menutupinya sebagian, jadi tidak ada garis sambungan di mana pun. */
+body.land-page{padding:0;background:transparent;color:var(--lfg);
+ font-family:"Plus Jakarta Sans",-apple-system,system-ui,sans-serif;
+ --lveil:246,246,248;--lfg:#16161a;--lmuted:#53535d;--lsoft:#3d3d47;
+ --lcard:rgba(255,255,255,.5);--lcard-hi:rgba(255,255,255,.72);--lline:rgba(0,0,0,.1);
+ --lshade:.74;--lbright:1.06;--lsat:104%}
+:root[data-theme=dark] .land-page{--lveil:8,9,13;--lfg:#f2f2f5;--lmuted:#a5a5b3;--lsoft:#c6c6d0;
+ --lcard:rgba(255,255,255,.055);--lcard-hi:rgba(255,255,255,.1);--lline:rgba(255,255,255,.1);
+ --lshade:.7;--lbright:.62;--lsat:116%}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .land-page{--lveil:8,9,13;--lfg:#f2f2f5;
+ --lmuted:#a5a5b3;--lsoft:#c6c6d0;--lcard:rgba(255,255,255,.055);--lcard-hi:rgba(255,255,255,.1);
+ --lline:rgba(255,255,255,.1);--lshade:.7;--lbright:.62;--lsat:116%}}
+body.land-page>.wrap,body.land-page main.wrap{max-width:none;padding:0;margin:0}
+.land-page h1,.land-page h2,.land-page h3{font-family:"Plus Jakarta Sans",-apple-system,system-ui,sans-serif}
+
+/* Video: diam di tempat, buram tipis, menyelimuti seluruh halaman */
+.land-page .door{position:fixed;inset:0;z-index:-3;
+ filter:blur(9px) saturate(var(--lsat)) brightness(var(--lbright))}
+.land-page .door video{transform:scale(1.06)}
+.land-page .door::after{display:none}
+/* Satu selubung rata untuk seluruh halaman: kerapatannya sama dari atas sampai
+   bawah, jadi tidak ada tepi panel yang terlihat sebagai potongan. */
+body.land-page::before{content:"";display:block;position:fixed;inset:0;z-index:-2;pointer-events:none;
+ background:rgba(var(--lveil),var(--lshade))}
+body.land-page::after{content:"";display:block;position:fixed;inset:0;height:auto;z-index:-1;pointer-events:none;
+ background:radial-gradient(1200px 680px at 50% -8%,rgba(61,149,255,.13),transparent 64%)}
+.land-in{width:100%;max-width:1120px;margin:0 auto;padding:0 22px}
+
+/* Kepala halaman */
+.land-top{position:relative;z-index:3;padding:22px 0}
+.land-top .land-in{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.land-brand{min-width:0;flex:0 1 auto;overflow:hidden}
+.land-brand>span{min-width:0}
+.land-top-right{flex:none}
+.land-brand b{color:var(--lfg)}
+.land-brand .sub{color:var(--lmuted);font-size:11px}
+.land-top-right{display:flex;align-items:center;gap:10px}
+.land-top-right .langtog{background:var(--lcard);box-shadow:0 0 0 .5px var(--lline);
+ -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.land-top-right .langtog button{color:var(--lmuted)}
+.land-top-right .langtog button.on,.land-top-right .langtog button:hover{color:var(--lfg)}
+.land-top-right .langtog .knob{background:var(--lcard-hi);box-shadow:none}
+.land-top-right .ibtn{background:var(--lcard);border:0;color:var(--lmuted);box-shadow:0 0 0 .5px var(--lline);
+ -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.land-top-right .ibtn:hover{background:var(--lcard-hi);color:var(--lfg)}
+.land-top-btn{height:38px;padding:0 16px;font-size:13.5px;text-decoration:none}
+
+/* Hero */
+.land-hero{position:relative;z-index:1;padding:78px 0 24px;text-align:center}
+.land-hero h1{margin:0 auto;font-size:clamp(35px,8.2vw,66px);font-weight:800;line-height:1.02;letter-spacing:-.045em;
+ max-width:15ch;color:var(--lfg)}
+.land-hero .lead{margin:24px auto 0;max-width:50ch;font-size:16px;line-height:1.7;color:var(--lsoft)}
+.land-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+.land-cta .btn{height:46px;padding:0 22px;font-size:14.5px;font-weight:600;text-decoration:none}
+.btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+.btn.primary:hover{box-shadow:0 10px 26px color-mix(in srgb,var(--accent) 42%,transparent)}
+.land-page .btn.ghost{background:var(--lcard);border-color:var(--lline);color:var(--lfg);
+ -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.land-page .btn.ghost:hover{background:var(--lcard-hi)}
+.land-hero .live{justify-content:center;max-width:none;margin:28px 0 0;padding:0;border-top:0;color:var(--lmuted)}
+.land-hero .live .clock{font-size:24px;color:var(--lfg)}
+.land-hero .live .wx{margin-left:0}
+.land-hero .live .wx b{color:var(--lfg);display:inline;font-size:13px;margin-right:5px}
+
+/* Alur: garis sungai + simpul */
+.land{position:relative;z-index:1;padding:20px 0 70px}
+.land-flow{position:relative;padding:20px 0 40px}
+.river{position:absolute;left:50%;top:0;transform:translateX(-50%);width:min(1120px,100%);height:100%;
+ z-index:0;pointer-events:none;
+ -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 9%,#000 91%,transparent 100%);
+ mask-image:linear-gradient(180deg,transparent 0,#000 9%,#000 91%,transparent 100%)}
+.river path{fill:none;stroke-linecap:round}
+/* Dasar sungai: selalu ada, sangat samar, jadi garisnya tidak pernah putus */
+.river-bed{stroke:url(#riverline);stroke-width:1.4;opacity:.3}
+/* Garis yang menggambar dirinya mengikuti gulir */
+.river-draw{stroke:url(#riverline);stroke-width:2;
+ stroke-dasharray:var(--len);stroke-dashoffset:calc(var(--len) - var(--len) * var(--prog,1));
+ transition:stroke-dashoffset .35s cubic-bezier(.16,1,.3,1)}
+/* Arus cahaya yang terus mengalir turun */
+.river-glint{stroke:#8fc0ff;stroke-width:2.6;opacity:.5;filter:blur(2px);
+ stroke-dasharray:90 1180;animation:river-flow 11s linear infinite}
+@keyframes river-flow{from{stroke-dashoffset:1270}to{stroke-dashoffset:0}}
+@media(prefers-reduced-motion:reduce){.river-glint{display:none}}
+.node{position:relative;z-index:1;display:grid;gap:26px;padding:64px 0;align-items:center}
+.node-dot{position:absolute;left:50%;top:64px;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;
+ background:var(--accent);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 16%,transparent),
+ 0 0 14px color-mix(in srgb,var(--accent) 60%,transparent);display:none;
+ animation:node-pulse 3.4s var(--ease) infinite}
+@keyframes node-pulse{0%,100%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 16%,transparent),0 0 14px color-mix(in srgb,var(--accent) 55%,transparent)}
+ 50%{box-shadow:0 0 0 9px color-mix(in srgb,var(--accent) 6%,transparent),0 0 20px color-mix(in srgb,var(--accent) 35%,transparent)}}
+@media(prefers-reduced-motion:reduce){.node-dot{animation:none}}
+.kicker{margin:0 0 10px;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.node h2{margin:0;font-size:clamp(23px,3.5vw,32px);font-weight:700;letter-spacing:-.03em;line-height:1.18;
+ max-width:16ch;color:var(--lfg)}
+.node p:not(.kicker){margin:14px 0 0;font-size:15px;line-height:1.78;color:var(--lmuted);max-width:44ch}
+.node .shot{width:min(260px,72vw);margin:0 auto;border-radius:26px;overflow:hidden;background:transparent;
+ border:0;box-shadow:0 8px 24px rgba(0,0,0,.18),0 30px 70px rgba(0,0,0,.3);
+ transition:transform .7s var(--ease-out),box-shadow .7s var(--ease-out)}
+.node .shot:hover{transform:translateY(-6px);box-shadow:0 12px 30px rgba(0,0,0,.24),0 40px 90px rgba(0,0,0,.4)}
+.node .shot img{display:block;width:100%;height:auto}
+/* Tangkapan layar ikut tema: yang terang untuk mode terang, gelap untuk gelap.
+   Pemilihnya harus lebih kuat dari `.node .shot img` di atas, kalau tidak
+   dua-duanya ikut tampil. */
+.node .shot .shot-dark{display:none}
+:root[data-theme=dark] .node .shot .shot-light{display:none}
+:root[data-theme=dark] .node .shot .shot-dark{display:block}
+@media(prefers-color-scheme:dark){
+ :root:not([data-theme=light]) .node .shot .shot-light{display:none}
+ :root:not([data-theme=light]) .node .shot .shot-dark{display:block}}
+
+/* Bagian teks */
+.land-sec{margin-top:40px;padding-top:48px;border-top:1px solid var(--lline)}
+.land-sec>h2{margin:0 0 26px;font-size:clamp(21px,4.4vw,26px);font-weight:700;letter-spacing:-.025em;color:var(--lfg)}
+.land-sec-grid{display:grid;gap:26px}
+.land-sec-grid h3{margin:0;font-size:14px;font-weight:700;color:var(--lfg)}
+.land-sec-grid p{margin:7px 0 0;font-size:13.5px;line-height:1.75;color:var(--lmuted)}
+.land-sec-plain p{margin:0;font-size:15px;line-height:1.76;color:var(--lmuted);max-width:62ch}
+.land-links{margin-top:14px!important;font-size:13px}
+.land-links a{color:var(--lmuted)}.land-links a:hover{color:var(--lfg)}
+.land-end{margin-top:48px;padding-top:48px;border-top:1px solid var(--lline);text-align:center}
+.land-end h2{margin:0;font-size:clamp(23px,5vw,32px);font-weight:700;letter-spacing:-.03em;color:var(--lfg)}
+.land-foot{display:flex;gap:6px;margin-top:52px;padding:20px 0 10px;border-top:1px solid var(--lline);
+ font-size:12px;color:var(--lmuted)}
+.land-foot a{color:var(--lmuted)}.land-foot a:hover{color:var(--lfg)}
+
+/* Muncul saat digulir — diam di tempat, hanya memudar naik sedikit */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .8s var(--ease-out),transform .8s var(--ease-out)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+
+/* Layar sempit: keterangan merek disembunyikan supaya tidak bertabrakan
+   dengan sakelar bahasa, persis seperti header di dalam aplikasi. */
+@media(max-width:660px){
+  .land-top{padding:16px 0}
+  .land-brand .sub{display:none}
+  .land-brand b{font-size:16px}
+  .land-top-right{gap:8px}
+  .land-top-btn{height:34px;padding:0 13px;font-size:13px}
+  .land-top-right .langtog{height:28px}
+  .land-top-right .langtog button{height:24px;min-width:26px;padding:0 6px}
+  .land-top-right .langtog .knob{height:24px}
+  .land-top-right .ibtn{width:32px;height:32px}
+}
+@media(min-width:680px){
+  .land-sec-grid{grid-template-columns:1fr 1fr;gap:28px 52px}
+}
+@media(min-width:900px){
+  .land-hero{padding-top:96px}
+  .node{grid-template-columns:1fr 1fr;gap:64px;padding:76px 0}
+  .node.b .node-text{order:2}
+  .node-dot{display:block}
+  .node .shot{width:min(278px,100%)}
+}
+
+/* Pilihan mata uang di Setelan */
+.curpick{display:flex;align-items:center;gap:10px}
+.cursym{flex:none;display:grid;place-items:center;min-width:52px;height:42px;padding:0 10px;border-radius:var(--r);
+ background:color-mix(in srgb,var(--fg) 6%,transparent);font-size:16px;font-weight:700;color:var(--fg)}
+.curpick select,.curpick .ts-wrapper{flex:1;min-width:0}
+.curform .hint{margin-top:10px}
+.curform .hint b{color:var(--fg)}

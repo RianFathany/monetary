@@ -177,9 +177,8 @@ EN = {
     "Perbarui": "Update",
 
     # --- perapihan / review ---
-    "Perapihan": "Clean-up",
     "transaksi impor yang kategorinya perlu dicek": "imported transactions whose category needs a check",
-    "Buka layar perapihan": "Open the clean-up screen",
+    "Buka halaman Rapikan": "Open the clean-up screen",
     "aplikasi menyarankan kategori dari deskripsi; kamu yang memutuskan":
         "the app suggests a category from the description; you decide",
     "Kenapa ini ada": "Why this exists",
@@ -483,8 +482,8 @@ EN = {
     "Buka Setelan → Akun → Hapus akun. File database Anda dihapus dari server saat itu juga, beserta seluruh isinya. Tindakan ini tidak bisa dibatalkan. Sebelum menghapus, Anda bisa mengunduh salinan lengkap lewat Setelan → Backup & ekspor.":
         "Go to Settings → Account → Delete account. Your database file is removed from the server immediately, with everything in it. This cannot be undone. Before deleting, you can download a full copy from Settings → Backup & export.",
     "Pertanyaan atau permintaan lain bisa dikirim ke {email}.": "Any other question or request can be sent to {email}.",
-    "Monetary adalah aplikasi pencatat keuangan pribadi yang dibuat dan dijalankan oleh satu orang, gratis, dan disediakan apa adanya (<i>as is</i>). Tidak ada jaminan ketersediaan, dan bisa berubah atau berhenti kapan saja.":
-        "Monetary is a personal finance tracker built and run by one person, free of charge, provided <i>as is</i>. There is no uptime guarantee, and it may change or stop at any time.",
+    "Muara adalah aplikasi pencatat keuangan pribadi yang dibuat dan dijalankan oleh satu orang, gratis, dan disediakan apa adanya (<i>as is</i>). Tidak ada jaminan ketersediaan, dan bisa berubah atau berhenti kapan saja.":
+        "Muara is a personal finance tracker built and run by one person, free of charge, provided <i>as is</i>. There is no uptime guarantee, and it may change or stop at any time.",
     "Anda bertanggung jawab atas isi catatan Anda sendiri dan atas keamanan akun Google yang dipakai masuk. Jangan memakai aplikasi ini untuk hal yang melanggar hukum.":
         "You are responsible for the content of your own records and for the security of the Google account you sign in with. Do not use this app for anything unlawful.",
     "Ringkasan, indikator kesehatan, dan saran dihitung dengan aturan sederhana dari angka yang Anda masukkan sendiri. Gunakan sebagai alat bantu, bukan sebagai nasihat keuangan, pajak, atau investasi.":
@@ -539,6 +538,7 @@ EN = {
     "transaksi perlu dicek": "transactions need a check",
     # --- lupa password & verifikasi email ---
     "Lupa password": "Forgot password",
+    "Kembali": "Back",
     "Lupa password?": "Forgot your password?",
     "kami kirim tautan ke email Anda": "we will email you a link",
     "Kalau alamat itu terdaftar, tautan setel ulang sudah dikirim. Cek juga folder spam.":
@@ -576,19 +576,19 @@ EN = {
     "Satu langkah lagi": "One more step",
     "Ketuk tombol di bawah untuk memastikan alamat ini benar milik Anda. Tautan berlaku 3 hari.":
         "Tap the button below to confirm this address is yours. The link works for 3 days.",
-    "Kalau Anda tidak merasa mendaftar di Monetary, abaikan saja surel ini.":
-        "If you did not sign up for Monetary, simply ignore this email.",
+    "Kalau Anda tidak merasa mendaftar di Muara, abaikan saja surel ini.":
+        "If you did not sign up for Muara, simply ignore this email.",
     "Konfirmasi email": "Confirm email",
-    "Setel ulang password Monetary": "Reset your Monetary password",
+    "Setel ulang password Muara": "Reset your Muara password",
     "Setel ulang password": "Reset your password",
     "Ada permintaan untuk mengatur ulang password akun ini. Tautan di bawah berlaku satu jam dan hanya bisa dipakai sekali.":
         "Someone asked to reset the password for this account. The link below works for one hour and only once.",
     "Kalau bukan Anda yang meminta, abaikan saja — password lama tetap berlaku.":
         "If that was not you, just ignore this — your current password still works.",
-    "Surel uji dari Monetary": "Test email from Monetary",
+    "Surel uji dari Muara": "Test email from Muara",
     "Konfigurasi surel berhasil": "Email delivery works",
-    "Kalau Anda menerima surel ini, pengiriman dari Monetary sudah jalan.":
-        "If you received this, sending email from Monetary is working.",
+    "Kalau Anda menerima surel ini, pengiriman dari Muara sudah jalan.":
+        "If you received this, sending email from Muara is working.",
     # --- cadangan otomatis ---
     "Cadangan otomatis": "Automatic backup",
     "ke penyimpanan di luar server": "to storage outside the server",
@@ -627,4 +627,64 @@ EN = {
     "jatuh tempo hari ini": "due today",
     "tanpa tanggal": "no date",
     "Tandai sudah dibayar": "Mark as paid",
+    # Halaman depan publik
+    "Catatan keuangan pribadi": "Personal finance tracker",
+    "Semua arus uangmu bermuara di sini.": "Every stream of your money ends up here.",
+    "Lahir dari spreadsheet cashflow yang tiap tahun makin panjang dan makin jarang diisi. Kas, kantong, dana darurat, dan aset — satu buku, punyamu sendiri.":
+        "Born out of a cashflow spreadsheet that grew longer every year and was filled in less and less often. Cash, pockets, emergency fund and assets — one book, and it is yours alone.",
+    "Bulan berjalan": "This month",
+    "Masuk berapa, keluar berapa, sisa berapa.": "What came in, what went out, what is left.",
+    "Satu layar untuk satu bulan. Batang di bawah angka besar itu enam bulan ke belakang, jadi bulan yang bocor ketahuan tanpa perlu membuka laporan.":
+        "One screen per month. The bars under the big number are the last six months, so a leaky month shows up without opening a report.",
+    "Tagihan yang belum dibayar diangkat ke atas lengkap dengan tanggal jatuh temponya.":
+        "Unpaid bills are lifted to the top, due dates included.",
+    "Kantong": "Pockets",
+    "Menabung itu memindahkan uang, bukan menghabiskannya.": "Saving moves money, it does not spend it.",
+    "Dana darurat, tabungan rumah, dan investasi berdiri sendiri-sendiri. Setoran ke sana dicatat sebagai pindah tempat, bukan pengeluaran.":
+        "The emergency fund, house savings and investments each stand on their own. Money put into them is recorded as a move, not as spending.",
+    "Impor file Excel-nya, kategori tiap baris ditebak dari keterangannya, dan yang meragukan dikumpulkan di satu halaman untuk kamu betulkan.":
+        "Import the Excel file, each row's category is guessed from its description, and the doubtful ones are gathered on one page for you to correct.",
+    "Dana darurat, tabungan rumah, dan investasi berdiri sendiri-sendiri. Setoran ke sana dicatat sebagai pindah tempat, bukan pengeluaran — beda dengan spreadsheet yang bikin belanja bulananmu kelihatan menggelembung.":
+        "The emergency fund, house savings and investments each stand on their own. Money put into them is recorded as a move, not as spending — unlike the spreadsheet, which made your monthly outgoings look bloated.",
+    "Aset": "Assets",
+    "Tumbuh, atau cuma jalan di tempat?": "Growing, or just standing still?",
+    "Harga reksa dana dan saham bergerak sendiri, jadi nilainya kamu isi sebulan sekali. Dari situ kekayaan bersihmu terhitung, lengkap dengan porsi tiap kantong.":
+        "Fund and share prices move on their own, so you fill in what they are worth once a month. Your net worth follows from that, with each pocket's share of it.",
+    "Pindahan": "Moving in",
+    "Bawa spreadsheet lamamu.": "Bring your old spreadsheet.",
+    "Impor file Excel-nya, kategori tiap baris ditebak dari keterangannya, dan yang meragukan dikumpulkan di satu halaman. Kamu tinggal membetulkan yang meleset, satu bulan sekali jalan.":
+        "Import the Excel file, each row's category is guessed from its description, and the doubtful ones are gathered on a single page. You just correct what missed, one month at a time.",
+    "Tampilan bulan berjalan di Muara": "The current month in Muara",
+    "Daftar kantong dan rekening di Muara": "Pockets and accounts in Muara",
+    "Halaman aset dan kekayaan bersih di Muara": "Assets and net worth in Muara",
+    "Halaman Rapikan untuk hasil impor": "Tidying up imported rows in Muara",
+    "Soal keamanan, biar jelas": "About security, to be clear",
+    "Password": "Password",
+    "Tidak pernah disimpan apa adanya — yang tersimpan hasil hash PBKDF2-SHA256 dua ratus ribu putaran dengan garam acak per orang. Salah lima kali dalam seperempat jam, pintunya dikunci lima belas menit.":
+        "Never stored as you typed it — what is kept is a PBKDF2-SHA256 hash over two hundred thousand rounds with a random salt per person. Five wrong tries within a quarter of an hour and the door locks for fifteen minutes.",
+    "Sesi dan form": "Sessions and forms",
+    "Sesimu dititipkan di cookie bertanda tangan yang tidak bisa dibaca JavaScript, berlaku 30 hari. Setiap kiriman yang mengubah data wajib membawa token CSRF, tanpa pengecualian, dan semua lalu lintas dipaksa lewat HTTPS.":
+        "Your session lives in a signed cookie that JavaScript cannot read, good for 30 days. Every request that changes data must carry a CSRF token, without exception, and all traffic is forced over HTTPS.",
+    "Pemisahan data": "Keeping data apart",
+    "Catatan tiap orang disimpan sebagai berkas sendiri-sendiri, bukan ditumpuk jadi satu tabel besar yang dipisahkan kolom pemilik. Jadi isi bukumu tidak bisa bocor ke buku orang lain gara-gara satu query yang salah tulis.":
+        "Each person's records sit in their own file, rather than piled into one big table separated by an owner column. Your book cannot leak into someone else's because of a single mistyped query.",
+    "Masuk lewat Google": "Signing in with Google",
+    "Yang diminta cuma nama dan alamat email. Tidak ada akses ke Gmail, Drive, atau Kontak.":
+        "All that is asked for is your name and email address. No access to Gmail, Drive or Contacts.",
+    "Yang tidak bisa saya janjikan: servernya saya yang pegang, jadi secara teknis saya bisa membuka berkasnya. Kalau ada angka yang tidak nyaman kamu titipkan ke orang lain, jangan dimasukkan.":
+        "What I cannot promise: the server is mine, so technically I can open the file. If there are figures you would not be comfortable leaving with someone else, do not put them in.",
+    "Datamu tidak ke mana-mana": "Your data stays put",
+    "Tidak ada iklan, tidak ada pelacak pihak ketiga, tidak ada analitik. Isinya bisa kamu unduh utuh kapan saja, dan kalau mau berhenti, hapus akun — berkasnya ikut hilang dari server saat itu juga.":
+        "No ads, no third-party trackers, no analytics. You can download the whole thing whenever you like, and if you want out, delete the account — the file leaves the server there and then.",
+    "Mulai dari bulan ini.": "Start with this month.",
+    "Muara · dibuat oleh": "Muara · built by",
+    "Angka di gambar contoh belaka · Video ·": "Figures in the screenshots are made up · Video ·",
+    # Mata uang
+    "Nilai pasar": "Market value",
+    "Mata uang": "Currency",
+    "simbol dan bentuk angka": "symbol and number format",
+    "Contoh:": "Example:",
+    "nominalnya tidak dikonversi, yang berubah cuma cara menampilkannya.":
+        "amounts are not converted — only the way they are shown changes.",
+    "Simpan mata uang": "Save currency",
 }

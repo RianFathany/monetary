@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% block title %}{{ _('Lupa password') }} · Monetary{% endblock %}
+{% block title %}{{ _('Lupa password') }} · Muara{% endblock %}
 {% block bodyclass %}door-page{% endblock %}
 {% block header %}{% endblock %}
 {% block content %}
 <div class="door" id="door" aria-hidden="true"></div>
+{% include "_doortools.html" %}
 <div class="doorwrap">
 <div class="doorcard card">
-  <div class="brand" style="margin-bottom:10px"><span class="logo photo"><img src="/static/logo.png?v={{ asset_v }}" alt="Monetary" width="256" height="206"></span><span><b>{{ _('Lupa password') }}</b><span class="sub">{{ _('kami kirim tautan ke email Anda') }}</span></span></div>
+  <div class="brand"><span class="logo photo"><img src="/static/logo.png?v={{ asset_v }}" alt="Muara" width="256" height="206"></span><span><b>{{ _('Lupa password') }}</b><span class="sub">{{ _('kami kirim tautan ke email Anda') }}</span></span></div>
 
   {% if sent %}
   <div class="note ok">{{ _('Kalau alamat itu terdaftar, tautan setel ulang sudah dikirim. Cek juga folder spam.') }}</div>

@@ -43,9 +43,9 @@ class TestTautanSurel(unittest.TestCase):
         self.assertFalse(ok)
 
     def test_konfigurasi_surel_disimpan(self):
-        self.mailer.save_config("re_kunci", "kirim@contoh.com", "Monetary")
+        self.mailer.save_config("re_kunci", "kirim@contoh.com", "Muara")
         self.assertTrue(self.mailer.is_enabled())
-        self.mailer.save_config("", "kirim2@contoh.com", "Monetary")   # kosong = kunci lama dipakai
+        self.mailer.save_config("", "kirim2@contoh.com", "Muara")   # kosong = kunci lama dipakai
         self.assertEqual(self.mailer.config()["api_key"], "re_kunci")
         self.assertEqual(self.mailer.config()["sender"], "kirim2@contoh.com")
 

@@ -48,7 +48,7 @@ def privacy(host: str) -> str:
 def terms(host: str) -> str:
     return (
         f"<h3>{t('Layanan apa ini')}</h3>"
-        + _p(t("Monetary adalah aplikasi pencatat keuangan pribadi yang dibuat dan dijalankan oleh "
+        + _p(t("Muara adalah aplikasi pencatat keuangan pribadi yang dibuat dan dijalankan oleh "
                "satu orang, gratis, dan disediakan apa adanya (<i>as is</i>). Tidak ada jaminan "
                "ketersediaan, dan bisa berubah atau berhenti kapan saja."))
         + f"<h3>{t('Tanggung jawab Anda')}</h3>"

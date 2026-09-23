@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set mk = s.month %}
-{% block title %}{{ mk | month_label }} · Monetary{% endblock %}
+{% block title %}{{ mk | month_label }} · Muara{% endblock %}
 {% macro accopt(list, sel) %}{% for a in list %}<option value="{{ a.id }}" {{ 'selected' if a.id==sel }}>{{ a.name }}</option>{% endfor %}{% endmacro %}
 {% block content %}
 
@@ -142,7 +142,7 @@
         <div class="name">{{ t.description or t.category or '—' }}</div>
         <div class="meta">{% if t.category and t.description %}<span>{{ t.category }}</span>{% endif %}{% if t.tx_date %}<span>{{ t.tx_date | fmt_date }}</span>{% endif %}<span>→ {{ t.account }}</span></div>
       </div>
-      <div class="amt num in">+{{ t.amount | rupiah | replace('Rp ','') }}</div>
+      <div class="amt num in">+{{ t.amount | plain }}</div>
     </div>
     {% include "_swact.html" %}</div></div>
     {% else %}<div class="empty"><b>{{ _('Belum ada pemasukan.') }}</b><span>{{ _('Ketuk “+ Pemasukan” di bawah.') }}</span></div>{% endfor %}

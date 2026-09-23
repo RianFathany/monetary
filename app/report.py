@@ -12,11 +12,13 @@ tidak pernah dihitung oleh model.
 import json
 from datetime import date
 
+from . import money
 from .db import ASSET_TYPES, CASH_TYPES, asset_view, balance_upto
 from .i18n import get_lang, t, units
 
 LOOKBACK = 3          # bulan pembanding untuk rata-rata
 SPIKE = 0.30          # kenaikan kategori dianggap menonjol di atas 30%
+SPIKE_MIN = 500_000 * money.SCALE   # ...dan selisihnya minimal segini (berbentuk rupiah)
 DEBT_WARN = 0.35      # rasio cicilan sehat: maksimal 35% dari pemasukan
 COVER_TARGET = 6      # target cakupan dana darurat, dalam bulan belanja
 
@@ -77,7 +79,7 @@ def build_metrics(db, mk: str) -> dict:
         row = dict(name=r["name"], value=int(r["v"]), count=r["n"], avg=int(avg),
                    delta=int(r["v"] - avg), share=(r["v"] / expense if expense else 0))
         cats.append(row)
-        if avg and r["v"] > avg * (1 + SPIKE) and r["v"] - avg >= 500_000:
+        if avg and r["v"] > avg * (1 + SPIKE) and r["v"] - avg >= SPIKE_MIN:
             spikes.append(row)
 
     top = [dict(desc=r["description"] or r["name"] or "—", amount=r["amount"], date=r["tx_date"], cat=r["name"])
@@ -123,18 +125,8 @@ def build_metrics(db, mk: str) -> dict:
 # ---------- narasi berbasis aturan ----------
 
 def _rp(n) -> str:
-    n = int(n or 0)
-    a = abs(n)
-    rb, jt, M = units()
-    if a >= 1_000_000_000:
-        s = f"{a/1_000_000_000:.1f}".rstrip("0").rstrip(".") + " " + M
-    elif a >= 1_000_000:
-        s = f"{a/1_000_000:.1f}".rstrip("0").rstrip(".") + " " + jt
-    elif a >= 1_000:
-        s = f"{a/1_000:.0f} " + rb
-    else:
-        s = str(a)
-    return ("−" if n < 0 else "") + "Rp " + s
+    """Bentuk ringkas untuk kalimat laporan. Satu sumber dengan sisa aplikasi."""
+    return money.short(n)
 
 
 def render_rules(m: dict) -> dict:

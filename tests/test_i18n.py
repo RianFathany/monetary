@@ -42,6 +42,31 @@ class TestKamus(unittest.TestCase):
         self.assertEqual(beda, [])
 
 
+class TestBahasaTamu(unittest.TestCase):
+    """Yang belum masuk memilih bahasanya sendiri, bukan mewarisi setelan pemilik."""
+
+    def test_cookie_menang(self):
+        self.assertEqual(i18n.guest_lang("en", "id-ID,id;q=0.9"), "en")
+
+    def test_tanpa_cookie_ikut_peramban(self):
+        self.assertEqual(i18n.guest_lang("", "en-US,en;q=0.9"), "en")
+        self.assertEqual(i18n.guest_lang("", "id-ID,id;q=0.9"), "id")
+
+    def test_cookie_ngawur_diabaikan(self):
+        self.assertEqual(i18n.guest_lang("de", "en-GB,en;q=0.9"), "en")
+
+    def test_bahasa_asing_jatuh_ke_indonesia(self):
+        self.assertEqual(i18n.guest_lang("", "de-DE,de;q=0.9,fr;q=0.8"), "id")
+
+    def test_tanpa_petunjuk_apa_pun(self):
+        self.assertEqual(i18n.guest_lang("", ""), "id")
+
+    def test_urutan_header_dihormati(self):
+        """Yang disebut lebih dulu dipakai, tanpa membaca bobot q."""
+        self.assertEqual(i18n.from_header("en-GB,id;q=0.5"), "en")
+        self.assertEqual(i18n.from_header("id,en;q=0.5"), "id")
+
+
 class TestTemplateTerbungkus(unittest.TestCase):
     def test_semua_teks_template_ada_di_kamus(self):
         """Teks yang sudah dibungkus _() harus punya terjemahan Inggris."""

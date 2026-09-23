@@ -2,7 +2,7 @@
 import unittest
 
 from app.db import balance_upto
-from tests.helpers import acc, add, make_db
+from tests.helpers import acc, add, make_db, rp
 
 
 class Saldo(unittest.TestCase):
@@ -12,41 +12,41 @@ class Saldo(unittest.TestCase):
 
     def test_pemasukan_menambah_kas(self):
         add(self.db, "2026-01", "income", 10_000_000, "Kas", category="Gaji")
-        self.assertEqual(balance_upto(self.db, "2026-01"), 10_000_000)
+        self.assertEqual(balance_upto(self.db, "2026-01"), rp(10_000_000))
 
     def test_pengeluaran_mengurangi_kas(self):
         add(self.db, "2026-01", "income", 10_000_000, "Kas", category="Gaji")
         add(self.db, "2026-01", "expense", 3_000_000, "Kas", category="Belanja")
-        self.assertEqual(balance_upto(self.db, "2026-01"), 7_000_000)
+        self.assertEqual(balance_upto(self.db, "2026-01"), rp(7_000_000))
 
     def test_transfer_ke_tabungan_memindah_bukan_menghabiskan(self):
         add(self.db, "2026-01", "income", 10_000_000, "Kas", category="Gaji")
         add(self.db, "2026-01", "transfer", 4_000_000, "Kas", to_account="Dana Darurat")
-        self.assertEqual(balance_upto(self.db, "2026-01"), 6_000_000)
-        self.assertEqual(balance_upto(self.db, "2026-01", ("savings",)), 4_000_000)
+        self.assertEqual(balance_upto(self.db, "2026-01"), rp(6_000_000))
+        self.assertEqual(balance_upto(self.db, "2026-01", ("savings",)), rp(4_000_000))
 
     def test_transfer_antar_kantong_sejenis_tidak_mengubah_total(self):
         db = make_db((("Kas", "cash", 5_000_000), ("BCA", "cash", 0), ("Dana Darurat", "savings", 0)))
         self.addCleanup(db.close)
         add(db, "2026-01", "transfer", 2_000_000, "Kas", to_account="BCA")
-        self.assertEqual(balance_upto(db, "2026-01"), 5_000_000)
+        self.assertEqual(balance_upto(db, "2026-01"), rp(5_000_000))
 
     def test_saldo_awal_ikut_dihitung(self):
         db = make_db((("Kas", "cash", 1_500_000), ("Dana Darurat", "savings", 0)))
         self.addCleanup(db.close)
-        self.assertEqual(balance_upto(db, "2026-01"), 1_500_000)
+        self.assertEqual(balance_upto(db, "2026-01"), rp(1_500_000))
 
     def test_saldo_kumulatif_sampai_bulan_yang_diminta(self):
         add(self.db, "2026-01", "income", 10_000_000, "Kas", category="Gaji")
         add(self.db, "2026-02", "expense", 2_000_000, "Kas", category="Belanja")
-        self.assertEqual(balance_upto(self.db, "2026-01"), 10_000_000)
-        self.assertEqual(balance_upto(self.db, "2026-02"), 8_000_000)
+        self.assertEqual(balance_upto(self.db, "2026-01"), rp(10_000_000))
+        self.assertEqual(balance_upto(self.db, "2026-02"), rp(8_000_000))
 
     def test_transaksi_terhapus_tidak_ikut(self):
         tid = add(self.db, "2026-01", "income", 10_000_000, "Kas", category="Gaji")
         add(self.db, "2026-01", "expense", 1_000_000, "Kas", category="Belanja")
         self.db.execute("UPDATE transactions SET deleted_at=datetime('now') WHERE id=?", (tid,))
-        self.assertEqual(balance_upto(self.db, "2026-01"), -1_000_000)
+        self.assertEqual(balance_upto(self.db, "2026-01"), rp(-1_000_000))
 
     def test_skema_menolak_transfer_ke_kantong_sendiri(self):
         import sqlite3

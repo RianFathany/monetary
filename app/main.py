@@ -1,4 +1,4 @@
-"""Monetary — kas, kantong, dana darurat, dan aset. Satu user, satu file SQLite.
+"""Muara — kas, kantong, dana darurat, dan aset. Satu user, satu file SQLite.
 
 Tiga tipe transaksi: pemasukan, pengeluaran, dan transfer antar kantong.
 Transfer tidak pernah dihitung sebagai pemasukan/pengeluaran — itu yang bikin
@@ -18,13 +18,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from . import auth, backup, csrf, i18n, legal, mailer, oauth, report, suggest, users
+from . import auth, backup, csrf, i18n, legal, mailer, money, oauth, report, suggest, users
 from .i18n import t
-from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, get_db, get_setting,
+from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, book_currency,
+                 get_db, get_setting, set_book_currency,
                  init_db, set_app_setting, set_book, set_setting, upgrade_all_books)
 
 BASE = Path(__file__).resolve().parent
-app = FastAPI(title="Monetary", docs_url=None, redoc_url=None)
+app = FastAPI(title="Muara", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 app.add_middleware(csrf.CSRFMiddleware)
 templates = Jinja2Templates(directory=BASE / "templates")
@@ -40,11 +41,9 @@ ACCOUNT_TYPES = {
 # ---------- helpers ----------
 
 def rupiah(n) -> str:
-    if n is None:
-        return "–"
-    n = int(n)
-    s = f"{abs(n):,}".replace(",", ".")
-    return f"-Rp {s}" if n < 0 else f"Rp {s}"
+    """Nama filternya tetap `rupiah` — dipakai di puluhan template. Isinya
+    sekarang mengikuti mata uang buku yang sedang dibuka."""
+    return money.fmt(n)
 
 
 def month_label(key: str) -> str:
@@ -65,8 +64,7 @@ def this_month() -> str:
 
 
 def parse_amount(raw: str) -> int:
-    digits = "".join(ch for ch in raw if ch.isdigit() or ch == "-")
-    return int(digits) if digits and digits != "-" else 0
+    return money.parse(raw)
 
 
 def clean_date(raw: Optional[str]) -> Optional[str]:
@@ -97,18 +95,7 @@ def hue(name) -> int:
 
 
 def short_rupiah(n) -> str:
-    n = int(n or 0)
-    a = abs(n)
-    rb, jt, M = i18n.units()
-    if a >= 1_000_000_000:
-        v = f"{a/1_000_000_000:.1f}".rstrip("0").rstrip(".") + " " + M
-    elif a >= 1_000_000:
-        v = f"{a/1_000_000:.1f}".rstrip("0").rstrip(".") + " " + jt
-    elif a >= 1_000:
-        v = f"{a/1_000:.0f} " + rb
-    else:
-        v = str(a)
-    return ("-" if n < 0 else "") + v
+    return money.short(n)
 
 
 def stamp(raw) -> str:
@@ -125,6 +112,7 @@ templates.env.filters["month_label"] = month_label
 templates.env.filters["fmt_date"] = fmt_date
 templates.env.filters["hue"] = hue
 templates.env.filters["short"] = short_rupiah
+templates.env.filters["plain"] = money.plain
 templates.env.filters["t"] = t
 templates.env.globals["_"] = t
 
@@ -138,13 +126,18 @@ async def _book_and_language(request: Request, call_next):
     """
     set_book("")
     i18n.set_lang("id")
+    money.set_currency(money.DEFAULT)
     if not request.url.path.startswith("/static"):
         try:
             u = signed_in(request)
             if u:
                 set_book(users.path_for(u))
-            with get_db() as db:
-                i18n.set_lang(get_setting(db, "lang", "id") or "id")
+                with get_db() as db:
+                    i18n.set_lang(get_setting(db, "lang", "id") or "id")
+                    money.set_currency(book_currency(db))
+            else:                              # tamu: cookie pilihannya, lalu bahasa peramban
+                i18n.set_lang(i18n.guest_lang(request.cookies.get(i18n.COOKIE, ""),
+                                              request.headers.get("accept-language", "")))
             backup.maybe_run()                 # cadangan harian menumpang lalu lintas biasa
         except Exception:                      # database belum siap (mis. saat start pertama)
             pass
@@ -156,7 +149,7 @@ def _startup():
     init_db()
     auth.bootstrap()
     for path, before, after in upgrade_all_books():      # buku pengguna lain ikut naik versi
-        print(f"[monetary] skema buku diperbarui: {Path(path).name} v{before} -> v{after}")
+        print(f"[muara] skema buku diperbarui: {Path(path).name} v{before} -> v{after}")
 
 
 def signed_in(request: Request):
@@ -206,6 +199,15 @@ def csrf_for(request: Request) -> str:
     return token
 
 
+def _back_to(request: Request, fallback: str = "/") -> str:
+    """Kembali ke halaman asal, tapi hanya bila itu halaman aplikasi ini sendiri."""
+    ref = request.headers.get("referer") or ""
+    base = str(request.base_url).rstrip("/")
+    if ref.startswith(base + "/") or ref == base:
+        return ref
+    return fallback
+
+
 def render(request: Request, name: str, **ctx):
     ctx.setdefault("request", request)
     ctx.setdefault("today", date.today().isoformat())
@@ -215,6 +217,11 @@ def render(request: Request, name: str, **ctx):
     ctx.setdefault("csrf_field", Markup(f'<input type="hidden" name="{csrf.FIELD}" value="{ctx["csrf_token"]}">'))
     ctx.setdefault("lang", i18n.get_lang())
     ctx.setdefault("langs", i18n.LANGS)
+    ctx.setdefault("currency", money.get_currency())
+    ctx.setdefault("cur_symbol", money.symbol())
+    ctx.setdefault("cur_decimals", money.decimals())
+    ctx.setdefault("cur_group", money.separators()[0])
+    ctx.setdefault("cur_point", money.separators()[1])
     ctx.setdefault("months_short", i18n.months(short=True))
     ctx.setdefault("months_long", i18n.months())
     ctx.setdefault("days_short", i18n.DAYS[i18n.get_lang()])
@@ -376,6 +383,13 @@ def login(request: Request, password: str = Form(...), email: str = Form(""), ne
     return resp
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    """Peramban lama meminta /favicon.ico di akar, bukan yang di <link rel=icon>."""
+    return FileResponse(BASE / "static" / "favicon.ico", media_type="image/x-icon",
+                        headers={"Cache-Control": "public, max-age=604800"})
+
+
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy_page(request: Request):
     """Terbuka tanpa login — dipakai consent screen Google."""
@@ -410,7 +424,7 @@ def send_verification(request: Request, u) -> bool:
         u["email"], t("Konfirmasi alamat email Anda"), t("Satu langkah lagi"),
         [t("Ketuk tombol di bawah untuk memastikan alamat ini benar milik Anda. "
            "Tautan berlaku 3 hari."),
-         t("Kalau Anda tidak merasa mendaftar di Monetary, abaikan saja surel ini.")],
+         t("Kalau Anda tidak merasa mendaftar di Muara, abaikan saja surel ini.")],
         (t("Konfirmasi email"), link))
     return ok
 
@@ -453,7 +467,7 @@ def forgot(request: Request, email: str = Form("")):
         token = auth.make_link("reset", {"i": u["id"], "e": u["session_epoch"],
                                          "p": (u["password_hash"] or "")[:16]})
         link = f"{base_url(request)}/reset?token={token}"
-        mailer.send(u["email"], t("Setel ulang password Monetary"), t("Setel ulang password"),
+        mailer.send(u["email"], t("Setel ulang password Muara"), t("Setel ulang password"),
                     [t("Ada permintaan untuk mengatur ulang password akun ini. "
                        "Tautan di bawah berlaku satu jam dan hanya bisa dipakai sekali."),
                      t("Kalau bukan Anda yang meminta, abaikan saja — password lama tetap berlaku.")],
@@ -535,8 +549,8 @@ def settings_mail_test(request: Request):
     to = u["email"] if "@" in (u["email"] or "") else users.owner_email()
     if not to or not mailer.is_enabled():
         return RedirectResponse("/settings?mail=off#account", status_code=303)
-    ok, err = mailer.send(to, t("Surel uji dari Monetary"), t("Konfigurasi surel berhasil"),
-                          [t("Kalau Anda menerima surel ini, pengiriman dari Monetary sudah jalan.")])
+    ok, err = mailer.send(to, t("Surel uji dari Muara"), t("Konfigurasi surel berhasil"),
+                          [t("Kalau Anda menerima surel ini, pengiriman dari Muara sudah jalan.")])
     return RedirectResponse(f"/settings?mail={'sent' if ok else 'fail'}#account", status_code=303)
 
 
@@ -673,8 +687,10 @@ def logout():
 
 @app.get("/")
 def home(request: Request):
-    if (r := require_login(request)):
-        return r
+    """Halaman depan publik untuk tamu — juga homepage yang diminta Google saat
+    consent screen diverifikasi. Yang sudah masuk langsung ke bulan berjalan."""
+    if not signed_in(request):
+        return render(request, "landing.html", page="landing", signup=users.signup_open())
     return RedirectResponse(f"/m/{this_month()}", status_code=303)
 
 
@@ -945,6 +961,7 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", ma
                   review_count=review_count, has_password=bool(u and (u["password_hash"] or u["is_owner"])),
                   google=google, recurring=rec, cats=cats, used=used, accounts=accs,
                   first_month=first_month, page="settings", mk=this_month(), pw=pw, g=g,
+                  currencies=[(c, money.code_label(c)) for c in sorted(money.NAMES)],
                   me=u, is_owner=bool(u and u["is_owner"]),
                   users_list=users.all_users() if (u and u["is_owner"]) else [],
                   signup_open=users.signup_open(), adm=adm,
@@ -1029,14 +1046,33 @@ def settings_opening(request: Request, first_month: str = Form("")):
     return RedirectResponse("/settings", status_code=303)
 
 
-@app.post("/settings/lang")
-def settings_lang(request: Request, lang: str = Form("id")):
-    """Simpan bahasa antarmuka. Laporan disimpan per bahasa, jadi tidak perlu dihapus."""
+@app.post("/lang")
+def set_language(request: Request, lang: str = Form("id")):
+    """Ganti bahasa antarmuka — juga untuk yang belum masuk (halaman masuk, daftar, legal).
+
+    Pilihannya selalu ditulis ke cookie supaya halaman publik ikut berubah, dan
+    bila sedang masuk disimpan juga di bukunya supaya ikut pindah peramban.
+    """
+    code = lang if lang in i18n.LANGS else "id"
+    resp = RedirectResponse(_back_to(request), status_code=303)
+    resp.set_cookie(i18n.COOKIE, code, max_age=60 * 60 * 24 * 365, samesite="lax",
+                    secure=request.url.scheme == "https")
+    if signed_in(request):
+        with get_db() as db:
+            set_setting(db, "lang", code)
+    return resp
+
+
+@app.post("/settings/currency")
+def settings_currency(request: Request, currency: str = Form("IDR")):
+    """Ganti mata uang buku. Nominalnya tidak dikonversi — yang berubah cuma
+    cara menampilkannya, karena angkanya memang disimpan tanpa mata uang."""
     if (r := require_login(request)):
         return r
+    code = currency.upper()
     with get_db() as db:
-        set_setting(db, "lang", lang if lang in i18n.LANGS else "id")
-    return RedirectResponse(request.headers.get("referer", "/") or "/", status_code=303)
+        set_book_currency(db, code if code in money.NAMES else money.DEFAULT)
+    return RedirectResponse("/settings#currency", status_code=303)
 
 
 @app.post("/settings/account/delete")
@@ -1318,7 +1354,7 @@ def backup_db(request: Request):
     if (r := require_login(request)):
         return r
     import tempfile
-    tmp = Path(tempfile.mkdtemp()) / f"monetary-{date.today().isoformat()}.db"
+    tmp = Path(tempfile.mkdtemp()) / f"muara-{date.today().isoformat()}.db"
     with get_db() as db:
         db.execute("VACUUM INTO ?", (str(tmp),))
     return FileResponse(str(tmp), media_type="application/vnd.sqlite3", filename=tmp.name)
@@ -1344,8 +1380,9 @@ def export_xlsx(request: Request):
             c.font = bold
         for mk in months:
             s = month_summary(db, mk)
-            ws.append([mk, s["cash_prev"], s["income"], s["expense"], s["cash_balance"], s["saved"],
-                       s["fund_balance"], s["invest"], s["total_assets"]])
+            ws.append([mk] + [money.major(s[k]) for k in
+                               ("cash_prev", "income", "expense", "cash_balance", "saved",
+                                "fund_balance", "invest", "total_assets")])
         for mk in months:
             lists = month_lists(db, mk)
             w = wb.create_sheet(month_label(mk).upper().replace(" ", "-"))
@@ -1353,21 +1390,21 @@ def export_xlsx(request: Request):
             for c in w[1]:
                 c.font = bold
             for t in lists["expenses"] + lists["incomes"]:
-                w.append([t["tx_date"], t["category"], t["description"], t["amount"], t["account"], t["status"],
-                          "", t["type"]])
+                w.append([t["tx_date"], t["category"], t["description"], money.major(t["amount"]),
+                          t["account"], t["status"], "", t["type"]])
             for t in lists["transfers"]:
-                w.append([t["tx_date"], f'{t["account"]} → {t["to_account"]}', t["description"], t["amount"],
-                          "", "", "", "transfer"])
+                w.append([t["tx_date"], f'{t["account"]} → {t["to_account"]}', t["description"],
+                          money.major(t["amount"]), "", "", "", "transfer"])
         wa = wb.create_sheet("ASET")
         wa.append(["Bulan", "Kantong", "Simbol", "Nilai"])
         for c in wa[1]:
             c.font = bold
         for a in db.execute("SELECT s.month_key, a.name, s.symbol, s.amount FROM asset_snapshots s "
                             "JOIN accounts a ON a.id=s.account_id ORDER BY s.month_key, a.sort, s.symbol"):
-            wa.append(list(a))
+            wa.append([a["month_key"], a["name"], a["symbol"], money.major(a["amount"])])
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    name = f"monetary-{date.today().isoformat()}.xlsx"
+    name = f"muara-{date.today().isoformat()}.xlsx"
     return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                              headers={"Content-Disposition": f'attachment; filename="{name}"'})

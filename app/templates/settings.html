@@ -1,13 +1,29 @@
 {% extends "base.html" %}
-{% block title %}Setelan · Monetary{% endblock %}
+{% block title %}Setelan · Muara{% endblock %}
 {% block content %}
 
 {% if review_count %}
 <section class="card">
-  <div class="sec"><h2>{{ _('Perapihan') }}</h2><small>{{ review_count }} {{ _('transaksi perlu dicek') }}</small></div>
-  <a class="btn tall" href="/review" style="display:block"><b>{{ _('Buka layar perapihan') }}</b><span>{{ _('aplikasi menyarankan kategori dari deskripsi; kamu yang memutuskan') }}</span></a>
+  <div class="sec"><h2>{{ _('Rapikan') }}</h2><small>{{ review_count }} {{ _('transaksi perlu dicek') }}</small></div>
+  <a class="btn tall" href="/review"><b>{{ _('Buka halaman Rapikan') }}</b><span>{{ _('aplikasi menyarankan kategori dari deskripsi; kamu yang memutuskan') }}</span></a>
 </section>
 {% endif %}
+
+<section class="card" id="currency" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Mata uang') }}</h2><small>{{ _('simbol dan bentuk angka') }}</small></div>
+  <form method="post" action="/settings/currency" class="curform">{{ csrf_field }}
+    <div class="curpick">
+      <span class="cursym" aria-hidden="true">{{ cur_symbol }}</span>
+      <select name="currency" aria-label="{{ _('Mata uang') }}">
+        {% for code, label in currencies %}
+        <option value="{{ code }}" {{ 'selected' if code==currency }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <p class="hint">{{ _('Contoh:') }} <b class="num">{{ 123456789 | rupiah }}</b> · {{ _('nominalnya tidak dikonversi, yang berubah cuma cara menampilkannya.') }}</p>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan mata uang') }}</button></div>
+  </form>
+</section>
 
 <section class="card" id="categories" style="margin-top:10px">
   <div class="sec"><h2>{{ _('Kategori') }}</h2><small>{{ _('ketuk untuk mengubah nama, urutan, atau menandai cicilan') }}</small></div>
@@ -219,7 +235,7 @@
       <input type="password" name="api_key" placeholder="{{ _('tersimpan — isi hanya bila ingin mengganti') if mailcfg.has_key else 're_...' }}">
       <div class="f2">
         <div><label>{{ _('Alamat pengirim') }}</label><input name="sender" value="{{ mailcfg.sender }}" placeholder="monetary@rianfathany.com"></div>
-        <div><label>{{ _('Nama pengirim') }}</label><input name="name" value="{{ mailcfg.name }}" placeholder="Monetary"></div>
+        <div><label>{{ _('Nama pengirim') }}</label><input name="name" value="{{ mailcfg.name }}" placeholder="Muara"></div>
       </div>
       <p class="hint">{{ _('Domain pengirim harus sudah diverifikasi di Resend (SPF & DKIM di Cloudflare).') }}</p>
       <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>

@@ -1,4 +1,4 @@
-"""Import spreadsheet 'MRFNIP - Cashflow' ke SQLite Monetary.
+"""Import spreadsheet 'MRFNIP - Cashflow' ke SQLite Muara.
 
   python scripts/import_xlsx.py "reference/MRFNIP - Cashflow (2).xlsx" [--reset] [--db data/monetary-v1.db]
 
@@ -14,6 +14,9 @@ Layout tiap sheet bulanan (mis. NOV-25):
   L-N  : Category, Sub Category, Amount        (aset; hanya terisi bila ada angka)
   B1   : Saldo sebelumnya  (dipakai untuk bulan pertama)
   J3   : Dana darurat previous (bulan pertama)
+
+Nominal di skrip ini tetap rupiah utuh. Aplikasi yang mengubahnya ke satuan
+perseratus (app/money.py) saat buku hasilnya pertama kali dibuka.
 """
 import re
 import sys

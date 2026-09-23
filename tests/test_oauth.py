@@ -75,10 +75,15 @@ class TestIzinMasuk(unittest.TestCase):
         self.assertTrue(oauth.in_allowlist("BOLEH@gmail.com"))
         self.assertFalse(oauth.in_allowlist("orang@gmail.com"))
 
-    def test_aktif_hanya_bila_lengkap(self):
+    def test_aktif_bila_client_id_dan_secret_ada(self):
         self.assertTrue(oauth.is_enabled())
+        # Daftar email kosong tetap aktif: itu cuma penentu pewaris buku pemilik.
         oauth.get_app_setting = lambda key, default="": {
             "google_client_id": "cid", "google_client_secret": "sec"}.get(key, default)
+        self.assertTrue(oauth.is_enabled())
+        # Tanpa secret, tombolnya mati.
+        oauth.get_app_setting = lambda key, default="": {
+            "google_client_id": "cid"}.get(key, default)
         self.assertFalse(oauth.is_enabled())
 
 

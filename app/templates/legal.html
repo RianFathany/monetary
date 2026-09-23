@@ -1,21 +1,16 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} · Monetary{% endblock %}
+{% block title %}{{ title }} · Muara{% endblock %}
 {% block header %}
 <header class="bar"><div class="barin">
-  <a class="brand" href="/"><span class="logo photo"><img src="/static/logo.png?v={{ asset_v }}" alt="Monetary" width="256" height="206"></span><span><b>Monetary</b><span class="sub">{{ _('Personal finance tracker') }}</span></span></a>
+  <a class="brand" href="/"><span class="logo photo"><img src="/static/logo.png?v={{ asset_v }}" alt="Muara" width="256" height="206"></span><span><b>Muara</b><span class="sub">{{ _('Personal finance tracker') }}</span></span></a>
   <div class="tools">
-    <form method="post" action="/settings/lang" class="langtog" role="group" aria-label="{{ _('Ganti bahasa') }}">{{ csrf_field }}
-      {% for code in langs %}
-      <button type="submit" name="lang" value="{{ code }}" class="{{ 'on' if lang==code }}">{{ code | upper }}</button>
-      {% endfor %}
-      <i class="knob" style="--x:{{ 0 if lang=='id' else 1 }}"></i>
-    </form>
+    {% include "_langtog.html" %}
   </div>
 </div></header>
 {% endblock %}
 {% block content %}
 <section class="card legal">
-  <div class="sec"><h2 style="font-size:18px">{{ title }}</h2><small>{{ _('diperbarui') }} {{ updated }}</small></div>
+  <div class="sec"><h2>{{ title }}</h2><small>{{ _('diperbarui') }} {{ updated }}</small></div>
   {{ body | safe }}
   <p class="legal-foot">
     <a href="/privacy">{{ _('Kebijakan Privasi') }}</a> · <a href="/terms">{{ _('Persyaratan Layanan') }}</a> · <a href="/login">{{ _('Masuk') }}</a>

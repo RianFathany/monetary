@@ -9,7 +9,8 @@ Kolom ledger_id ada sejak sekarang dan selalu 1. Multi-user nanti tinggal
 mengisinya, tanpa membongkar tabel lagi.
 """
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+MONEY_SCALE = 100        # nominal disimpan dalam satuan perseratus (app/money.py)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS ledgers (
@@ -204,7 +205,34 @@ def apply_schema(conn) -> None:
 #   MIGRATIONS = {3: ["ALTER TABLE transactions ADD COLUMN tag TEXT"]}
 #
 # Naikkan SCHEMA_VERSION bersamaan dengan menambah entri di sini.
-MIGRATIONS: dict = {}
+MIGRATIONS: dict = {
+    # v3 — nominal pindah ke satuan perseratus; lihat _scale_money() di bawah.
+    # Laporan tersimpan dibuang karena angkanya sudah tidak sepadan lagi.
+    3: ["DELETE FROM reports"],
+}
+
+# Skala nominal dijaga penanda sendiri, bukan nomor versi skema. Nomor versi bisa
+# terlanjur naik tanpa migrasinya sempat jalan (pernah terjadi saat pengembangan),
+# dan mengalikan dua kali jauh lebih merusak daripada mengecek satu baris setelan.
+SCALE_STATEMENTS = (
+    "UPDATE transactions SET amount = amount * {f}",
+    "UPDATE accounts SET opening_balance = opening_balance * {f}",
+    "UPDATE asset_snapshots SET amount = amount * {f}",
+    "UPDATE recurring SET amount = amount * {f}",
+)
+
+
+def _scale_money(conn) -> bool:
+    """Naikkan semua nominal ke satuan perseratus, sekali saja seumur buku."""
+    row = conn.execute("SELECT value FROM settings WHERE key='money_scale'").fetchone()
+    if row and row[0] == str(MONEY_SCALE):
+        return False
+    for stmt in SCALE_STATEMENTS:
+        conn.execute(stmt.format(f=MONEY_SCALE))
+    conn.execute("DELETE FROM reports")                  # angkanya sudah tidak sepadan
+    conn.execute("INSERT INTO settings(key,value) VALUES ('money_scale',?) "
+                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(MONEY_SCALE),))
+    return True
 
 
 def book_version(conn) -> int:
@@ -222,6 +250,7 @@ def upgrade(conn) -> int:
     """Bawa satu buku ke versi skema terbaru. Idempoten dan murah kalau sudah terbaru."""
     cur = book_version(conn)
     if cur == SCHEMA_VERSION:
+        _scale_money(conn)                               # murah: satu SELECT kalau sudah beres
         return cur
     apply_schema(conn)                                   # tabel/indeks baru + buang indeks usang
     for version in sorted(v for v in MIGRATIONS if v > cur):
@@ -231,6 +260,7 @@ def upgrade(conn) -> int:
             except Exception as e:                       # kolom sudah ada dari skema baru
                 if "duplicate column" not in str(e).lower():
                     raise
+    _scale_money(conn)                                   # nominal ke satuan perseratus, sekali saja
     seed_defaults(conn, accounts=False)                  # kategori bawaan yang baru ditambahkan
     conn.execute("INSERT INTO settings(key,value) VALUES ('schema_version',?) "
                  "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(SCHEMA_VERSION),))

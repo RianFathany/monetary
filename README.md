@@ -1,4 +1,4 @@
-# Monetary
+# Muara
 
 Catatan keuangan pribadi: kas, kantong (dana darurat, tabungan, investasi), dan snapshot aset.
 Pengganti spreadsheet `MRFNIP - Cashflow.xlsx` — satu user, satu file SQLite, mobile-first.
@@ -100,7 +100,7 @@ jalan sebagai cadangan.
 
 Sekali saja di [console.cloud.google.com](https://console.cloud.google.com):
 
-1. **New Project** → beri nama (mis. `Monetary`) → Create.
+1. **New Project** → beri nama (mis. `Muara`) → Create.
 2. **APIs & Services → OAuth consent screen** → User type **External** → Create.
    Isi App name, User support email, Developer contact. Simpan. Biarkan status **Testing**.
 3. Di halaman yang sama → **Audience / Test users → Add users** → masukkan email Google
@@ -111,7 +111,7 @@ Sekali saja di [console.cloud.google.com](https://console.cloud.google.com):
    - `https://monetary.rianfathany.com/auth/google/callback`
    - `http://127.0.0.1:8765/auth/google/callback` (untuk uji di laptop)
 6. Create → salin **Client ID** dan **Client secret**.
-7. Buka Monetary → Setelan → Akun → Masuk dengan Google → tempel keduanya, isi email yang
+7. Buka Muara → Setelan → Akun → Masuk dengan Google → tempel keduanya, isi email yang
    boleh masuk (pisahkan dengan koma), Simpan.
 
 Yang dipakai hanya scope `openid email profile`; aplikasi tidak meminta akses apa pun ke

@@ -270,7 +270,18 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
 (function(){
   const els = document.querySelectorAll('[data-count]'); if (!els.length) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const fmt = n => { const s = Math.abs(Math.round(n)).toLocaleString('id-ID'); return (n < 0 ? '-' : '') + 'Rp ' + s; };
+  // Bentuk angkanya mengikuti mata uang & bahasa buku; nilainya disimpan
+  // dalam satuan perseratus, sama seperti di server.
+  const d = document.documentElement.dataset;
+  const sym = d.curSymbol || 'Rp', dec = parseInt(d.curDecimals || '0', 10);
+  const group = d.curGroup || '.', point = d.curPoint || ',';
+  const glue = /[a-z]/i.test(sym.slice(-1)) ? ' ' : '';
+  const fmt = n => {
+    const v = Math.abs(n) / 100;
+    const whole = Math.floor(v).toLocaleString('en-US').replace(/,/g, group);
+    const body = dec ? whole + point + String(Math.round((v - Math.floor(v)) * 100)).padStart(2, '0') : whole;
+    return (n < 0 ? '-' : '') + sym + glue + body;
+  };
   els.forEach((el, k) => {
     const target = Number(el.dataset.count); if (!isFinite(target)) return;
     const dur = 700, t0 = performance.now() + 120 + k * 60;

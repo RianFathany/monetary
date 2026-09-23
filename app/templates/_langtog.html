@@ -1,0 +1,8 @@
+{# Sakelar bahasa. Terbuka untuk tamu: aksinya /lang, bukan /settings/lang. #}
+<form method="post" action="/lang" class="langtog" role="group" aria-label="{{ _('Ganti bahasa') }}">{{ csrf_field }}
+  {% for code in langs %}
+  <button type="submit" name="lang" value="{{ code }}" class="{{ 'on' if lang==code }}"
+          {% if lang==code %}aria-current="true"{% endif %} title="{{ langs[code] }}">{{ code | upper }}</button>
+  {% endfor %}
+  <i class="knob" style="--x:{{ 0 if lang=='id' else 1 }}"></i>
+</form>

@@ -10,6 +10,7 @@ from contextvars import ContextVar
 from .lang_en import EN   # kamus besar dipisah agar file ini tetap ringkas
 
 LANGS = {"id": "Bahasa Indonesia", "en": "English"}
+COOKIE = "monetary_lang"          # pilihan tamu; pengguna yang masuk disimpan di bukunya
 _lang: ContextVar[str] = ContextVar("lang", default="id")
 
 
@@ -21,6 +22,24 @@ def set_lang(code: str) -> str:
 
 def get_lang() -> str:
     return _lang.get()
+
+
+def from_header(accept: str) -> str:
+    """Bahasa pertama di Accept-Language yang kita punya; selain itu Indonesia."""
+    for part in (accept or "").split(","):
+        code = part.split(";")[0].strip().lower().replace("_", "-")[:2]
+        if code in LANGS:
+            return code
+    return "id"
+
+
+def guest_lang(cookie: str, accept: str = "") -> str:
+    """Bahasa untuk yang belum masuk: pilihannya sendiri dulu, baru bahasa peramban.
+
+    Sengaja tidak membaca setelan buku siapa pun — halaman masuk dilihat orang
+    yang belum punya buku, dan preferensi pemilik aplikasi bukan urusan mereka.
+    """
+    return cookie if cookie in LANGS else from_header(accept)
 
 
 # Pencarian cadangan: spasi/baris baru dinormalkan, supaya teks template yang

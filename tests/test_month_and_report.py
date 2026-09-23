@@ -6,12 +6,12 @@ from pathlib import Path
 from app.db import asset_view
 from app.main import month_summary
 from app.report import build_metrics, render_rules
-from tests.helpers import acc, add, make_db
+from tests.helpers import acc, add, make_db, rp
 
 
 def snapshot(db, month, account, symbol, amount):
     db.execute("INSERT INTO asset_snapshots(month_key,account_id,symbol,amount) VALUES (?,?,?,?)",
-               (month, acc(db, account), symbol, amount))
+               (month, acc(db, account), symbol, rp(amount)))
 
 
 class RingkasanBulan(unittest.TestCase):
@@ -24,19 +24,19 @@ class RingkasanBulan(unittest.TestCase):
 
     def test_transfer_tidak_masuk_pemasukan_atau_pengeluaran(self):
         s = month_summary(self.db, "2026-01")
-        self.assertEqual(s["income"], 20_000_000)
-        self.assertEqual(s["expense"], 5_000_000)
+        self.assertEqual(s["income"], rp(20_000_000))
+        self.assertEqual(s["expense"], rp(5_000_000))
 
     def test_yang_ditabung_dihitung_bersih(self):
         add(self.db, "2026-01", "transfer", 1_000_000, "Dana Darurat", to_account="Kas")
         s = month_summary(self.db, "2026-01")
-        self.assertEqual(s["saved"], 5_000_000)
+        self.assertEqual(s["saved"], rp(5_000_000))
 
     def test_tagihan_belum_dibayar_terhitung_terpisah(self):
         add(self.db, "2026-01", "expense", 2_000_000, "Kas", category="Belanja", status="planned")
         s = month_summary(self.db, "2026-01")
-        self.assertEqual(s["unpaid"], 2_000_000)
-        self.assertEqual(s["expense"], 7_000_000, "yang belum dibayar tetap masuk total pengeluaran")
+        self.assertEqual(s["unpaid"], rp(2_000_000))
+        self.assertEqual(s["expense"], rp(7_000_000), "yang belum dibayar tetap masuk total pengeluaran")
 
 
 class PosisiAset(unittest.TestCase):
@@ -48,9 +48,9 @@ class PosisiAset(unittest.TestCase):
         add(self.db, "2026-01", "transfer", 5_000_000, "Kas", to_account="Saham")
         snapshot(self.db, "2026-01", "Saham", "BBRI", 18_000_000)
         pot = next(p for p in asset_view(self.db, "2026-01")["pots"] if p["name"] == "Saham")
-        self.assertEqual(pot["invested"], 15_000_000, "saldo awal + setoran")
-        self.assertEqual(pot["value"], 18_000_000)
-        self.assertEqual(pot["gain"], 3_000_000)
+        self.assertEqual(pot["invested"], rp(15_000_000), "saldo awal + setoran")
+        self.assertEqual(pot["value"], rp(18_000_000))
+        self.assertEqual(pot["gain"], rp(3_000_000))
 
     def test_bulan_tanpa_snapshot_memakai_yang_terakhir_dan_ditandai(self):
         snapshot(self.db, "2026-01", "Saham", "BBRI", 12_000_000)
@@ -61,7 +61,7 @@ class PosisiAset(unittest.TestCase):
     def test_total_aset_tabungan_plus_nilai_pasar(self):
         add(self.db, "2026-01", "transfer", 4_000_000, "Kas", to_account="Dana Darurat")
         snapshot(self.db, "2026-01", "Saham", "BBRI", 12_000_000)
-        self.assertEqual(asset_view(self.db, "2026-01")["total"], 16_000_000)
+        self.assertEqual(asset_view(self.db, "2026-01")["total"], rp(16_000_000))
 
 
 class IndikatorLaporan(unittest.TestCase):
@@ -82,7 +82,7 @@ class IndikatorLaporan(unittest.TestCase):
         add(self.db, "2026-01", "expense", 7_000_000, "Kas", category="Cicilan Rumah")
         add(self.db, "2026-01", "expense", 3_000_000, "Kas", category="Belanja")
         m = build_metrics(self.db, "2026-01")
-        self.assertEqual(m["debt"], 7_000_000)
+        self.assertEqual(m["debt"], rp(7_000_000))
         self.assertAlmostEqual(m["debt_ratio"], 0.35)
 
     def test_cakupan_dana_darurat_dibanding_rata_rata_tiga_bulan(self):
@@ -132,7 +132,7 @@ class TestTagihan(unittest.TestCase):
             acc = c.execute("SELECT id FROM accounts LIMIT 1").fetchone()["id"]
             cat = c.execute("SELECT id FROM categories WHERE kind='expense' LIMIT 1").fetchone()["id"]
             c.execute("INSERT INTO transactions(month_key,type,tx_date,account_id,category_id,description,amount,status)"
-                      " VALUES ('2026-09','expense',?,?,?,?,?,?)", (tx_date, acc, cat, desc, amount, status))
+                      " VALUES ('2026-09','expense',?,?,?,?,?,?)", (tx_date, acc, cat, desc, rp(amount), status))
 
     def test_hanya_yang_belum_dibayar(self):
         self._tx("belum", 1000, "2026-09-10")
@@ -140,7 +140,7 @@ class TestTagihan(unittest.TestCase):
         with self.db.get_db() as c:
             b = self.bills(c, "2026-09", today="2026-09-12")
         self.assertEqual(b["count"], 1)
-        self.assertEqual(b["total"], 1000)
+        self.assertEqual(b["total"], rp(1000))
         self.assertEqual(b["rows"][0]["description"], "belum")
 
     def test_penanda_jatuh_tempo(self):
@@ -209,7 +209,7 @@ class TestUsulanDeskripsi(unittest.TestCase):
             if cat is None:
                 cat = c.execute("SELECT id FROM categories WHERE kind='expense' LIMIT 1").fetchone()["id"]
             c.execute("INSERT INTO transactions(month_key,type,tx_date,account_id,category_id,description,amount)"
-                      " VALUES ('2026-09',?,?,?,?,?,?)", (type_, tx_date, acc, cat, desc, amount))
+                      " VALUES ('2026-09',?,?,?,?,?,?)", (type_, tx_date, acc, cat, desc, rp(amount)))
 
     def _cari(self, q, type_="expense"):
         with self.db.get_db() as c:
@@ -226,7 +226,7 @@ class TestUsulanDeskripsi(unittest.TestCase):
     def test_nilai_dari_entri_terakhir(self):
         self._tx("Bensin", 50000, "2026-09-01")
         self._tx("Bensin", 75000, "2026-09-20")
-        self.assertEqual(self._cari("bensin")[0]["amount"], 75000)
+        self.assertEqual(self._cari("bensin")[0]["amount"], rp(75000))
 
     def test_satu_baris_per_deskripsi(self):
         for i in range(4):

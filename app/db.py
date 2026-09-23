@@ -301,6 +301,16 @@ def set_setting(db, key: str, value: str) -> None:
                (key, value))
 
 
+def book_currency(db) -> str:
+    """Mata uang buku ini. Kolomnya sudah ada di `ledgers` sejak skema awal."""
+    row = db.execute("SELECT currency FROM ledgers WHERE id=1").fetchone()
+    return (row["currency"] if row and row["currency"] else "IDR").upper()
+
+
+def set_book_currency(db, code: str) -> None:
+    db.execute("UPDATE ledgers SET currency=? WHERE id=1", (code.upper(),))
+
+
 # ---------- kantong ----------
 
 CASH_TYPES = ("cash",)

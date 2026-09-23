@@ -1,4 +1,4 @@
-# Arsitektur Monetary
+# Arsitektur Muara
 
 Catatan keuangan pribadi. Satu pengguna, satu berkas SQLite, dirender di server,
 dipakai dari ponsel. 4.100 baris kode, tanpa build step, tanpa framework frontend.

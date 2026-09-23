@@ -13,6 +13,9 @@ berubah jadi transaksi 'transfer' — tidak lagi dihitung sebagai belanja/pengha
 
 Baris dana darurat di v1 sering berpasangan dengan baris kas (nominal & bulan
 sama). Pasangan seperti itu digabung jadi satu transfer supaya tidak dobel.
+
+Nominal di skrip ini tetap rupiah utuh. Aplikasi yang mengubahnya ke satuan
+perseratus (app/money.py) saat buku hasilnya pertama kali dibuka.
 """
 import argparse
 import itertools

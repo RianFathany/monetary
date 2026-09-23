@@ -19,7 +19,7 @@ def config() -> dict:
     return dict(
         api_key=(get_app_setting("resend_key") or "").strip(),
         sender=(get_app_setting("mail_from") or "").strip(),
-        name=(get_app_setting("mail_name") or "Monetary").strip(),
+        name=(get_app_setting("mail_name") or "Muara").strip(),
     )
 
 
@@ -76,5 +76,5 @@ def render(heading: str, lines: list, button: tuple = None) -> str:
         f'<h1 style="margin:0 0 16px;font-size:19px;color:#1a1a1c">{heading}</h1>'
         f'{body}{cta}'
         '<p style="margin:24px 0 0;padding-top:16px;border-top:1px solid #ececf0;font-size:12px;color:#8a8a90">'
-        'Monetary — catatan keuangan pribadi. Surel ini dikirim otomatis, tidak perlu dibalas.</p>'
+        'Muara — catatan keuangan pribadi. Surel ini dikirim otomatis, tidak perlu dibalas.</p>'
         '</div></div>')

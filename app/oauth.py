@@ -54,8 +54,10 @@ def emails(raw: str) -> list:
 
 
 def is_enabled(db=None) -> bool:
+    """Cukup client id + secret. Daftar email (`allowed`) hanya menentukan siapa
+    yang mewarisi buku pemilik, jadi daftar kosong tidak boleh mematikan tombolnya."""
     c = config()
-    return bool(c["client_id"] and c["client_secret"] and c["allowed"])
+    return bool(c["client_id"] and c["client_secret"])
 
 
 def redirect_uri(request) -> str:
