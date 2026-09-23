@@ -1,5 +1,7 @@
 """Ringkasan bulan, posisi aset, dan indikator laporan."""
+import tempfile
 import unittest
+from pathlib import Path
 
 from app.db import asset_view
 from app.main import month_summary
@@ -103,3 +105,78 @@ class IndikatorLaporan(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTagihan(unittest.TestCase):
+    """Tagihan = pengeluaran 'planned'; urutan dan penanda jatuh temponya."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        from app import db
+        self._orig = db.DB_PATH
+        db.DB_PATH = str(Path(self.tmp.name) / "monetary.db")
+        db._ready.clear(); db._system_ready.clear()
+        db.init_book(db.DB_PATH)
+        self.db = db
+        from app.main import bills
+        self.bills = bills
+
+    def tearDown(self):
+        self.db.set_book("")
+        self.db.DB_PATH = self._orig
+        self.db._ready.clear(); self.db._system_ready.clear()
+        self.tmp.cleanup()
+
+    def _tx(self, desc, amount, tx_date, status="planned"):
+        with self.db.get_db() as c:
+            acc = c.execute("SELECT id FROM accounts LIMIT 1").fetchone()["id"]
+            cat = c.execute("SELECT id FROM categories WHERE kind='expense' LIMIT 1").fetchone()["id"]
+            c.execute("INSERT INTO transactions(month_key,type,tx_date,account_id,category_id,description,amount,status)"
+                      " VALUES ('2026-09','expense',?,?,?,?,?,?)", (tx_date, acc, cat, desc, amount, status))
+
+    def test_hanya_yang_belum_dibayar(self):
+        self._tx("belum", 1000, "2026-09-10")
+        self._tx("sudah", 2000, "2026-09-11", status="paid")
+        with self.db.get_db() as c:
+            b = self.bills(c, "2026-09", today="2026-09-12")
+        self.assertEqual(b["count"], 1)
+        self.assertEqual(b["total"], 1000)
+        self.assertEqual(b["rows"][0]["description"], "belum")
+
+    def test_penanda_jatuh_tempo(self):
+        self._tx("telat", 1000, "2026-09-05")
+        self._tx("hari ini", 2000, "2026-09-12")
+        self._tx("minggu ini", 3000, "2026-09-15")
+        self._tx("nanti", 4000, "2026-09-28")
+        self._tx("tanpa tanggal", 5000, None)
+        with self.db.get_db() as c:
+            b = self.bills(c, "2026-09", today="2026-09-12")
+        state = {r["description"]: r["state"] for r in b["rows"]}
+        self.assertEqual(state["telat"], "late")
+        self.assertEqual(state["hari ini"], "today")
+        self.assertEqual(state["minggu ini"], "soon")
+        self.assertEqual(state["nanti"], "later")
+        self.assertEqual(state["tanpa tanggal"], "later")
+        self.assertEqual(b["late"], 1)
+        self.assertEqual(b["soon"], 2)          # hari ini + minggu ini
+
+    def test_urutan_menurut_jatuh_tempo(self):
+        self._tx("c", 1000, "2026-09-20")
+        self._tx("a", 1000, "2026-09-02")
+        self._tx("b", 1000, "2026-09-10")
+        self._tx("z", 1000, None)
+        with self.db.get_db() as c:
+            b = self.bills(c, "2026-09", today="2026-09-12")
+        self.assertEqual([r["description"] for r in b["rows"]], ["a", "b", "c", "z"])
+
+    def test_selisih_hari(self):
+        self._tx("x", 1000, "2026-09-09")
+        with self.db.get_db() as c:
+            b = self.bills(c, "2026-09", today="2026-09-12")
+        self.assertEqual(b["rows"][0]["due"], -3)
+
+    def test_bulan_tanpa_tagihan(self):
+        with self.db.get_db() as c:
+            b = self.bills(c, "2026-09", today="2026-09-12")
+        self.assertEqual(b["count"], 0)
+        self.assertEqual(b["total"], 0)

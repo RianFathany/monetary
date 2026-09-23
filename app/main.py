@@ -294,6 +294,35 @@ TX_SELECT = """SELECT t.*, c.name AS category, c.is_debt,
                WHERE t.deleted_at IS NULL"""
 
 
+def bills(db, mk: str, today: str = "") -> dict:
+    """Tagihan bulan ini: pengeluaran yang belum ditandai dibayar.
+
+    `due` = selisih hari ke tanggal jatuh tempo (negatif berarti sudah lewat).
+    Entri tanpa tanggal dianggap belum terjadwal dan ditaruh paling akhir.
+    """
+    today = today or date.today().isoformat()
+    rows = db.execute(f"{TX_SELECT} AND t.month_key=? AND t.type='expense' AND t.status='planned' "
+                      "ORDER BY COALESCE(t.tx_date,'9999'), t.amount DESC", (mk,)).fetchall()
+    out, late, soon, total = [], 0, 0, 0
+    for r in rows:
+        item = dict(r)
+        due = None
+        if r["tx_date"]:
+            try:
+                due = (date.fromisoformat(r["tx_date"]) - date.fromisoformat(today)).days
+            except ValueError:
+                due = None
+        item["due"] = due
+        item["state"] = ("late" if due is not None and due < 0 else
+                         "today" if due == 0 else
+                         "soon" if due is not None and due <= 7 else "later")
+        total += r["amount"]
+        late += 1 if item["state"] == "late" else 0
+        soon += 1 if item["state"] in ("today", "soon") else 0
+        out.append(item)
+    return dict(rows=out, total=total, late=late, soon=soon, count=len(out))
+
+
 def month_lists(db, mk: str) -> dict:
     rows = db.execute(f"{TX_SELECT} AND t.month_key=? ORDER BY COALESCE(t.tx_date,'9999'), t.id", (mk,)).fetchall()
     return dict(
@@ -670,10 +699,11 @@ def month_page(request: Request, mk: str):
         trend_max = max([max(t["income"], t["expense"]) for t in trend] + [1])
         review = db.execute("SELECT COUNT(*) c FROM transactions WHERE deleted_at IS NULL AND needs_review=1 "
                             "AND month_key=?", (mk,)).fetchone()["c"]
+        bill = bills(db, mk)
         cash_id = default_account(db, "cash")
     strip = sorted(set(months) | {mk, shift_month(mk, 1), shift_month(months[-1], 1)})
     return render(
-        request, "month.html", s=s, **lists, cats_exp=cats_exp, cats_inc=cats_inc, accounts=accs, bal=bal,
+        request, "month.html", s=s, bill=bill, **lists, cats_exp=cats_exp, cats_inc=cats_inc, accounts=accs, bal=bal,
         prev=shift_month(mk, -1), next=shift_month(mk, 1), months=months, strip=strip, has_recurring=has_recurring,
         is_empty=not (lists["expenses"] or lists["incomes"] or lists["transfers"]), page="month",
         trend=trend, trend_max=trend_max, review=review, cash_id=cash_id,

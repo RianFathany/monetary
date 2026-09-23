@@ -617,4 +617,14 @@ EN = {
     "Setiap berapa jam": "Every N hours",
     "Cadangan berjalan saat aplikasi dipakai — mesin server berhenti sendiri ketika menganggur, jadi tidak ada cron yang bisa diandalkan di dalamnya.":
         "Backups run while the app is being used — the server stops itself when idle, so no in-process cron can be relied on.",
+    # --- tagihan ---
+    "Tagihan bulan ini": "Bills this month",
+    "lewat jatuh tempo": "overdue",
+    "minggu ini": "due this week",
+    "telat": "late by",
+    "hari": "days",
+    "hari lagi": "days to go",
+    "jatuh tempo hari ini": "due today",
+    "tanpa tanggal": "no date",
+    "Tandai sudah dibayar": "Mark as paid",
 }

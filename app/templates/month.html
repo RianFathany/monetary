@@ -37,6 +37,45 @@
   {% endif %}
 </section>
 
+{% if bill.count %}
+<!-- Tagihan bulan ini: pengeluaran yang belum ditandai dibayar -->
+<section class="card bills" id="bills">
+  <div class="sec">
+    <h2>{{ _('Tagihan bulan ini') }}</h2>
+    <small class="num">{{ bill.total | rupiah }}</small>
+  </div>
+  <div class="billnote">
+    {% if bill.late %}<span class="pill bad">{{ bill.late }} {{ _('lewat jatuh tempo') }}</span>{% endif %}
+    {% if bill.soon %}<span class="pill warn">{{ bill.soon }} {{ _('minggu ini') }}</span>{% endif %}
+    <span>{{ bill.count }} {{ _('belum dibayar') }}</span>
+  </div>
+  <div class="panel-wrap" style="padding:0">
+    {% for b in bill.rows %}
+    <div class="row static bill {{ b.state }}" style="--i:{{ loop.index0 }}">
+      <span class="av" style="--h:{{ (b.category or 'X') | hue }}">{{ (b.category or '·')[:2] }}</span>
+      <div class="main">
+        <div class="name">{{ b.description or b.category or '—' }}</div>
+        <div class="meta">
+          {% if b.state=='late' %}<span class="pill bad">{{ _('telat') }} {{ -b.due }} {{ _('hari') }}</span>
+          {% elif b.state=='today' %}<span class="pill warn">{{ _('jatuh tempo hari ini') }}</span>
+          {% elif b.state=='soon' %}<span class="pill warn">{{ b.due }} {{ _('hari lagi') }}</span>
+          {% elif b.tx_date %}<span>{{ b.tx_date | fmt_date }}</span>
+          {% else %}<span>{{ _('tanpa tanggal') }}</span>{% endif %}
+          {% if b.category and b.description %}<span>{{ b.category }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="amt num">{{ b.amount | rupiah }}</div>
+      <form method="post" action="/tx/{{ b.id }}/toggle" class="tgl">{{ csrf_field }}<input type="hidden" name="month_key" value="{{ mk }}">
+        <button class="ck" type="submit" aria-label="{{ _('Tandai sudah dibayar') }}" title="{{ _('Tandai sudah dibayar') }}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <!-- Dana darurat & aset -->
 <div class="grid2">
   <section class="card stat" id="fund">

@@ -272,6 +272,24 @@ form lewat `{{ csrf_field }}`, dan ke `fetch` di `app.js` lewat `window.CSRF`.
 Permintaan yang ditolak mendapat halaman 403 berbahasa manusia ("formulir ini kedaluwarsa
 atau dikirim dari halaman lain"), bukan tumpukan galat.
 
+## Tagihan bulan ini
+
+Pengeluaran berstatus **belum dibayar** (`status='planned'`) muncul sebagai kartu
+tersendiri di halaman bulan, di atas kartu dana darurat — hanya kalau memang ada.
+Urutannya menurut tanggal jatuh tempo, dan tiap baris diberi penanda dari selisih hari
+terhadap hari ini:
+
+| Keadaan | Tampilan |
+|---|---|
+| Tanggal sudah lewat | garis merah, "telat N hari", nominal merah |
+| Jatuh tempo hari ini | garis kuning, "jatuh tempo hari ini" |
+| ≤ 7 hari lagi | garis kuning, "N hari lagi" |
+| Lebih jauh / tanpa tanggal | tanpa garis, tanggalnya saja |
+
+Menandai lunas cukup satu ketuk (memakai rute `/tx/{id}/toggle` yang sudah ada), dan
+template rutin yang diisi lewat "Isi bulan ini" otomatis masuk ke sini karena dibuat
+dengan status `planned` beserta tanggal dari `day_of_month`.
+
 ## Struktur
 
 ```
