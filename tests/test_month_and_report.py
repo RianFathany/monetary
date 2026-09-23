@@ -180,3 +180,69 @@ class TestTagihan(unittest.TestCase):
             b = self.bills(c, "2026-09", today="2026-09-12")
         self.assertEqual(b["count"], 0)
         self.assertEqual(b["total"], 0)
+
+
+class TestUsulanDeskripsi(unittest.TestCase):
+    """Usulan diambil dari riwayat buku itu sendiri: yang sering dipakai lebih dulu,
+    dan nilai yang ikut terbawa berasal dari entri terakhirnya."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        from app import db
+        self._orig = db.DB_PATH
+        db.DB_PATH = str(Path(self.tmp.name) / "monetary.db")
+        db._ready.clear(); db._system_ready.clear()
+        db.init_book(db.DB_PATH)
+        self.db = db
+        from app.main import recent_entries
+        self.recent = recent_entries
+
+    def tearDown(self):
+        self.db.set_book("")
+        self.db.DB_PATH = self._orig
+        self.db._ready.clear(); self.db._system_ready.clear()
+        self.tmp.cleanup()
+
+    def _tx(self, desc, amount, tx_date, type_="expense", cat=None):
+        with self.db.get_db() as c:
+            acc = c.execute("SELECT id FROM accounts LIMIT 1").fetchone()["id"]
+            if cat is None:
+                cat = c.execute("SELECT id FROM categories WHERE kind='expense' LIMIT 1").fetchone()["id"]
+            c.execute("INSERT INTO transactions(month_key,type,tx_date,account_id,category_id,description,amount)"
+                      " VALUES ('2026-09',?,?,?,?,?,?)", (type_, tx_date, acc, cat, desc, amount))
+
+    def _cari(self, q, type_="expense"):
+        with self.db.get_db() as c:
+            return self.recent(c, type_, q)
+
+    def test_yang_sering_dipakai_di_atas(self):
+        for i in range(3):
+            self._tx("Kopi pagi", 25000, f"2026-09-0{i+1}")
+        self._tx("Kopi sore", 30000, "2026-09-05")
+        hasil = self._cari("kopi")
+        self.assertEqual(hasil[0]["description"], "Kopi pagi")
+        self.assertEqual(hasil[0]["n"], 3)
+
+    def test_nilai_dari_entri_terakhir(self):
+        self._tx("Bensin", 50000, "2026-09-01")
+        self._tx("Bensin", 75000, "2026-09-20")
+        self.assertEqual(self._cari("bensin")[0]["amount"], 75000)
+
+    def test_satu_baris_per_deskripsi(self):
+        for i in range(4):
+            self._tx("Listrik", 100000, f"2026-09-1{i}")
+        self.assertEqual(len(self._cari("listrik")), 1)
+
+    def test_tidak_membedakan_besar_kecil_huruf(self):
+        self._tx("Tagihan Air", 60000, "2026-09-02")
+        self.assertEqual(len(self._cari("tagihan air")), 1)
+        self.assertEqual(len(self._cari("TAGIHAN")), 1)
+
+    def test_jenis_lain_tidak_ikut(self):
+        self._tx("Gaji", 5000000, "2026-09-01", type_="income",
+                 cat=None if False else 1)
+        self.assertEqual(self._cari("gaji", "expense"), [])
+
+    def test_deskripsi_kosong_diabaikan(self):
+        self._tx("   ", 1000, "2026-09-01")
+        self.assertEqual(self._cari("  "), [])

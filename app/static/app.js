@@ -91,6 +91,7 @@ document.addEventListener('click', e => {
   const isT = d.kind === 'transfer';
   dlg.querySelector('h3').textContent = isT ? 'Edit transfer' : (d.kind === 'income' ? 'Edit pemasukan' : 'Edit pengeluaran');
   dlg.querySelector('#edit-status-wrap').hidden = d.kind !== 'expense';
+  const desc = dlg.querySelector('input[data-suggest]'); if (desc) desc.dataset.suggest = d.kind;
   dlg.querySelector('#edit-category-wrap').hidden = isT;
   dlg.querySelector('#edit-to-wrap').hidden = !isT;
   dlg.querySelector('#edit-account-wrap label').textContent = isT ? 'Dari kantong' : 'Kantong';
@@ -481,5 +482,77 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
     const d = await r.json().catch(() => ({}));
     err.textContent = d.error === 'locked' ? (T.locked || '').replace('{n}', d.wait) : (T.wrongPw || 'Password salah.');
     err.hidden = false; pw.select();
+  });
+})();
+
+// ===== Usulan deskripsi =====
+// Mengetik dua huruf sudah cukup: aplikasi menawarkan entri yang pernah dipakai,
+// lalu mengisikan kategori, kantong, dan nominal terakhirnya sekali ketuk.
+(function(){
+  const inputs = document.querySelectorAll('input[data-suggest]');
+  if (!inputs.length) return;
+  const cache = new Map();
+
+  async function ask(kind, q){
+    const key = kind + '|' + q.toLowerCase();
+    if (cache.has(key)) return cache.get(key);
+    try {
+      const r = await fetch(`/suggest?kind=${encodeURIComponent(kind)}&q=${encodeURIComponent(q)}`);
+      const data = r.ok ? await r.json() : [];
+      cache.set(key, data);
+      return data;
+    } catch (e) { return []; }
+  }
+
+  inputs.forEach(input => {
+    const box = document.createElement('div');
+    box.className = 'sg';
+    box.hidden = true;
+    input.insertAdjacentElement('afterend', box);
+    let items = [], active = -1, timer = null;
+
+    const form = input.closest('form');
+    const kindOf = () => (form.querySelector('[name=type]') || {}).value || input.dataset.suggest;
+
+    function close(){ box.hidden = true; active = -1; }
+    function fill(it){
+      input.value = it.text;
+      const cat = form.querySelector('[name=category_id]');
+      if (cat && it.category_id) { if (cat.tomselect) cat.tomselect.setValue(String(it.category_id), true); else cat.value = it.category_id; }
+      const acc = form.querySelector('[name=account_id]');
+      if (acc && it.account_id) { if (acc.tomselect) acc.tomselect.setValue(String(it.account_id), true); else acc.value = it.account_id; }
+      const amt = form.querySelector('input.money');
+      if (amt && !amt.value.replace(/\D/g, '') && it.amount) { amt.value = Number(it.amount).toLocaleString('id-ID'); }
+      close();
+      (amt && !amt.value ? amt : input).focus();
+    }
+    function draw(){
+      box.innerHTML = items.map((it, i) => `
+        <button type="button" class="sg-item${i === active ? ' on' : ''}" data-i="${i}">
+          <span class="sg-t">${it.text.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}</span>
+          <span class="sg-m">${it.category || ''}${it.n > 1 ? ' · ' + it.n + '×' : ''}</span>
+        </button>`).join('');
+      box.hidden = !items.length;
+    }
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      clearTimeout(timer);
+      if (q.length < 2) { close(); return; }
+      timer = setTimeout(async () => { items = await ask(kindOf(), q); active = -1; draw(); }, 160);
+    });
+    input.addEventListener('keydown', e => {
+      if (box.hidden || !items.length) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        active = (active + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length;
+        draw();
+      } else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); fill(items[active]); }
+      else if (e.key === 'Escape') close();
+    });
+    box.addEventListener('mousedown', e => {          // mousedown: sebelum input kehilangan fokus
+      const b = e.target.closest('[data-i]');
+      if (b) { e.preventDefault(); fill(items[+b.dataset.i]); }
+    });
+    input.addEventListener('blur', () => setTimeout(close, 120));
   });
 })();

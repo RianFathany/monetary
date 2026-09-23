@@ -290,6 +290,17 @@ Menandai lunas cukup satu ketuk (memakai rute `/tx/{id}/toggle` yang sudah ada),
 template rutin yang diisi lewat "Isi bulan ini" otomatis masuk ke sini karena dibuat
 dengan status `planned` beserta tanggal dari `day_of_month`.
 
+## Usulan deskripsi
+
+Mengetik dua huruf di kolom deskripsi memunculkan entri yang pernah dipakai di buku itu
+sendiri (`GET /suggest?kind=&q=`). Memilih satu mengisi sekaligus **kategori, kantong,
+dan nominal terakhirnya** — nominal hanya diisi kalau kolomnya masih kosong, supaya tidak
+menimpa angka yang sudah diketik.
+
+Urutannya: yang paling sering dipakai dulu, lalu yang terbaru. Satu baris per deskripsi
+(tanpa memandang besar-kecil huruf), dan nilai yang terbawa diambil dari entri
+**terakhir**, bukan gabungan — karena itu kueri memakai window function, bukan GROUP BY.
+
 ## Struktur
 
 ```

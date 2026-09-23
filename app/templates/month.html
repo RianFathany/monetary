@@ -174,7 +174,7 @@
     <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
     <label>{{ _('Kategori') }}</label>
     <select name="category_id">{% for c in cats_exp %}<option value="{{ c.id }}" {{ 'selected' if c.name=='Lainnya' }}>{{ c.name }}</option>{% endfor %}</select>
-    <label>{{ _('Deskripsi') }}</label><input name="description" placeholder="{{ _('mis. bensin, arisan, makan siang') }}" autocomplete="off">
+    <label>{{ _('Deskripsi') }}</label><input name="description" data-suggest="expense" placeholder="{{ _('mis. bensin, arisan, makan siang') }}" autocomplete="off">
     <div class="f2">
       <div><label>{{ _('Dari kantong') }}</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
       <div><label>{{ _('Tanggal') }}</label><input type="date" name="tx_date" value="{{ today if today[:7]==mk else '' }}"></div>
@@ -189,7 +189,7 @@
   <h3>{{ _('Pemasukan baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="/m/{{ mk }}/tx">{{ csrf_field }}<input type="hidden" name="type" value="income">
     <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
-    <label>{{ _('Sumber / deskripsi') }}</label><input name="description" placeholder="{{ _('mis. Gaji John, bonus, proyek') }}" autocomplete="off">
+    <label>{{ _('Sumber / deskripsi') }}</label><input name="description" data-suggest="expense" placeholder="{{ _('mis. Gaji John, bonus, proyek') }}" autocomplete="off">
     <div class="f2">
       <div><label>{{ _('Kategori') }}</label><select name="category_id">{% for c in cats_inc %}<option value="{{ c.id }}" {{ 'selected' if c.name=='Gaji' }}>{{ c.name }}</option>{% endfor %}</select></div>
       <div><label>{{ _('Masuk ke') }}</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
@@ -208,7 +208,7 @@
       <div><label>{{ _('Dari') }}</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
       <div><label>{{ _('Ke') }}</label><select name="to_account_id">{% for a in accounts %}<option value="{{ a.id }}" {{ 'selected' if a.type=='savings' }}>{{ a.name }}</option>{% endfor %}</select></div>
     </div>
-    <label>{{ _('Keterangan') }}</label><input name="description" placeholder="{{ _('mis. setor tabungan, top up') }}" autocomplete="off">
+    <label>{{ _('Keterangan') }}</label><input name="description" data-suggest="expense" placeholder="{{ _('mis. setor tabungan, top up') }}" autocomplete="off">
     <label>{{ _('Tanggal') }}</label><input type="date" name="tx_date" value="{{ today if today[:7]==mk else '' }}">
     <p class="hint">{{ _('Uang pindah tempat, bukan belanja — tidak masuk hitungan pengeluaran bulan ini.') }}</p>
     <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
@@ -226,7 +226,7 @@
       <select name="category_id" id="edit-category"><option value="">—</option></select>
     </div>
     <script>window.CATS = { expense: {{ cats_exp | map(attribute='id') | list | tojson }}, expenseNames: {{ cats_exp | map(attribute='name') | list | tojson }}, income: {{ cats_inc | map(attribute='id') | list | tojson }}, incomeNames: {{ cats_inc | map(attribute='name') | list | tojson }} };</script>
-    <label>{{ _('Deskripsi') }}</label><input name="description" autocomplete="off">
+    <label>{{ _('Deskripsi') }}</label><input name="description" data-suggest="expense" autocomplete="off">
     <div class="f2">
       <div id="edit-account-wrap"><label>{{ _('Kantong') }}</label><select name="account_id">{{ accopt(accounts, None) }}</select></div>
       <div id="edit-to-wrap" hidden><label>{{ _('Ke kantong') }}</label><select name="to_account_id">{{ accopt(accounts, None) }}</select></div>

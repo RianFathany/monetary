@@ -710,6 +710,46 @@ def month_page(request: Request, mk: str):
     )
 
 
+def recent_entries(db, type_: str, q: str, limit: int = 8) -> list:
+    """Deskripsi yang pernah dipakai, beserta kategori/kantong/nominal terakhirnya.
+
+    Diurut menurut seberapa sering dipakai, lalu yang paling baru. Satu baris per
+    deskripsi (tanpa memandang besar-kecil huruf) — window function, bukan GROUP BY,
+    supaya nilai yang ikut terbawa benar-benar dari entri terakhirnya.
+    """
+    like = f"%{q.strip()}%"
+    rows = db.execute("""
+        SELECT description, category_id, account_id, amount, n FROM (
+            SELECT t.description, t.category_id, t.account_id, t.amount, t.id,
+                   COUNT(*)     OVER (PARTITION BY lower(t.description)) n,
+                   ROW_NUMBER() OVER (PARTITION BY lower(t.description)
+                                      ORDER BY COALESCE(t.tx_date,'0000') DESC, t.id DESC) rn
+            FROM transactions t
+            WHERE t.deleted_at IS NULL AND t.type=? AND t.description IS NOT NULL
+              AND TRIM(t.description) <> '' AND t.description LIKE ?
+        ) WHERE rn=1 ORDER BY n DESC, id DESC LIMIT ?""", (type_, like, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+@app.get("/suggest")
+def suggest_entries(request: Request, q: str = "", kind: str = "expense"):
+    """Usulan untuk kolom deskripsi. Hanya membaca buku milik sesi ini."""
+    if (r := require_login(request)):
+        return JSONResponse([], status_code=401)
+    kind = kind if kind in ("expense", "income", "transfer") else "expense"
+    q = (q or "").strip()[:40]
+    if len(q) < 2:
+        return JSONResponse([])
+    with get_db() as db:
+        rows = recent_entries(db, kind, q)
+        names = {c["id"]: c["name"] for c in categories(db, active_only=False)}
+    return JSONResponse([
+        dict(text=r["description"], category_id=r["category_id"] or "",
+             category=names.get(r["category_id"], ""), amount=r["amount"],
+             account_id=r["account_id"] or "", n=r["n"])
+        for r in rows])
+
+
 # ---------- transaksi ----------
 
 def _account_or_default(db, raw: str, type_="cash"):
