@@ -236,6 +236,28 @@ saat itu, jadi **sekali pakai**: begitu password berganti, tautan lama langsung 
 Setelah reset berhasil, email otomatis dianggap terverifikasi (tautannya sampai ke kotak
 masuk) dan semua sesi lama dicabut.
 
+## Cadangan otomatis ke luar server
+
+Volume Fly hanya punya snapshot harian milik Fly sendiri. Sejak aplikasi dipakai orang
+lain, salinan di tempat kedua jadi wajib. Diatur di **Setelan → Cadangan otomatis**
+(superadmin): endpoint S3, bucket, kunci, folder, berapa arsip disimpan, dan tiap berapa
+jam.
+
+- Isi arsip: `system.db` + **semua** file buku, masing-masing lewat `VACUUM INTO` supaya
+  salinannya konsisten meski ada yang sedang menulis — bukan menyalin file mentah.
+- Formatnya `.tar.gz` bernama `monetary-YYYYMMDD-HHMM.tar.gz`, jadi urutan nama = urutan
+  waktu; retensi tinggal menghapus yang paling lama.
+- Penyimpanan apa pun yang berbicara S3: **Cloudflare R2**, Backblaze B2, MinIO, AWS.
+  Tanda tangan SigV4 ditulis sendiri di `app/s3.py` dengan `hmac`/`hashlib` bawaan —
+  boto3 (±50 MB) tidak sepadan untuk mesin 256 MB. Kebenarannya diuji terhadap contoh
+  resmi dokumentasi AWS (`tests/test_backup.py`).
+- Penjadwalannya menumpang lalu lintas biasa: dicek maksimal sekali per 10 menit,
+  dijalankan di thread terpisah. Mesin Fly berhenti sendiri saat menganggur, jadi cron
+  di dalam proses tidak bisa diandalkan. Tombol **Cadangkan sekarang** selalu tersedia.
+
+Memulihkan: unduh arsip, `tar xzf`, lalu taruh `monetary.db` (dan `data/books/*.db`,
+`system.db` bila perlu) ke volume — tidak ada format khusus, isinya file SQLite biasa.
+
 ## Struktur
 
 ```
@@ -245,6 +267,8 @@ app/suggest.py     tebakan kategori dari kata kunci deskripsi (dipakai layar per
 app/users.py       pengguna + buku masing-masing (file database terpisah)
 app/legal.py       isi halaman /privacy dan /terms (dipakai consent screen Google)
 app/mailer.py      kirim surel lewat Resend (verifikasi email, setel ulang password)
+app/backup.py      arsip semua buku + jadwal + retensi
+app/s3.py          klien S3 seadanya (SigV4 ditulis sendiri, tanpa boto3)
 app/oauth.py       masuk dengan Google (OAuth2 + PKCE), daftar email yang diizinkan
 app/i18n.py        dwibahasa: bahasa aktif per-permintaan, nama bulan, satuan angka
 app/lang_en.py     kamus terjemahan Inggris (kunci = teks Indonesia di template/kode)

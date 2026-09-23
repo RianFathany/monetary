@@ -17,7 +17,7 @@ from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, Redirec
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import auth, i18n, legal, mailer, oauth, report, suggest, users
+from . import auth, backup, i18n, legal, mailer, oauth, report, suggest, users
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, get_db, get_setting,
                  init_db, set_app_setting, set_book, set_setting, upgrade_all_books)
@@ -143,6 +143,7 @@ async def _book_and_language(request: Request, call_next):
                 set_book(users.path_for(u))
             with get_db() as db:
                 i18n.set_lang(get_setting(db, "lang", "id") or "id")
+            backup.maybe_run()                 # cadangan harian menumpang lalu lintas biasa
         except Exception:                      # database belum siap (mis. saat start pertama)
             pass
     return await call_next(request)
@@ -449,6 +450,26 @@ def reset(request: Request, token: str = Form(""), new: str = Form(""), confirm:
                     max_age=auth.MAX_AGE, httponly=True, samesite="lax",
                     secure=request.url.scheme == "https")
     return resp
+
+
+@app.post("/settings/backup")
+def settings_backup(request: Request, endpoint: str = Form(""), bucket: str = Form(""),
+                    access_key: str = Form(""), secret_key: str = Form(""), region: str = Form("auto"),
+                    prefix: str = Form("monetary/"), keep: str = Form("14"),
+                    every_hours: str = Form("24")):
+    if (r := require_owner(request)):
+        return r
+    backup.save_config(endpoint, bucket, access_key, secret_key, region, prefix, keep, every_hours)
+    return RedirectResponse("/settings?bk=ok#backup", status_code=303)
+
+
+@app.post("/settings/backup/run")
+def settings_backup_run(request: Request):
+    """Jalankan cadangan sekarang, tunggu hasilnya supaya pesannya jujur."""
+    if (r := require_owner(request)):
+        return r
+    ok, err = backup.run()
+    return RedirectResponse(f"/settings?bk={'done' if ok else 'fail'}#backup", status_code=303)
 
 
 @app.post("/settings/mail")
@@ -813,7 +834,7 @@ def account_delete(request: Request, aid: int):
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", mail: str = "",
-                  verify: str = "", verified: str = ""):
+                  verify: str = "", verified: str = "", bk: str = ""):
     if (r := require_login(request)):
         return r
     with get_db() as db:
@@ -832,6 +853,7 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", ma
                       redirect_uri=oauth.redirect_uri(request))
     u = me(request)
     return render(request, "settings.html", mail=mail, verify=verify, verified=bool(verified),
+                  bk=bk, backup_cfg=backup.config(), backup_status=backup.status(),
                   mailcfg=dict(sender=mc["sender"], name=mc["name"], has_key=bool(mc["api_key"])),
                   review_count=review_count, has_password=bool(u and (u["password_hash"] or u["is_owner"])),
                   google=google, recurring=rec, cats=cats, used=used, accounts=accs,

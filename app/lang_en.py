@@ -589,4 +589,32 @@ EN = {
     "Konfigurasi surel berhasil": "Email delivery works",
     "Kalau Anda menerima surel ini, pengiriman dari Monetary sudah jalan.":
         "If you received this, sending email from Monetary is working.",
+    # --- cadangan otomatis ---
+    "Cadangan otomatis": "Automatic backup",
+    "ke penyimpanan di luar server": "to storage outside the server",
+    "Pengaturan cadangan disimpan.": "Backup settings saved.",
+    "Cadangan berhasil dikirim.": "Backup uploaded.",
+    "Cadangan gagal.": "Backup failed.",
+    "Terakhir": "Last run",
+    "belum pernah": "never",
+    "berkas": "files",
+    "setiap": "every",
+    "jam": "hours",
+    "simpan": "keep",
+    "arsip": "archives",
+    "belum diatur": "not set up",
+    "Cadangkan sekarang": "Back up now",
+    "Pengaturan penyimpanan": "Storage settings",
+    "Isi dengan Cloudflare R2, Backblaze B2, atau penyimpanan lain yang berbicara S3. Seluruh buku pengguna + daftar akun dikirim sebagai satu arsip .tar.gz terenkripsi di sisi penyedia.":
+        "Point this at Cloudflare R2, Backblaze B2, or anything else that speaks S3. Every user book plus the account list goes up as one .tar.gz archive, encrypted at rest by the provider.",
+    "Endpoint": "Endpoint",
+    "Bucket": "Bucket",
+    "Region": "Region",
+    "Access key ID": "Access key ID",
+    "Secret access key": "Secret access key",
+    "Folder": "Folder",
+    "Simpan berapa arsip": "Archives to keep",
+    "Setiap berapa jam": "Every N hours",
+    "Cadangan berjalan saat aplikasi dipakai — mesin server berhenti sendiri ketika menganggur, jadi tidak ada cron yang bisa diandalkan di dalamnya.":
+        "Backups run while the app is being used — the server stops itself when idle, so no in-process cron can be relied on.",
 }
