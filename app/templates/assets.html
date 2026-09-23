@@ -100,7 +100,7 @@
 
 <section class="card" style="margin-top:10px">
   <div class="sec"><h2>{{ _('Perbarui bulan ini') }}</h2><small>{{ _('salin posisi lalu ubah angkanya') }}</small></div>
-  <form method="post" action="/assets/copy">
+  <form method="post" action="/assets/copy">{{ csrf_field }}
     <div class="f2">
       <div><label>{{ _('Salin dari') }}</label><select name="from_month">{% for m in months | reverse %}<option value="{{ m }}" {{ 'selected' if m==v.snap_month }}>{{ m | month_label }}</option>{% endfor %}</select></div>
       <div><label>{{ _('Ke bulan') }}</label><input type="month" name="to_month" value="{{ today[:7] }}" required></div>
@@ -112,7 +112,7 @@
 
 <dialog class="sheet" id="sheet-asset"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Nilai investasi') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="/assets">
+  <form method="post" action="/assets">{{ csrf_field }}
     <label>{{ _('Bulan') }}</label><input type="month" name="month_key" value="{{ mk }}" required>
     <div class="f2">
       <div><label>{{ _('Kantong') }}</label><select name="account_id">{% for a in invest_accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>

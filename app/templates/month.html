@@ -60,7 +60,7 @@
 {% endif %}
 
 {% if is_empty and has_recurring %}
-<form method="post" action="/m/{{ mk }}/apply-recurring" class="card cta">
+<form method="post" action="/m/{{ mk }}/apply-recurring" class="card cta">{{ csrf_field }}
   <div><b>{{ _('Bulan ini masih kosong.') }}</b><div class="s">{{ _('Isi dari template rutin (KPR, tagihan, gaji) lalu sesuaikan.') }}</div></div>
   <button type="submit" class="primary">{{ _('Isi bulan ini') }}</button>
 </form>
@@ -86,7 +86,7 @@
         <div class="meta">{% if t.category and t.description %}<span>{{ t.category }}</span>{% endif %}{% if t.tx_date %}<span>{{ t.tx_date | fmt_date }}</span>{% endif %}<span>{{ t.account }}</span>{% if t.status=='planned' %}<span class="pill warn">{{ _('belum') }}</span>{% endif %}{% if t.needs_review %}<span class="pill">{{ _('cek') }}</span>{% endif %}</div>
       </div>
       <div class="amt num">{{ t.amount | rupiah }}</div>
-      <form method="post" action="/tx/{{ t.id }}/toggle" class="tgl"><input type="hidden" name="month_key" value="{{ mk }}">
+      <form method="post" action="/tx/{{ t.id }}/toggle" class="tgl">{{ csrf_field }}<input type="hidden" name="month_key" value="{{ mk }}">
         <button class="ck {{ 'done' if t.status=='paid' }}" type="submit" aria-label="{{ 'Tandai belum bayar' if t.status=='paid' else 'Tandai sudah bayar' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></form>
     </div>
     {% include "_swact.html" %}</div></div>
@@ -131,7 +131,7 @@
 <!-- Sheet: pengeluaran -->
 <dialog class="sheet" id="sheet-expense"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Pengeluaran baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="/m/{{ mk }}/tx"><input type="hidden" name="type" value="expense">
+  <form method="post" action="/m/{{ mk }}/tx">{{ csrf_field }}<input type="hidden" name="type" value="expense">
     <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
     <label>{{ _('Kategori') }}</label>
     <select name="category_id">{% for c in cats_exp %}<option value="{{ c.id }}" {{ 'selected' if c.name=='Lainnya' }}>{{ c.name }}</option>{% endfor %}</select>
@@ -148,7 +148,7 @@
 <!-- Sheet: pemasukan -->
 <dialog class="sheet" id="sheet-income"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Pemasukan baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="/m/{{ mk }}/tx"><input type="hidden" name="type" value="income">
+  <form method="post" action="/m/{{ mk }}/tx">{{ csrf_field }}<input type="hidden" name="type" value="income">
     <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
     <label>{{ _('Sumber / deskripsi') }}</label><input name="description" placeholder="{{ _('mis. Gaji John, bonus, proyek') }}" autocomplete="off">
     <div class="f2">
@@ -163,7 +163,7 @@
 <!-- Sheet: transfer -->
 <dialog class="sheet" id="sheet-transfer"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Pindah antar kantong') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="/m/{{ mk }}/tx"><input type="hidden" name="type" value="transfer">
+  <form method="post" action="/m/{{ mk }}/tx">{{ csrf_field }}<input type="hidden" name="type" value="transfer">
     <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
     <div class="f2">
       <div><label>{{ _('Dari') }}</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
@@ -179,7 +179,7 @@
 <!-- Sheet: edit -->
 <dialog class="sheet" id="sheet-edit"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Edit') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="">
+  <form method="post" action="">{{ csrf_field }}
     <input type="hidden" name="month_key" value="{{ mk }}">
     <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" required autocomplete="off">
     <div id="edit-category-wrap">
@@ -196,7 +196,7 @@
     <div id="edit-status-wrap"><label>{{ _('Status') }}</label><select name="status"><option value="paid">{{ _('Sudah dibayar') }}</option><option value="planned">{{ _('Belum dibayar') }}</option></select></div>
     <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
-  <form method="post" action="" data-del data-confirm="{{ _('Hapus entri ini?') }}" data-confirm-note="{{ _('Entri dihapus dari bulan ini.') }}" style="margin-top:8px"><input type="hidden" name="month_key" value="{{ mk }}"><button class="danger" type="submit" style="width:100%">{{ _('Hapus') }}</button></form>
+  <form method="post" action="" data-del data-confirm="{{ _('Hapus entri ini?') }}" data-confirm-note="{{ _('Entri dihapus dari bulan ini.') }}" style="margin-top:8px">{{ csrf_field }}<input type="hidden" name="month_key" value="{{ mk }}"><button class="danger" type="submit" style="width:100%">{{ _('Hapus') }}</button></form>
 </div></dialog>
 {% endblock %}
 

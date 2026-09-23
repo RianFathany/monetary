@@ -32,7 +32,7 @@
     <a href="/settings" class="{{ 'on' if page=='settings' }}">{{ _('Setelan') }}</a>
   </nav>
   <div class="tools">
-    <form method="post" action="/settings/lang" class="langtog" role="group" aria-label="{{ _('Ganti bahasa') }}">
+    <form method="post" action="/settings/lang" class="langtog" role="group" aria-label="{{ _('Ganti bahasa') }}">{{ csrf_field }}
       {% for code in langs %}
       <button type="submit" name="lang" value="{{ code }}" class="{{ 'on' if lang==code }}"
               title="{{ langs[code] }}" aria-pressed="{{ 'true' if lang==code else 'false' }}">{{ code | upper }}</button>
@@ -52,7 +52,7 @@
 <main class="wrap">{% block content %}{% endblock %}</main>
 {% block fab %}{% endblock %}
 <div class="toast" id="toast"></div>
-<form method="post" action="" id="swform" hidden><input type="hidden" name="month_key" value="{{ mk or '' }}"></form>
+<form method="post" action="" id="swform" hidden>{{ csrf_field }}<input type="hidden" name="month_key" value="{{ mk or '' }}"></form>
 {% if session_left %}
 <!-- Layar kunci: muncul saat sesi habis, supaya isian di halaman tidak hilang -->
 <dialog class="confirm lock" id="lock"><div class="cbox">
@@ -78,7 +78,8 @@
   <p class="cnote" id="confirm-note" hidden></p>
   <div class="cbtns"><button type="button" class="ghost" data-confirm-no>{{ _('Batal') }}</button><button type="button" class="danger" data-confirm-yes>{{ _('Hapus') }}</button></div>
 </div></dialog>
-<script>window.I18N = {
+<script>window.CSRF = {{ csrf_token | tojson }};
+window.I18N = {
   req: {{ _('wajib diisi') | tojson }},
   amount: {{ _('Jumlah wajib diisi') | tojson }},
   amountZero: {{ _('Jumlah harus lebih dari 0') | tojson }},

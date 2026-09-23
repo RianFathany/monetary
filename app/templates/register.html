@@ -24,7 +24,7 @@
   <div class="orline"><span>{{ _('atau pakai email') }}</span></div>
   {% endif %}
 
-  <form method="post" action="/register" autocomplete="off">
+  <form method="post" action="/register" autocomplete="off">{{ csrf_field }}
     <label>{{ _('Nama') }} <span class="opt">{{ _('opsional') }}</span></label>
     <input name="name" autocomplete="name" placeholder="{{ _('mis. John') }}">
     <label>{{ _('Email') }}</label>

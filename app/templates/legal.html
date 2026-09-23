@@ -4,7 +4,7 @@
 <header class="bar"><div class="barin">
   <a class="brand" href="/"><span class="logo photo"><img src="/static/logo.png?v={{ asset_v }}" alt="Monetary" width="256" height="206"></span><span><b>Monetary</b><span class="sub">{{ _('Personal finance tracker') }}</span></span></a>
   <div class="tools">
-    <form method="post" action="/settings/lang" class="langtog" role="group" aria-label="{{ _('Ganti bahasa') }}">
+    <form method="post" action="/settings/lang" class="langtog" role="group" aria-label="{{ _('Ganti bahasa') }}">{{ csrf_field }}
       {% for code in langs %}
       <button type="submit" name="lang" value="{{ code }}" class="{{ 'on' if lang==code }}">{{ code | upper }}</button>
       {% endfor %}

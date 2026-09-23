@@ -470,7 +470,7 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const pw = document.getElementById('lock-pw');
-    const body = new URLSearchParams({ password: pw.value });
+    const body = new URLSearchParams({ password: pw.value, _csrf: window.CSRF || '' });
     const r = await fetch('/auth/unlock', { method: 'POST', body });
     if (r.ok) {
       const d = await r.json(); left = d.left; arm();

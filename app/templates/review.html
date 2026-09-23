@@ -19,7 +19,7 @@
 </nav>
 
 {% if items %}
-<form method="post" action="/review">
+<form method="post" action="/review">{{ csrf_field }}
 <input type="hidden" name="month_key" value="{{ mk }}">
 <section class="card tabs-card" style="margin-top:10px">
   <div class="sec" style="padding:0 0 4px"><h2>{{ mk | month_label }}</h2><small>{{ items | length }} {{ _('transaksi') }}</small></div>
@@ -73,7 +73,7 @@
 
 <dialog class="sheet" id="sheet-transfer"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Jadikan transfer') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="" id="trf-form">
+  <form method="post" action="" id="trf-form">{{ csrf_field }}
     <input type="hidden" name="month_key" value="{{ mk }}">
     <p class="hint" style="margin-top:0">{{ _('Uang ini pindah kantong, bukan belanja. Setelah diubah, nilainya keluar\n    dari hitungan pengeluaran/pemasukan bulan ini.') }}</p>
     <div class="f2">

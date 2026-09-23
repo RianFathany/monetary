@@ -8,7 +8,7 @@
 <div class="doorcard card">
   <div class="brand" style="margin-bottom:10px"><span class="logo photo"><img src="/static/logo.png?v={{ asset_v }}" alt="Monetary" width="256" height="206"></span><span><b>{{ _('Setel password baru') }}</b><span class="sub">{{ _('setelah ini Anda langsung masuk') }}</span></span></div>
   {% if error=='password' %}<div class="err">{{ _('Password minimal 8 karakter dan harus sama dengan konfirmasi.') }}</div>{% endif %}
-  <form method="post" action="/reset" autocomplete="off">
+  <form method="post" action="/reset" autocomplete="off">{{ csrf_field }}
     <input type="hidden" name="token" value="{{ token }}">
     <label>{{ _('Password baru') }}</label>
     <input type="password" name="new" autocomplete="new-password" minlength="8" required autofocus>

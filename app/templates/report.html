@@ -84,7 +84,7 @@
   </div>
   {% else %}<div class="empty"><b>{{ _('Semua template rutin sudah tercatat.') }}</b><span>{{ _('Atur templatenya di') }} <a href="/settings#recurring">{{ _('Setelan') }}</a>.</span></div>{% endfor %}
   {% if r.plan %}
-  <form method="post" action="/m/{{ mk }}/apply-recurring" style="margin-top:8px">
+  <form method="post" action="/m/{{ mk }}/apply-recurring" style="margin-top:8px">{{ csrf_field }}
     <button class="primary" type="submit" style="width:100%">{{ _('Isi yang belum tercatat') }}</button>
   </form>
   {% endif %}

@@ -63,7 +63,7 @@
 
 <section class="card" style="margin-top:10px">
   <div class="sec"><h2>{{ _('Buku') }}</h2><small>{{ _('kantong & saldo awal diatur di') }} <a href="/accounts">{{ _('Kantong') }}</a></small></div>
-  <form method="post" action="/settings/opening" class="sform">
+  <form method="post" action="/settings/opening" class="sform">{{ csrf_field }}
     <label>{{ _('Bulan pertama yang dicatat') }}</label><input type="month" name="first_month" value="{{ first_month }}">
     <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
@@ -96,7 +96,7 @@
         </div>
       </div>
       {% if not u.is_owner %}
-      <form method="post" action="/settings/users/{{ u.id }}/active">
+      <form method="post" action="/settings/users/{{ u.id }}/active">{{ csrf_field }}
         {% if u.active %}<button class="danger" type="submit">{{ _('Nonaktifkan') }}</button>
         {% else %}<input type="hidden" name="active" value="1"><button type="submit">{{ _('Aktifkan') }}</button>{% endif %}
       </form>
@@ -104,14 +104,14 @@
     </div>
     {% endfor %}
   </div>
-  <form method="post" action="/settings/signup" style="margin-top:10px">
+  <form method="post" action="/settings/signup" style="margin-top:10px">{{ csrf_field }}
     <label class="check"><input type="checkbox" name="allow" value="1" {{ 'checked' if signup_open }} onchange="this.form.submit()">
       <span>{{ _('Izinkan pendaftaran baru') }}<small>{{ _('Kalau dimatikan, hanya akun yang sudah ada yang bisa masuk.') }}</small></span></label>
   </form>
 
   <details class="acc" {{ 'open' if adm }}>
     <summary>{{ _('Akun superadmin') }}</summary>
-    <form method="post" action="/settings/admin" autocomplete="off">
+    <form method="post" action="/settings/admin" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Email superadmin') }}</label>
       <input name="owner_email" value="{{ owner_email }}" placeholder="nama@gmail.com">
       <p class="hint">{{ _('Hanya email ini yang memegang buku utama beserta seluruh setelan aplikasi. Email lain — termasuk yang ada di daftar izin — masuk sebagai pengguna biasa.') }}</p>
@@ -144,7 +144,7 @@
       </div>
     </div>
     {% if backup_status.enabled %}
-    <form method="post" action="/settings/backup/run"><button type="submit">{{ _('Cadangkan sekarang') }}</button></form>
+    <form method="post" action="/settings/backup/run">{{ csrf_field }}<button type="submit">{{ _('Cadangkan sekarang') }}</button></form>
     {% endif %}
   </div>
   {% if backup_status.error and not backup_status.ok %}<p class="hint" style="color:var(--bad)">{{ backup_status.error }}</p>{% endif %}
@@ -152,7 +152,7 @@
   <details class="acc" {{ 'open' if bk or not backup_status.enabled }}>
     <summary>{{ _('Pengaturan penyimpanan') }}</summary>
     <p class="hint" style="margin:6px 0 2px">{{ _('Isi dengan Cloudflare R2, Backblaze B2, atau penyimpanan lain yang berbicara S3. Seluruh buku pengguna + daftar akun dikirim sebagai satu arsip .tar.gz terenkripsi di sisi penyedia.') }}</p>
-    <form method="post" action="/settings/backup" autocomplete="off">
+    <form method="post" action="/settings/backup" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Endpoint') }}</label>
       <input name="endpoint" value="{{ backup_cfg.endpoint }}" placeholder="https://<account>.r2.cloudflarestorage.com">
       <div class="f2">
@@ -188,7 +188,7 @@
     <a class="btn" href="/logout">{{ _('Keluar') }}</a>
   </div>
   {% if me and me.email and me.email != 'owner' and not me.email_verified %}
-  <form method="post" action="/verify/resend" class="vrow">
+  <form method="post" action="/verify/resend" class="vrow">{{ csrf_field }}
     <span>{{ _('Email belum diverifikasi.') }}</span>
     <button type="submit">{{ _('Kirim ulang tautan') }}</button>
   </form>
@@ -200,7 +200,7 @@
   <details class="acc">
     <summary>{{ _('Hapus akun') }}</summary>
     <p class="hint">{{ _('Akun dan seluruh catatan keuangan Anda dihapus dari server saat itu juga, dan tidak bisa dikembalikan. Unduh cadangan dulu lewat Backup & ekspor kalau perlu.') }}</p>
-    <form method="post" action="/settings/account/delete" data-confirm="{{ _('Hapus akun dan semua data?') }}" data-confirm-note="{{ _('File database Anda dihapus permanen. Tidak bisa dibatalkan.') }}">
+    <form method="post" action="/settings/account/delete" data-confirm="{{ _('Hapus akun dan semua data?') }}" data-confirm-note="{{ _('File database Anda dihapus permanen. Tidak bisa dibatalkan.') }}">{{ csrf_field }}
       <div class="actions"><button class="danger" type="submit" style="width:100%">{{ _('Hapus akun saya') }}</button></div>
     </form>
   </details>
@@ -214,7 +214,7 @@
     {% elif mail=='fail' %}<div class="note bad">{{ _('Surel uji gagal terkirim. Periksa API key dan alamat pengirim.') }}</div>
     {% elif mail=='off' %}<div class="note bad">{{ _('Pengiriman surel belum diatur.') }}</div>{% endif %}
     <p class="hint" style="margin:6px 0 2px">{{ _('Dipakai untuk verifikasi email dan tautan setel ulang password. Tanpa ini, pengguna yang lupa password tidak punya jalan pulih.') }}</p>
-    <form method="post" action="/settings/mail" autocomplete="off">
+    <form method="post" action="/settings/mail" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Resend API key') }}</label>
       <input type="password" name="api_key" placeholder="{{ _('tersimpan — isi hanya bila ingin mengganti') if mailcfg.has_key else 're_...' }}">
       <div class="f2">
@@ -224,7 +224,7 @@
       <p class="hint">{{ _('Domain pengirim harus sudah diverifikasi di Resend (SPF & DKIM di Cloudflare).') }}</p>
       <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
     </form>
-    <form method="post" action="/settings/mail/test" style="margin-top:8px">
+    <form method="post" action="/settings/mail/test" style="margin-top:8px">{{ csrf_field }}
       <div class="actions"><button type="submit" style="width:100%">{{ _('Kirim surel uji') }}</button></div>
     </form>
   </details>
@@ -234,7 +234,7 @@
     {% if g=='ok' %}<div class="note ok">{{ _('Pengaturan Google disimpan.') }}</div>{% endif %}
     <p class="hint" style="margin:6px 0 2px">{{ _('Daftarkan URI berikut di Google Cloud Console → Credentials → OAuth client (Web application) → Authorized redirect URIs.') }}</p>
     <div class="gcfg"><code>{{ google.redirect_uri }}</code></div>
-    <form method="post" action="/settings/google" autocomplete="off">
+    <form method="post" action="/settings/google" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Client ID') }}</label>
       <input name="client_id" value="{{ google.client_id }}" placeholder="1234567890-abc.apps.googleusercontent.com">
       <label>{{ _('Client Secret') }}</label>
@@ -250,7 +250,7 @@
   <details class="acc" {{ 'open' if pw }}>
     <summary>{{ _('Ganti password') if has_password else _('Atur password') }}</summary>
     {% if pw=='ok' %}<div class="note ok">{{ _('Password diperbarui.') }}</div>{% elif pw=='wrong' %}<div class="note bad">{{ _('Password saat ini salah.') }}</div>{% elif pw=='mismatch' %}<div class="note bad">{{ _('Password baru minimal 8 karakter dan harus sama dengan konfirmasi.') }}</div>{% endif %}
-    <form method="post" action="/settings/password" autocomplete="off">
+    <form method="post" action="/settings/password" autocomplete="off">{{ csrf_field }}
       {% if has_password %}<label>{{ _('Password saat ini') }}</label><input type="password" name="current" autocomplete="current-password" required>
       {% else %}<p class="hint">{{ _('Akun ini masuk lewat Google. Menambah password memberi Anda pintu cadangan.') }}</p>{% endif %}
       <div class="f2">
@@ -264,7 +264,7 @@
 
 <dialog class="sheet" id="sheet-tpl"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Template rutin baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="/settings/recurring">
+  <form method="post" action="/settings/recurring">{{ csrf_field }}
     <div class="seg" style="margin-top:8px">
       <label><input type="radio" name="type" value="expense" checked><span>{{ _('Keluar') }}</span></label>
       <label><input type="radio" name="type" value="income"><span>{{ _('Masuk') }}</span></label>
@@ -286,7 +286,7 @@
 
 <dialog class="sheet" id="sheet-cat"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Kategori baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="/settings/category">
+  <form method="post" action="/settings/category">{{ csrf_field }}
     <div class="seg" style="margin-top:8px">
       <label><input type="radio" name="kind" value="expense" checked><span>{{ _('Pengeluaran') }}</span></label>
       <label><input type="radio" name="kind" value="income"><span>{{ _('Pemasukan') }}</span></label>
@@ -299,7 +299,7 @@
 
 <dialog class="sheet" id="sheet-cat-edit"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Ubah kategori') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="" id="cat-form">
+  <form method="post" action="" id="cat-form">{{ csrf_field }}
     <label>{{ _('Nama') }}</label><input name="name" required autocomplete="off">
     <div class="f2">
       <div><label>{{ _('Urutan') }}</label><input name="sort" inputmode="numeric" value="100"></div>
@@ -310,7 +310,7 @@
   </form>
   <form method="post" action="" id="cat-del" data-del data-confirm="{{ _('Hapus kategori ini?') }}"
         data-confirm-note="{{ _('Transaksi yang memakainya dipindah ke kategori “Lainnya” dan ditandai untuk ditinjau.') }}"
-        style="margin-top:8px"><button class="danger" type="submit" style="width:100%">{{ _('Hapus') }}</button></form>
+        style="margin-top:8px">{{ csrf_field }}<button class="danger" type="submit" style="width:100%">{{ _('Hapus') }}</button></form>
 </div></dialog>
 
 <script>

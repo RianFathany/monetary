@@ -14,7 +14,7 @@
   {% else %}
     {% if error=='locked' %}<div class="err">{{ _('Terlalu banyak percobaan. Coba lagi nanti.') }}</div>{% endif %}
     {% if not mail %}<div class="err">{{ _('Pengiriman surel belum diatur di aplikasi ini. Hubungi pemilik aplikasi.') }}</div>{% endif %}
-    <form method="post" action="/forgot">
+    <form method="post" action="/forgot">{{ csrf_field }}
       <label>{{ _('Email') }}</label>
       <input type="email" name="email" autocomplete="email" placeholder="nama@email.com" required autofocus>
       <div class="actions"><button class="primary" type="submit">{{ _('Kirim tautan') }}</button></div>

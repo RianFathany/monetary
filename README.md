@@ -258,6 +258,20 @@ jam.
 Memulihkan: unduh arsip, `tar xzf`, lalu taruh `monetary.db` (dan `data/books/*.db`,
 `system.db` bila perlu) ke volume — tidak ada format khusus, isinya file SQLite biasa.
 
+## CSRF
+
+Setiap POST wajib membawa `_csrf` yang sama dengan cookie `monetary_csrf`
+(*double-submit*). Situs lain bisa membuat peramban korban mengirim POST ke sini, tapi
+tidak bisa membaca cookie milik domain ini, jadi tidak bisa menebak nilainya.
+
+`app/csrf.py` sengaja middleware ASGI biasa, bukan `BaseHTTPMiddleware`: ia perlu membaca
+body untuk memeriksa token, lalu **mengulang** body itu ke aplikasi — sesuatu yang tidak
+bisa dilakukan middleware biasa tanpa menelan isi permintaan. Token disisipkan ke seluruh
+form lewat `{{ csrf_field }}`, dan ke `fetch` di `app.js` lewat `window.CSRF`.
+
+Permintaan yang ditolak mendapat halaman 403 berbahasa manusia ("formulir ini kedaluwarsa
+atau dikirim dari halaman lain"), bukan tumpukan galat.
+
 ## Struktur
 
 ```
@@ -269,6 +283,7 @@ app/legal.py       isi halaman /privacy dan /terms (dipakai consent screen Googl
 app/mailer.py      kirim surel lewat Resend (verifikasi email, setel ulang password)
 app/backup.py      arsip semua buku + jadwal + retensi
 app/s3.py          klien S3 seadanya (SigV4 ditulis sendiri, tanpa boto3)
+app/csrf.py        middleware ASGI double-submit token
 app/oauth.py       masuk dengan Google (OAuth2 + PKCE), daftar email yang diizinkan
 app/i18n.py        dwibahasa: bahasa aktif per-permintaan, nama bulan, satuan angka
 app/lang_en.py     kamus terjemahan Inggris (kunci = teks Indonesia di template/kode)

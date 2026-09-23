@@ -16,8 +16,9 @@ from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, Redirec
                                StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
-from . import auth, backup, i18n, legal, mailer, oauth, report, suggest, users
+from . import auth, backup, csrf, i18n, legal, mailer, oauth, report, suggest, users
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, get_db, get_setting,
                  init_db, set_app_setting, set_book, set_setting, upgrade_all_books)
@@ -25,6 +26,7 @@ from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, ba
 BASE = Path(__file__).resolve().parent
 app = FastAPI(title="Monetary", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
+app.add_middleware(csrf.CSRFMiddleware)
 templates = Jinja2Templates(directory=BASE / "templates")
 
 ACCOUNT_TYPES = {
@@ -195,17 +197,32 @@ def asset_version() -> str:
         return "0"
 
 
+def csrf_for(request: Request) -> str:
+    """Token untuk permintaan ini: dari cookie kalau ada, kalau belum dibuatkan baru."""
+    token = request.cookies.get(csrf.COOKIE) or getattr(request.state, "csrf", "")
+    if not token:
+        token = csrf.new_token()
+        request.state.csrf = token
+    return token
+
+
 def render(request: Request, name: str, **ctx):
     ctx.setdefault("request", request)
     ctx.setdefault("today", date.today().isoformat())
     ctx.setdefault("asset_v", asset_version())
     ctx.setdefault("session_left", auth.session_left(request))
+    ctx.setdefault("csrf_token", csrf_for(request))
+    ctx.setdefault("csrf_field", Markup(f'<input type="hidden" name="{csrf.FIELD}" value="{ctx["csrf_token"]}">'))
     ctx.setdefault("lang", i18n.get_lang())
     ctx.setdefault("langs", i18n.LANGS)
     ctx.setdefault("months_short", i18n.months(short=True))
     ctx.setdefault("months_long", i18n.months())
     ctx.setdefault("days_short", i18n.DAYS[i18n.get_lang()])
-    return templates.TemplateResponse(request, name, ctx)
+    resp = templates.TemplateResponse(request, name, ctx)
+    if not request.cookies.get(csrf.COOKIE):
+        resp.set_cookie(csrf.COOKIE, ctx["csrf_token"], max_age=60 * 60 * 24 * 30, httponly=True,
+                        samesite="lax", secure=request.url.scheme == "https")
+    return resp
 
 
 # ---------- domain ----------

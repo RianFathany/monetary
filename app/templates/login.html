@@ -31,7 +31,7 @@
     <summary>{{ _('Masuk dengan password') }}</summary>
   {% endif %}
 
-    <form method="post" action="/login">
+    <form method="post" action="/login">{{ csrf_field }}
       <input type="hidden" name="next" value="{{ next }}">
       <input type="email" name="email" autocomplete="username" placeholder="{{ _('Email') }}" style="margin-bottom:8px">
       <div class="pw">
