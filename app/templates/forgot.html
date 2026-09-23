@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Lupa password') }} · Monetary{% endblock %}
+{% block bodyclass %}door-page{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="door" id="door" aria-hidden="true"></div>
+<div class="doorwrap">
+<div class="doorcard card">
+  <div class="brand" style="margin-bottom:10px"><span class="logo photo"><img src="/static/logo.png?v={{ asset_v }}" alt="Monetary" width="256" height="206"></span><span><b>{{ _('Lupa password') }}</b><span class="sub">{{ _('kami kirim tautan ke email Anda') }}</span></span></div>
+
+  {% if sent %}
+  <div class="note ok">{{ _('Kalau alamat itu terdaftar, tautan setel ulang sudah dikirim. Cek juga folder spam.') }}</div>
+  <p class="legal-links"><a href="/login">{{ _('Kembali ke halaman masuk') }}</a></p>
+  {% else %}
+    {% if error=='locked' %}<div class="err">{{ _('Terlalu banyak percobaan. Coba lagi nanti.') }}</div>{% endif %}
+    {% if not mail %}<div class="err">{{ _('Pengiriman surel belum diatur di aplikasi ini. Hubungi pemilik aplikasi.') }}</div>{% endif %}
+    <form method="post" action="/forgot">
+      <label>{{ _('Email') }}</label>
+      <input type="email" name="email" autocomplete="email" placeholder="nama@email.com" required autofocus>
+      <div class="actions"><button class="primary" type="submit">{{ _('Kirim tautan') }}</button></div>
+    </form>
+    <p class="legal-links"><a href="/login">{{ _('Kembali ke halaman masuk') }}</a></p>
+  {% endif %}
+</div>
+</div>
+{% include "_door.html" %}
+{% endblock %}

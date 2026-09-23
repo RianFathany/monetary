@@ -537,4 +537,56 @@ EN = {
     "Setiap orang yang mendaftar mendapat bukunya sendiri — data keuangan Anda tidak ikut terlihat. Mereka hanya bisa mengurus bukunya sendiri: tidak bisa melihat daftar pengguna, mengubah konfigurasi Google, atau menyentuh setelan aplikasi.":
         "Everyone who signs up gets their own book — your finances stay out of sight. They can only manage their own book: no user list, no Google settings, nothing app-level.",
     "transaksi perlu dicek": "transactions need a check",
+    # --- lupa password & verifikasi email ---
+    "Lupa password": "Forgot password",
+    "Lupa password?": "Forgot your password?",
+    "kami kirim tautan ke email Anda": "we will email you a link",
+    "Kalau alamat itu terdaftar, tautan setel ulang sudah dikirim. Cek juga folder spam.":
+        "If that address is registered, a reset link is on its way. Check your spam folder too.",
+    "Kembali ke halaman masuk": "Back to sign in",
+    "Terlalu banyak percobaan. Coba lagi nanti.": "Too many attempts. Try again later.",
+    "Pengiriman surel belum diatur di aplikasi ini. Hubungi pemilik aplikasi.":
+        "Email sending is not set up on this app. Contact the app owner.",
+    "Kirim tautan": "Send the link",
+    "Email Anda sudah terverifikasi.": "Your email is verified.",
+    "Setel password baru": "Set a new password",
+    "setelah ini Anda langsung masuk": "you will be signed in right after",
+    "Semua sesi lama di perangkat lain otomatis keluar.": "Every old session on other devices is signed out.",
+    "Email belum diverifikasi.": "Email not verified yet.",
+    "Kirim ulang tautan": "Resend the link",
+    "Tautan verifikasi dikirim. Cek kotak masuk Anda.": "Verification link sent. Check your inbox.",
+    "Pengiriman surel belum diatur.": "Email sending is not set up.",
+    "Tautannya sudah tidak berlaku. Minta yang baru.": "That link is no longer valid. Request a new one.",
+    # panel surel
+    "Pengiriman surel": "Email delivery",
+    "Pengaturan surel disimpan.": "Email settings saved.",
+    "Surel uji terkirim.": "Test email sent.",
+    "Surel uji gagal terkirim. Periksa API key dan alamat pengirim.":
+        "The test email failed. Check the API key and sender address.",
+    "Dipakai untuk verifikasi email dan tautan setel ulang password. Tanpa ini, pengguna yang lupa password tidak punya jalan pulih.":
+        "Used for email verification and password reset links. Without it, a user who forgets their password has no way back in.",
+    "Resend API key": "Resend API key",
+    "Alamat pengirim": "Sender address",
+    "Nama pengirim": "Sender name",
+    "Domain pengirim harus sudah diverifikasi di Resend (SPF & DKIM di Cloudflare).":
+        "The sender domain must be verified in Resend (SPF & DKIM records in Cloudflare).",
+    "Kirim surel uji": "Send a test email",
+    # isi surel
+    "Konfirmasi alamat email Anda": "Confirm your email address",
+    "Satu langkah lagi": "One more step",
+    "Ketuk tombol di bawah untuk memastikan alamat ini benar milik Anda. Tautan berlaku 3 hari.":
+        "Tap the button below to confirm this address is yours. The link works for 3 days.",
+    "Kalau Anda tidak merasa mendaftar di Monetary, abaikan saja surel ini.":
+        "If you did not sign up for Monetary, simply ignore this email.",
+    "Konfirmasi email": "Confirm email",
+    "Setel ulang password Monetary": "Reset your Monetary password",
+    "Setel ulang password": "Reset your password",
+    "Ada permintaan untuk mengatur ulang password akun ini. Tautan di bawah berlaku satu jam dan hanya bisa dipakai sekali.":
+        "Someone asked to reset the password for this account. The link below works for one hour and only once.",
+    "Kalau bukan Anda yang meminta, abaikan saja — password lama tetap berlaku.":
+        "If that was not you, just ignore this — your current password still works.",
+    "Surel uji dari Monetary": "Test email from Monetary",
+    "Konfigurasi surel berhasil": "Email delivery works",
+    "Kalau Anda menerima surel ini, pengiriman dari Monetary sudah jalan.":
+        "If you received this, sending email from Monetary is working.",
 }

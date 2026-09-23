@@ -215,6 +215,27 @@ file terpisah per pengguna di Fly region Singapura, tidak ada iklan/pelacak, dan
 menghapus akun. Pengguna non-pemilik bisa menghapus akunnya sendiri lewat
 **Setelan → Akun → Hapus akun**: baris pengguna dan file bukunya hilang saat itu juga.
 
+## Surel: verifikasi email & lupa password
+
+Pengiriman lewat **Resend** (HTTPS, tanpa dependensi baru). API key dan alamat pengirim
+diatur di **Setelan → Akun → Pengiriman surel** (superadmin), lengkap dengan tombol
+"Kirim surel uji". Tanpa konfigurasi ini aplikasi tetap jalan — hanya saja tautan
+verifikasi dan pemulihan password tidak terkirim, dan halaman `/forgot` mengatakannya
+terus terang.
+
+Persiapan sekali di Resend: tambah domain `rianfathany.com`, salin catatan SPF & DKIM ke
+Cloudflare, tunggu terverifikasi, lalu buat API key.
+
+| Alur | Masa berlaku | Aturannya |
+|---|---|---|
+| Verifikasi email (`/verify`) | 3 hari | Dikirim otomatis saat mendaftar pakai email+password; bisa dikirim ulang dari Setelan |
+| Lupa password (`/forgot` → `/reset`) | 1 jam | Halaman selalu menjawab sama, terdaftar atau tidak, supaya alamat tidak bisa ditebak |
+
+Token ditandatangani (itsdangerous) dan membawa `session_epoch` + potongan hash password
+saat itu, jadi **sekali pakai**: begitu password berganti, tautan lama langsung mati.
+Setelah reset berhasil, email otomatis dianggap terverifikasi (tautannya sampai ke kotak
+masuk) dan semua sesi lama dicabut.
+
 ## Struktur
 
 ```
@@ -223,6 +244,7 @@ app/report.py      laporan bulanan: build_metrics() hitung angka, render_rules()
 app/suggest.py     tebakan kategori dari kata kunci deskripsi (dipakai layar perapihan)
 app/users.py       pengguna + buku masing-masing (file database terpisah)
 app/legal.py       isi halaman /privacy dan /terms (dipakai consent screen Google)
+app/mailer.py      kirim surel lewat Resend (verifikasi email, setel ulang password)
 app/oauth.py       masuk dengan Google (OAuth2 + PKCE), daftar email yang diizinkan
 app/i18n.py        dwibahasa: bahasa aktif per-permintaan, nama bulan, satuan angka
 app/lang_en.py     kamus terjemahan Inggris (kunci = teks Indonesia di template/kode)

@@ -17,7 +17,7 @@ from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, Redirec
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import auth, i18n, legal, oauth, report, suggest, users
+from . import auth, i18n, legal, mailer, oauth, report, suggest, users
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, get_db, get_setting,
                  init_db, set_app_setting, set_book, set_setting, upgrade_all_books)
@@ -294,12 +294,12 @@ def months_available(db) -> list[str]:
 # ---------- auth ----------
 
 @app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request, next: str = "/", error: str = "", bye: str = ""):
+def login_page(request: Request, next: str = "/", error: str = "", bye: str = "", verified: str = ""):
     with get_db() as db:
         google = oauth.is_enabled(db)
     wait = auth.locked_for(request)
     return render(request, "login.html", next=next, error=error, configured=auth.is_configured(),
-                  google=google, wait=(wait + 59) // 60, bye=bool(bye), signup=users.signup_open())
+                  google=google, wait=(wait + 59) // 60, bye=bool(bye), verified=bool(verified), signup=users.signup_open())
 
 
 @app.post("/login")
@@ -340,6 +340,137 @@ def privacy_page(request: Request):
 def terms_page(request: Request):
     return render(request, "legal.html", title=t("Persyaratan Layanan"), updated=legal.UPDATED,
                   body=legal.terms(str(request.base_url)), page="legal")
+
+
+VERIFY_MAX_AGE = 60 * 60 * 24 * 3        # tautan verifikasi berlaku 3 hari
+RESET_MAX_AGE = 60 * 60                  # tautan setel ulang password berlaku 1 jam
+
+
+def base_url(request: Request) -> str:
+    url = str(request.base_url).rstrip("/")
+    if url.startswith("http://") and request.headers.get("x-forwarded-proto") == "https":
+        url = "https://" + url[len("http://"):]
+    return url
+
+
+def send_verification(request: Request, u) -> bool:
+    """Kirim tautan verifikasi. Diam-diam dilewati kalau surel belum dikonfigurasi."""
+    if not mailer.is_enabled() or not u["email"] or u["email_verified"]:
+        return False
+    token = auth.make_link("verify", {"i": u["id"], "e": u["email"]})
+    link = f"{base_url(request)}/verify?token={token}"
+    ok, _err = mailer.send(
+        u["email"], t("Konfirmasi alamat email Anda"), t("Satu langkah lagi"),
+        [t("Ketuk tombol di bawah untuk memastikan alamat ini benar milik Anda. "
+           "Tautan berlaku 3 hari."),
+         t("Kalau Anda tidak merasa mendaftar di Monetary, abaikan saja surel ini.")],
+        (t("Konfirmasi email"), link))
+    return ok
+
+
+@app.get("/verify", response_class=HTMLResponse)
+def verify_email(request: Request, token: str = ""):
+    data = auth.read_link("verify", token, VERIFY_MAX_AGE)
+    u = users.by_id(data.get("i")) if data else None
+    if not u or u["email"] != data.get("e"):
+        return RedirectResponse("/login?error=badlink", status_code=303)
+    users.mark_verified(u["id"])
+    return RedirectResponse("/settings?verified=1#account" if auth.is_authed(request)
+                            else "/login?verified=1", status_code=303)
+
+
+@app.post("/verify/resend")
+def verify_resend(request: Request):
+    if (r := require_login(request)):
+        return r
+    u = me(request)
+    sent = send_verification(request, u)
+    return RedirectResponse(f"/settings?verify={'sent' if sent else 'off'}#account", status_code=303)
+
+
+@app.get("/forgot", response_class=HTMLResponse)
+def forgot_page(request: Request, sent: str = "", error: str = ""):
+    return render(request, "forgot.html", sent=bool(sent), error=error, mail=mailer.is_enabled(),
+                  page="forgot")
+
+
+@app.post("/forgot")
+def forgot(request: Request, email: str = Form("")):
+    """Selalu menjawab sama, terkirim atau tidak — supaya alamat yang terdaftar
+    tidak bisa ditebak dari halaman ini."""
+    if auth.locked_for(request):
+        return RedirectResponse("/forgot?error=locked", status_code=303)
+    auth.note_failure(request)                      # batasi percobaan beruntun
+    u = users.by_email((email or "").strip().lower())
+    if u and u["active"] and mailer.is_enabled():
+        token = auth.make_link("reset", {"i": u["id"], "e": u["session_epoch"],
+                                         "p": (u["password_hash"] or "")[:16]})
+        link = f"{base_url(request)}/reset?token={token}"
+        mailer.send(u["email"], t("Setel ulang password Monetary"), t("Setel ulang password"),
+                    [t("Ada permintaan untuk mengatur ulang password akun ini. "
+                       "Tautan di bawah berlaku satu jam dan hanya bisa dipakai sekali."),
+                     t("Kalau bukan Anda yang meminta, abaikan saja — password lama tetap berlaku.")],
+                    (t("Setel password baru"), link))
+    return RedirectResponse("/forgot?sent=1", status_code=303)
+
+
+@app.get("/reset", response_class=HTMLResponse)
+def reset_page(request: Request, token: str = "", error: str = ""):
+    if not _reset_user(token):
+        return RedirectResponse("/login?error=badlink", status_code=303)
+    return render(request, "reset.html", token=token, error=error, page="reset")
+
+
+def _reset_user(token: str):
+    """Pengguna dari tautan, selama password & sesinya belum berubah sejak tautan dibuat."""
+    data = auth.read_link("reset", token, RESET_MAX_AGE)
+    u = users.by_id(data.get("i")) if data else None
+    if not u or not u["active"]:
+        return None
+    if int(data.get("e", -1)) != int(u["session_epoch"]):
+        return None
+    if data.get("p") != (u["password_hash"] or "")[:16]:
+        return None
+    return u
+
+
+@app.post("/reset")
+def reset(request: Request, token: str = Form(""), new: str = Form(""), confirm: str = Form("")):
+    u = _reset_user(token)
+    if not u:
+        return RedirectResponse("/login?error=badlink", status_code=303)
+    if len(new) < users.MIN_PASSWORD or new != confirm:
+        return RedirectResponse(f"/reset?token={quote(token)}&error=password", status_code=303)
+    users.set_password(u["id"], auth.make_hash(new))         # sesi lama ikut dicabut
+    users.mark_verified(u["id"])                             # tautan sampai = email terbukti
+    u = users.by_id(u["id"])
+    resp = RedirectResponse("/", status_code=303)
+    resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], u["email"], u["session_epoch"]),
+                    max_age=auth.MAX_AGE, httponly=True, samesite="lax",
+                    secure=request.url.scheme == "https")
+    return resp
+
+
+@app.post("/settings/mail")
+def settings_mail(request: Request, api_key: str = Form(""), sender: str = Form(""), name: str = Form("")):
+    if (r := require_owner(request)):
+        return r
+    mailer.save_config(api_key, sender, name)
+    return RedirectResponse("/settings?mail=ok#account", status_code=303)
+
+
+@app.post("/settings/mail/test")
+def settings_mail_test(request: Request):
+    """Kirim surel uji ke alamat superadmin supaya konfigurasi terbukti jalan."""
+    if (r := require_owner(request)):
+        return r
+    u = me(request)
+    to = u["email"] if "@" in (u["email"] or "") else users.owner_email()
+    if not to or not mailer.is_enabled():
+        return RedirectResponse("/settings?mail=off#account", status_code=303)
+    ok, err = mailer.send(to, t("Surel uji dari Monetary"), t("Konfigurasi surel berhasil"),
+                          [t("Kalau Anda menerima surel ini, pengiriman dari Monetary sudah jalan.")])
+    return RedirectResponse(f"/settings?mail={'sent' if ok else 'fail'}#account", status_code=303)
 
 
 @app.get("/auth/ping")
@@ -397,6 +528,7 @@ def register(request: Request, email: str = Form(""), password: str = Form(""), 
         return RedirectResponse(back + "exists", status_code=303)
 
     u = users.create(email, name, password_hash=auth.make_hash(password))
+    send_verification(request, u)
     users.touch_login(u["id"])
     resp = RedirectResponse("/", status_code=303)
     resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], u["email"], u["session_epoch"]), max_age=auth.MAX_AGE,
@@ -680,7 +812,8 @@ def account_delete(request: Request, aid: int):
 # ---------- setelan: kategori, rutin, akun ----------
 
 @app.get("/settings", response_class=HTMLResponse)
-def settings_page(request: Request, pw: str = "", g: str = "", adm: str = ""):
+def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", mail: str = "",
+                  verify: str = "", verified: str = ""):
     if (r := require_login(request)):
         return r
     with get_db() as db:
@@ -694,10 +827,13 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = ""):
         first_month = get_setting(db, "first_month", "")
         review_count = db.execute(f"SELECT COUNT(*) c FROM transactions t WHERE {REVIEW_WHERE}").fetchone()["c"]
         gc = oauth.config()
+        mc = mailer.config()
         google = dict(client_id=gc["client_id"], allowed=gc["allowed"], has_secret=bool(gc["client_secret"]),
                       redirect_uri=oauth.redirect_uri(request))
     u = me(request)
-    return render(request, "settings.html", review_count=review_count, has_password=bool(u and (u["password_hash"] or u["is_owner"])),
+    return render(request, "settings.html", mail=mail, verify=verify, verified=bool(verified),
+                  mailcfg=dict(sender=mc["sender"], name=mc["name"], has_key=bool(mc["api_key"])),
+                  review_count=review_count, has_password=bool(u and (u["password_hash"] or u["is_owner"])),
                   google=google, recurring=rec, cats=cats, used=used, accounts=accs,
                   first_month=first_month, page="settings", mk=this_month(), pw=pw, g=g,
                   me=u, is_owner=bool(u and u["is_owner"]),

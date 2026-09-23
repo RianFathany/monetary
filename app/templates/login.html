@@ -18,6 +18,7 @@
   {% elif error=='closed' %}<div class="err">{{ _('Pendaftaran baru sedang ditutup.') }}</div>
   {% elif error %}<div class="err">{{ _('Password salah.') }}</div>{% endif %}
   {% if bye %}<div class="note ok">{{ _('Akun dan seluruh datanya sudah dihapus.') }}</div>{% endif %}
+  {% if verified %}<div class="note ok">{{ _('Email Anda sudah terverifikasi.') }}</div>{% endif %}
 
   {% if google %}
   <a class="btn gbtn" href="/auth/google?next={{ next | urlencode }}">
@@ -43,6 +44,7 @@
       {% if not configured %}<p class="hint">{{ _('Password belum di-set. Isi') }} <code>MONETARY_PASSWORD</code> {{ _('di file') }} <code>.env</code> {{ _('lalu restart.') }}</p>{% endif %}
       <div class="actions"><button class="{{ 'ghost' if google else 'primary' }}" type="submit">{{ _('Masuk') }}</button></div>
     </form>
+    <p class="legal-links"><a href="/forgot">{{ _('Lupa password?') }}</a></p>
 
   {% if google %}
   </details>

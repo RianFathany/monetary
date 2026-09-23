@@ -130,6 +130,19 @@ def check_hash(candidate: str, stored: str) -> bool:
     return bool(stored) and verify(candidate, stored)
 
 
+def make_link(purpose: str, data: dict) -> str:
+    """Tautan sekali pakai untuk surel (verifikasi email, setel ulang password)."""
+    return URLSafeTimedSerializer(_secret(), salt=f"monetary-{purpose}").dumps(data)
+
+
+def read_link(purpose: str, token: str, max_age: int) -> dict:
+    try:
+        data = URLSafeTimedSerializer(_secret(), salt=f"monetary-{purpose}").loads(token, max_age=max_age)
+    except (BadSignature, TypeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def sign(data: dict) -> str:
     """Tanda tangani data singkat (dipakai state OAuth) dengan secret yang sama."""
     return URLSafeTimedSerializer(_secret(), salt="monetary-oauth").dumps(data)

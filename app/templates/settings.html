@@ -135,6 +135,15 @@
     </div>
     <a class="btn" href="/logout">{{ _('Keluar') }}</a>
   </div>
+  {% if me and me.email and me.email != 'owner' and not me.email_verified %}
+  <form method="post" action="/verify/resend" class="vrow">
+    <span>{{ _('Email belum diverifikasi.') }}</span>
+    <button type="submit">{{ _('Kirim ulang tautan') }}</button>
+  </form>
+  {% endif %}
+  {% if verify=='sent' %}<div class="note ok">{{ _('Tautan verifikasi dikirim. Cek kotak masuk Anda.') }}</div>
+  {% elif verify=='off' %}<div class="note bad">{{ _('Pengiriman surel belum diatur.') }}</div>
+  {% elif verified %}<div class="note ok">{{ _('Email Anda sudah terverifikasi.') }}</div>{% endif %}
   {% if not is_owner %}
   <details class="acc">
     <summary>{{ _('Hapus akun') }}</summary>
@@ -146,6 +155,28 @@
   {% endif %}
   <p class="legal-links" style="margin-top:12px"><a href="/privacy">{{ _('Kebijakan Privasi') }}</a> · <a href="/terms">{{ _('Persyaratan Layanan') }}</a></p>
   {% if is_owner %}
+  <details class="acc" {{ 'open' if mail }}>
+    <summary>{{ _('Pengiriman surel') }}</summary>
+    {% if mail=='ok' %}<div class="note ok">{{ _('Pengaturan surel disimpan.') }}</div>
+    {% elif mail=='sent' %}<div class="note ok">{{ _('Surel uji terkirim.') }}</div>
+    {% elif mail=='fail' %}<div class="note bad">{{ _('Surel uji gagal terkirim. Periksa API key dan alamat pengirim.') }}</div>
+    {% elif mail=='off' %}<div class="note bad">{{ _('Pengiriman surel belum diatur.') }}</div>{% endif %}
+    <p class="hint" style="margin:6px 0 2px">{{ _('Dipakai untuk verifikasi email dan tautan setel ulang password. Tanpa ini, pengguna yang lupa password tidak punya jalan pulih.') }}</p>
+    <form method="post" action="/settings/mail" autocomplete="off">
+      <label>{{ _('Resend API key') }}</label>
+      <input type="password" name="api_key" placeholder="{{ _('tersimpan — isi hanya bila ingin mengganti') if mailcfg.has_key else 're_...' }}">
+      <div class="f2">
+        <div><label>{{ _('Alamat pengirim') }}</label><input name="sender" value="{{ mailcfg.sender }}" placeholder="monetary@rianfathany.com"></div>
+        <div><label>{{ _('Nama pengirim') }}</label><input name="name" value="{{ mailcfg.name }}" placeholder="Monetary"></div>
+      </div>
+      <p class="hint">{{ _('Domain pengirim harus sudah diverifikasi di Resend (SPF & DKIM di Cloudflare).') }}</p>
+      <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
+    </form>
+    <form method="post" action="/settings/mail/test" style="margin-top:8px">
+      <div class="actions"><button type="submit" style="width:100%">{{ _('Kirim surel uji') }}</button></div>
+    </form>
+  </details>
+
   <details class="acc" {{ 'open' if g }}>
     <summary>{{ _('Masuk dengan Google') }}</summary>
     {% if g=='ok' %}<div class="note ok">{{ _('Pengaturan Google disimpan.') }}</div>{% endif %}
