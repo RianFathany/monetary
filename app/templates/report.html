@@ -65,7 +65,7 @@
   {% set cmax = m.categories[0].value if m.categories else 1 %}
   {% for c in m.categories[:10] %}
   <a class="crow" href="/overview?m={{ mk }}&q={{ c.name | urlencode }}" style="--i:{{ loop.index0 }};--h:{{ c.name | hue }}">
-    <span class="cname"><i class="dot"></i>{{ c.name }}<small>{{ c.count }}×</small></span>
+    <span class="cname"><i class="dot"></i><b>{{ c.name }}</b><small>{{ c.count }}×</small></span>
     <span class="cbar"><i style="--w:{{ (c.value / cmax * 100) | round(1) }}%"></i></span>
     <span class="cval num">{{ c.value | short }}<small>{% if c.avg %}{{ '+' if c.delta >= 0 else '−' }}{{ (c.delta if c.delta >= 0 else -c.delta) | short }} vs rata²{% else %}{{ (c.share * 100) | round(0) | int }}%{% endif %}</small></span>
   </a>

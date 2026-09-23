@@ -45,7 +45,7 @@
         {% set cmax = comp[0].v %}
         {% for c in comp %}
         <a class="crow" href="/overview?m={{ sel }}&q={{ c.name | urlencode }}" style="--i:{{ loop.index0 }};--h:{{ (145 if kind=='income' and loop.index0==0 else c.name | hue) }}">
-          <span class="cname"><i class="dot"></i>{{ c.name }}<small>{{ c.n }}×</small></span>
+          <span class="cname"><i class="dot"></i><b>{{ c.name }}</b><small>{{ c.n }}×</small></span>
           <span class="cbar"><i style="--w:{{ (c.v / cmax * 100) | round(1) }}%"></i></span>
           <span class="cval num">{{ c.v | short }}<small>{{ (c.v / (tot or 1) * 100) | round(0) | int }}%</small></span>
         </a>

@@ -404,3 +404,10 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   // bersihkan tanda saat sheet dibuka lagi
   document.querySelectorAll('dialog').forEach(d => d.addEventListener('close', () => { d.querySelectorAll('[required]').forEach(clear); d.querySelectorAll('.fbanner').forEach(b => { b.classList.remove('on'); b.hidden = true; }); }));
 })();
+
+// Nav header: tab aktif digulir ke tengah saat layar sempit.
+(function(){
+  const on = document.querySelector('.nav a.on'); if (!on) return;
+  const nav = on.parentElement;
+  if (nav.scrollWidth > nav.clientWidth + 4) nav.scrollTo({ left: on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2 });
+})();
