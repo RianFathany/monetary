@@ -5,31 +5,34 @@ Transfer tidak pernah dihitung sebagai pemasukan/pengeluaran — itu yang bikin
 angka bulanan jujur (menabung bukan belanja).
 """
 import re
+import secrets
+from urllib.parse import quote
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, RedirectResponse,
+                               StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import auth, report, suggest
+from . import auth, i18n, legal, oauth, report, suggest, users
+from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, get_db, get_setting,
-                 init_db, set_setting)
+                 init_db, set_app_setting, set_book, set_setting, upgrade_all_books)
 
 BASE = Path(__file__).resolve().parent
 app = FastAPI(title="Monetary", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 templates = Jinja2Templates(directory=BASE / "templates")
 
-MONTHS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
 ACCOUNT_TYPES = {
     "cash": "Kas & rekening harian",
     "savings": "Tabungan & dana darurat",
     "credit": "Kartu kredit & paylater",
     "investment": "Investasi",
-}
+}   # label ini diterjemahkan lewat _() di template
 
 
 # ---------- helpers ----------
@@ -44,7 +47,7 @@ def rupiah(n) -> str:
 
 def month_label(key: str) -> str:
     y, m = key.split("-")
-    return f"{MONTHS_ID[int(m) - 1]} {y}"
+    return f"{i18n.months(short=True)[int(m) - 1]} {y}"
 
 
 def shift_month(key: str, delta: int) -> str:
@@ -79,7 +82,7 @@ def fmt_date(raw: Optional[str]) -> str:
         return ""
     try:
         d = datetime.strptime(raw, "%Y-%m-%d")
-        return f"{d.day} {MONTHS_ID[d.month - 1]}"
+        return f"{d.day} {i18n.months(short=True)[d.month - 1]}"
     except ValueError:
         return raw
 
@@ -94,12 +97,13 @@ def hue(name) -> int:
 def short_rupiah(n) -> str:
     n = int(n or 0)
     a = abs(n)
+    rb, jt, M = i18n.units()
     if a >= 1_000_000_000:
-        v = f"{a/1_000_000_000:.1f}".rstrip("0").rstrip(".") + " M"
+        v = f"{a/1_000_000_000:.1f}".rstrip("0").rstrip(".") + " " + M
     elif a >= 1_000_000:
-        v = f"{a/1_000_000:.1f}".rstrip("0").rstrip(".") + " jt"
+        v = f"{a/1_000_000:.1f}".rstrip("0").rstrip(".") + " " + jt
     elif a >= 1_000:
-        v = f"{a/1_000:.0f} rb"
+        v = f"{a/1_000:.0f} " + rb
     else:
         v = str(a)
     return ("-" if n < 0 else "") + v
@@ -108,7 +112,7 @@ def short_rupiah(n) -> str:
 def stamp(raw) -> str:
     try:
         d = datetime.strptime(str(raw)[:16], "%Y-%m-%d %H:%M")
-        return f"{d.day} {MONTHS_ID[d.month - 1]} {d.year}, {d:%H:%M}"
+        return f"{d.day} {i18n.months(short=True)[d.month - 1]} {d.year}, {d:%H:%M}"
     except ValueError:
         return str(raw)
 
@@ -119,16 +123,66 @@ templates.env.filters["month_label"] = month_label
 templates.env.filters["fmt_date"] = fmt_date
 templates.env.filters["hue"] = hue
 templates.env.filters["short"] = short_rupiah
+templates.env.filters["t"] = t
+templates.env.globals["_"] = t
+
+
+@app.middleware("http")
+async def _book_and_language(request: Request, call_next):
+    """Tentukan buku milik sesi ini lalu bahasanya, sebelum rute apa pun jalan.
+
+    Semua query di aplikasi memakai get_db() tanpa tahu siapa penggunanya —
+    pemisahan datanya ada di level file, ditentukan di sini sekali per permintaan.
+    """
+    set_book("")
+    i18n.set_lang("id")
+    if not request.url.path.startswith("/static"):
+        try:
+            u = signed_in(request)
+            if u:
+                set_book(users.path_for(u))
+            with get_db() as db:
+                i18n.set_lang(get_setting(db, "lang", "id") or "id")
+        except Exception:                      # database belum siap (mis. saat start pertama)
+            pass
+    return await call_next(request)
 
 
 @app.on_event("startup")
 def _startup():
     init_db()
     auth.bootstrap()
+    for path, before, after in upgrade_all_books():      # buku pengguna lain ikut naik versi
+        print(f"[monetary] skema buku diperbarui: {Path(path).name} v{before} -> v{after}")
+
+
+def signed_in(request: Request):
+    """Pengguna sesi ini, atau None. Sesi ditolak kalau pengguna dinonaktifkan,
+    dihapus, atau password-nya diganti setelah cookie ini dibuat."""
+    if not auth.is_authed(request):
+        return None
+    u = users.by_id(auth.user_id(request))
+    if not u or not u["active"]:
+        return None
+    if int(u["session_epoch"]) != auth.session_epoch(request):
+        return None
+    return u
+
+
+def me(request: Request):
+    return signed_in(request)
+
+
+def require_owner(request: Request):
+    """Setelan yang berlaku untuk seluruh aplikasi hanya boleh disentuh pemilik."""
+    if (r := require_login(request)):
+        return r
+    u = me(request)
+    return None if (u and u["is_owner"]) else RedirectResponse("/settings", status_code=303)
 
 
 def require_login(request: Request):
-    if not auth.is_authed(request):
+    if signed_in(request) is None:
         return RedirectResponse(f"/login?next={request.url.path}", status_code=303)
     return None
 
@@ -144,6 +198,12 @@ def render(request: Request, name: str, **ctx):
     ctx.setdefault("request", request)
     ctx.setdefault("today", date.today().isoformat())
     ctx.setdefault("asset_v", asset_version())
+    ctx.setdefault("session_left", auth.session_left(request))
+    ctx.setdefault("lang", i18n.get_lang())
+    ctx.setdefault("langs", i18n.LANGS)
+    ctx.setdefault("months_short", i18n.months(short=True))
+    ctx.setdefault("months_long", i18n.months())
+    ctx.setdefault("days_short", i18n.DAYS[i18n.get_lang()])
     return templates.TemplateResponse(request, name, ctx)
 
 
@@ -232,17 +292,172 @@ def months_available(db) -> list[str]:
 # ---------- auth ----------
 
 @app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request, next: str = "/", error: str = ""):
-    return render(request, "login.html", next=next, error=error, configured=auth.is_configured())
+def login_page(request: Request, next: str = "/", error: str = "", bye: str = ""):
+    with get_db() as db:
+        google = oauth.is_enabled(db)
+    wait = auth.locked_for(request)
+    return render(request, "login.html", next=next, error=error, configured=auth.is_configured(),
+                  google=google, wait=(wait + 59) // 60, bye=bool(bye), signup=users.signup_open())
 
 
 @app.post("/login")
-def login(request: Request, password: str = Form(...), next: str = Form("/")):
-    if not auth.check_password(password):
+def login(request: Request, password: str = Form(...), email: str = Form(""), next: str = Form("/")):
+    """Masuk dengan email + password. Pemilik boleh mengosongkan email (pintu lama)."""
+    if auth.locked_for(request):
+        return RedirectResponse(f"/login?next={next}&error=locked", status_code=303)
+
+    email = (email or "").strip().lower()
+    u = users.by_email(email) if email else users.owner()
+    ok = False
+    if u and u["active"]:
+        if u["password_hash"]:
+            ok = auth.check_hash(password, u["password_hash"])
+        elif u["is_owner"]:
+            ok = auth.check_password(password)          # password pemilik dari setelan aplikasi
+    if not ok:
+        auth.note_failure(request)
         return RedirectResponse(f"/login?next={next}&error=1", status_code=303)
+
+    auth.note_success(request)
+    users.touch_login(u["id"])
     resp = RedirectResponse(next or "/", status_code=303)
-    resp.set_cookie(auth.COOKIE, auth.make_token(), max_age=auth.MAX_AGE, httponly=True, samesite="lax",
+    resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], u["email"] or "password", u["session_epoch"]),
+                    max_age=auth.MAX_AGE, httponly=True, samesite="lax",
                     secure=request.url.scheme == "https")
+    return resp
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    """Terbuka tanpa login — dipakai consent screen Google."""
+    return render(request, "legal.html", title=t("Kebijakan Privasi"), updated=legal.UPDATED,
+                  body=legal.privacy(str(request.base_url)), page="legal")
+
+
+@app.get("/terms", response_class=HTMLResponse)
+def terms_page(request: Request):
+    return render(request, "legal.html", title=t("Persyaratan Layanan"), updated=legal.UPDATED,
+                  body=legal.terms(str(request.base_url)), page="legal")
+
+
+@app.get("/auth/ping")
+def auth_ping(request: Request):
+    """Dipakai layar kunci: apakah sesi masih hidup?"""
+    left = auth.session_left(request)
+    return JSONResponse({"ok": bool(left), "left": left}, status_code=200 if left else 401)
+
+
+@app.post("/auth/unlock")
+def auth_unlock(request: Request, password: str = Form(...)):
+    """Buka kunci tanpa meninggalkan halaman: cukup password, cookie diperbarui."""
+    if (wait := auth.locked_for(request)):
+        return JSONResponse({"error": "locked", "wait": (wait + 59) // 60}, status_code=429)
+    if not auth.check_password(password):
+        auth.note_failure(request)
+        return JSONResponse({"error": "wrong"}, status_code=401)
+    auth.note_success(request)
+    resp = JSONResponse({"ok": True, "left": auth.MAX_AGE})
+    resp.set_cookie(auth.COOKIE,
+                    auth.make_token(auth.user_id(request), auth.whoami(request) or "password",
+                                    users.epoch(auth.user_id(request))),
+                    max_age=auth.MAX_AGE, httponly=True, samesite="lax",
+                    secure=request.url.scheme == "https")
+    return resp
+
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request, error: str = "", email: str = ""):
+    with get_db() as db:
+        google = oauth.is_enabled(db)
+    if not users.signup_open():
+        return RedirectResponse("/login?error=closed", status_code=303)
+    return render(request, "register.html", error=error, email=email, google=google, page="register")
+
+
+@app.post("/register")
+def register(request: Request, email: str = Form(""), password: str = Form(""), confirm: str = Form(""),
+             name: str = Form("")):
+    """Buat akun baru + buku kosongnya. Tanpa Google, tetapi email belum terbukti
+    milik pendaftar — itu sebabnya email yang sama kalau kelak masuk lewat Google
+    akan mengambil alih akunnya dan membuang password ini."""
+    if not users.signup_open():
+        return RedirectResponse("/login?error=closed", status_code=303)
+    if (wait := auth.locked_for(request)):
+        return RedirectResponse("/login?error=locked", status_code=303)
+
+    email = (email or "").strip().lower()
+    back = f"/register?email={quote(email)}&error="
+    if not users.valid_email(email):
+        return RedirectResponse(back + "email", status_code=303)
+    if len(password) < users.MIN_PASSWORD or password != confirm:
+        return RedirectResponse(back + "password", status_code=303)
+    if users.by_email(email):
+        return RedirectResponse(back + "exists", status_code=303)
+
+    u = users.create(email, name, password_hash=auth.make_hash(password))
+    users.touch_login(u["id"])
+    resp = RedirectResponse("/", status_code=303)
+    resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], u["email"], u["session_epoch"]), max_age=auth.MAX_AGE,
+                    httponly=True, samesite="lax", secure=request.url.scheme == "https")
+    return resp
+
+
+@app.get("/auth/google")
+def google_start(request: Request, next: str = "/"):
+    """Antar ke halaman pilih akun Google; titipkan state + PKCE di cookie singkat."""
+    with get_db() as db:
+        if not oauth.is_enabled(db):
+            return RedirectResponse("/login?error=google", status_code=303)
+        url, blob = oauth.start(db, request, next)
+    resp = RedirectResponse(url, status_code=303)
+    resp.set_cookie(oauth.STATE_COOKIE, auth.sign(blob), max_age=oauth.STATE_MAX_AGE, httponly=True,
+                    samesite="lax", secure=request.url.scheme == "https")
+    return resp
+
+
+@app.get("/auth/google/callback")
+def google_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    """Google kembali ke sini. Semua yang gagal berakhir di /login dengan pesan."""
+    blob = auth.unsign(request.cookies.get(oauth.STATE_COOKIE, ""), max_age=oauth.STATE_MAX_AGE)
+    fail = RedirectResponse("/login?error=google", status_code=303)
+    fail.delete_cookie(oauth.STATE_COOKIE)
+    if error or not code or not blob or not secrets.compare_digest(state or "", blob.get("state", "")):
+        return fail
+    try:
+        data = oauth.exchange(None, code, blob["verifier"], request)
+        email = oauth.verified_email(data)
+    except Exception:                               # jaringan, token cacat, konfigurasi salah
+        return fail
+    if not email:
+        return fail
+
+    u = users.by_email(email)
+    if u and not u["active"]:
+        resp = RedirectResponse("/login?error=disabled", status_code=303)
+        resp.delete_cookie(oauth.STATE_COOKIE)
+        return resp
+    if not u:
+        name = data.get("name") or data.get("given_name") or ""
+        if oauth.in_allowlist(email):               # email yang Anda izinkan -> buku pemilik
+            u = users.claim_owner(email, name)
+        elif users.signup_open():                   # pendaftar baru -> buku kosong sendiri
+            u = users.create(email, name)
+        else:
+            resp = RedirectResponse("/login?error=closed", status_code=303)
+            resp.delete_cookie(oauth.STATE_COOKIE)
+            return resp
+    if not u["email_verified"]:
+        # Google membuktikan email ini memang miliknya. Kalau akunnya dulu dibuat
+        # lewat pendaftaran email+password (yang tidak terbukti), password itu
+        # dibuang agar pendaftar lama tidak bisa ikut masuk.
+        users.mark_verified(u["id"], clear_password=bool(u["password_hash"]))
+        u = users.by_id(u["id"])
+    users.touch_login(u["id"])
+
+    resp = RedirectResponse(blob.get("next") or "/", status_code=303)
+    resp.delete_cookie(oauth.STATE_COOKIE)
+    resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], email, u["session_epoch"]), max_age=auth.MAX_AGE,
+                    httponly=True, samesite="lax", secure=request.url.scheme == "https")
     return resp
 
 
@@ -463,7 +678,7 @@ def account_delete(request: Request, aid: int):
 # ---------- setelan: kategori, rutin, akun ----------
 
 @app.get("/settings", response_class=HTMLResponse)
-def settings_page(request: Request, pw: str = ""):
+def settings_page(request: Request, pw: str = "", g: str = ""):
     if (r := require_login(request)):
         return r
     with get_db() as db:
@@ -475,8 +690,16 @@ def settings_page(request: Request, pw: str = ""):
             "SELECT category_id, COUNT(*) c FROM transactions WHERE deleted_at IS NULL GROUP BY category_id")}
         accs = accounts(db)
         first_month = get_setting(db, "first_month", "")
-    return render(request, "settings.html", recurring=rec, cats=cats, used=used, accounts=accs,
-                  first_month=first_month, page="settings", mk=this_month(), pw=pw)
+        gc = oauth.config()
+        google = dict(client_id=gc["client_id"], allowed=gc["allowed"], has_secret=bool(gc["client_secret"]),
+                      redirect_uri=oauth.redirect_uri(request))
+    u = me(request)
+    return render(request, "settings.html", has_password=bool(u and (u["password_hash"] or u["is_owner"])),
+                  google=google, recurring=rec, cats=cats, used=used, accounts=accs,
+                  first_month=first_month, page="settings", mk=this_month(), pw=pw, g=g,
+                  me=u, is_owner=bool(u and u["is_owner"]),
+                  users_list=users.all_users() if (u and u["is_owner"]) else [],
+                  signup_open=users.signup_open())
 
 
 @app.post("/settings/category")
@@ -557,16 +780,85 @@ def settings_opening(request: Request, first_month: str = Form("")):
     return RedirectResponse("/settings", status_code=303)
 
 
-@app.post("/settings/password")
-def settings_password(request: Request, current: str = Form(""), new: str = Form(...), confirm: str = Form(...)):
+@app.post("/settings/lang")
+def settings_lang(request: Request, lang: str = Form("id")):
+    """Simpan bahasa antarmuka. Laporan disimpan per bahasa, jadi tidak perlu dihapus."""
     if (r := require_login(request)):
         return r
-    if auth.is_configured() and not auth.check_password(current):
-        return RedirectResponse("/settings?pw=wrong#account", status_code=303)
-    if len(new) < 6 or new != confirm:
+    with get_db() as db:
+        set_setting(db, "lang", lang if lang in i18n.LANGS else "id")
+    return RedirectResponse(request.headers.get("referer", "/") or "/", status_code=303)
+
+
+@app.post("/settings/account/delete")
+def settings_account_delete(request: Request):
+    """Pengguna menghapus akunnya sendiri: baris pengguna + file bukunya ikut hilang.
+    Pemilik tidak bisa memakai ini agar data utama tidak terhapus karena salah klik."""
+    if (r := require_login(request)):
+        return r
+    u = me(request)
+    if not u or u["is_owner"]:
+        return RedirectResponse("/settings", status_code=303)
+    users.delete(u["id"])
+    resp = RedirectResponse("/login?bye=1", status_code=303)
+    resp.delete_cookie(auth.COOKIE)
+    return resp
+
+
+@app.post("/settings/signup")
+def settings_signup(request: Request, allow: str = Form("")):
+    """Buka/tutup pendaftaran pengguna baru lewat Google."""
+    if (r := require_owner(request)):
+        return r
+    set_app_setting("allow_signup", "1" if allow else "0")
+    return RedirectResponse("/settings#users", status_code=303)
+
+
+@app.post("/settings/users/{uid}/active")
+def settings_user_active(request: Request, uid: int, active: str = Form("")):
+    """Nonaktifkan/aktifkan pengguna. Bukunya tidak disentuh — datanya tetap utuh."""
+    if (r := require_owner(request)):
+        return r
+    users.set_active(uid, bool(active))
+    return RedirectResponse("/settings#users", status_code=303)
+
+
+@app.post("/settings/google")
+def settings_google(request: Request, client_id: str = Form(""), client_secret: str = Form(""),
+                    allowed: str = Form("")):
+    if (r := require_owner(request)):
+        return r
+    with get_db() as db:
+        oauth.save_config(db, client_id, client_secret, allowed)
+    return RedirectResponse("/settings?g=ok#account", status_code=303)
+
+
+@app.post("/settings/password")
+def settings_password(request: Request, current: str = Form(""), new: str = Form(...), confirm: str = Form(...)):
+    """Pemilik memakai password aplikasi; pengguna lain memakai password miliknya
+    sendiri. Keduanya: sesi di perangkat lain otomatis keluar setelah diganti."""
+    if (r := require_login(request)):
+        return r
+    u = me(request)
+    if len(new) < users.MIN_PASSWORD or new != confirm:
         return RedirectResponse("/settings?pw=mismatch#account", status_code=303)
-    auth.set_password(new)
-    return RedirectResponse("/settings?pw=ok#account", status_code=303)
+
+    if u["is_owner"]:
+        if auth.is_configured() and not auth.check_password(current):
+            return RedirectResponse("/settings?pw=wrong#account", status_code=303)
+        auth.set_password(new)                  # memutar secret aplikasi
+        users.set_password(u["id"], auth.make_hash(new))
+    else:
+        if u["password_hash"] and not auth.check_hash(current, u["password_hash"]):
+            return RedirectResponse("/settings?pw=wrong#account", status_code=303)
+        users.set_password(u["id"], auth.make_hash(new))
+
+    resp = RedirectResponse("/settings?pw=ok#account", status_code=303)
+    resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], auth.whoami(request) or "password",
+                                                 users.epoch(u["id"])),
+                    max_age=auth.MAX_AGE, httponly=True, samesite="lax",
+                    secure=request.url.scheme == "https")
+    return resp
 
 
 # ---------- aset ----------

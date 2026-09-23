@@ -3,12 +3,12 @@
 {% block content %}
 
 <section class="card">
-  <div class="sec"><h2>Perapihan</h2><small>transaksi impor yang kategorinya perlu dicek</small></div>
-  <a class="btn tall" href="/review" style="display:block"><b>Buka layar perapihan</b><span>aplikasi menyarankan kategori dari deskripsi; kamu yang memutuskan</span></a>
+  <div class="sec"><h2>{{ _('Perapihan') }}</h2><small>{{ _('transaksi impor yang kategorinya perlu dicek') }}</small></div>
+  <a class="btn tall" href="/review" style="display:block"><b>{{ _('Buka layar perapihan') }}</b><span>{{ _('aplikasi menyarankan kategori dari deskripsi; kamu yang memutuskan') }}</span></a>
 </section>
 
 <section class="card" id="categories" style="margin-top:10px">
-  <div class="sec"><h2>Kategori</h2><small>ketuk untuk mengubah nama, urutan, atau menandai cicilan</small></div>
+  <div class="sec"><h2>{{ _('Kategori') }}</h2><small>{{ _('ketuk untuk mengubah nama, urutan, atau menandai cicilan') }}</small></div>
   {% for kind, title in [('expense','Pengeluaran'),('income','Pemasukan')] %}
   <div class="k" style="margin:10px 0 6px">{{ title }}</div>
   <div class="panel-wrap" style="padding:0">
@@ -19,10 +19,10 @@
       <div class="main">
         <div class="name">{{ c.name }}</div>
         <div class="meta">
-          {% if c.is_debt %}<span class="pill">cicilan</span>{% endif %}
-          {% if c.is_system %}<span class="pill">bawaan</span>{% endif %}
-          {% if not c.active %}<span class="pill warn">disembunyikan</span>{% endif %}
-          <span>{{ used.get(c.id, 0) }} transaksi</span>
+          {% if c.is_debt %}<span class="pill">{{ _('cicilan') }}</span>{% endif %}
+          {% if c.is_system %}<span class="pill">{{ _('bawaan') }}</span>{% endif %}
+          {% if not c.active %}<span class="pill warn">{{ _('disembunyikan') }}</span>{% endif %}
+          <span>{{ used.get(c.id, 0) }} {{ _('transaksi') }}</span>
         </div>
       </div>
       <div class="amt num" style="font-size:13px;opacity:.5">#{{ c.sort }}</div>
@@ -30,122 +30,188 @@
     {% endfor %}
   </div>
   <div class="actions" style="margin-top:8px">
-    <button type="button" data-open="sheet-cat" data-fill='{{ {"kind":kind} | tojson }}'>+ Kategori {{ title | lower }}</button>
+    <button type="button" data-open="sheet-cat" data-fill='{{ {"kind":kind} | tojson }}'>{{ _('+ Kategori') }} {{ title | lower }}</button>
   </div>
   {% endfor %}
-  <p class="hint">Kategori bertanda <b>cicilan</b> dipakai menghitung rasio cicilan terhadap pemasukan di laporan bulanan.
-  Kategori <b>bawaan</b> tidak bisa dihapus karena dipakai sebagai penampung saat kategori lain dihapus.</p>
+  <p class="hint">{{ _('Kategori bertanda') }} <b>{{ _('cicilan') }}</b> {{ _('dipakai menghitung rasio cicilan terhadap pemasukan di laporan bulanan.\n  Kategori') }} <b>{{ _('bawaan') }}</b> {{ _('tidak bisa dihapus karena dipakai sebagai penampung saat kategori lain dihapus.') }}</p>
 </section>
 
 <section class="card" id="recurring" style="margin-top:10px">
-  <div class="sec"><h2>Template rutin</h2><small>dipakai “Isi bulan ini” · geser kiri untuk hapus</small></div>
+  <div class="sec"><h2>{{ _('Template rutin') }}</h2><small>{{ _('dipakai “Isi bulan ini” · geser kiri untuk hapus') }}</small></div>
   <div class="panel-wrap" style="padding:0">
   {% for r in recurring %}
-  <div class="sw" data-del="/settings/recurring/{{ r.id }}/delete" data-del-title="{{ r.description or r.category or '—' }}" data-del-sub="{{ r.type }} · {{ r.amount | rupiah }}" data-del-note="Template dihapus; entri yang sudah dibuat tidak ikut terhapus."><div class="sw-track">
+  <div class="sw" data-del="/settings/recurring/{{ r.id }}/delete" data-del-title="{{ r.description or r.category or '—' }}" data-del-sub="{{ r.type }} · {{ r.amount | rupiah }}" data-del-note="{{ _('Template dihapus; entri yang sudah dibuat tidak ikut terhapus.') }}"><div class="sw-track">
   <div class="row static tpl" style="--i:{{ loop.index0 }}">
     <span class="av {{ 'in' if r.type=='income' }}" style="--h:{{ (r.category or r.description or 'X') | hue }}">{{ '⇄' if r.type=='transfer' else (r.category or r.description or '·')[:2] }}</span>
     <div class="main">
       <div class="name">{{ r.description or r.category or '—' }}</div>
       <div class="meta">
         {% if r.type=='transfer' %}<span>{{ r.account }} → {{ r.to_account }}</span>
-        {% else %}{% if r.category %}<span>{{ r.category }}</span>{% endif %}<span>{{ 'pemasukan' if r.type=='income' else 'pengeluaran' }}</span>{% endif %}
-        {% if r.day_of_month %}<span>tgl {{ r.day_of_month }}</span>{% endif %}
+        {% else %}{% if r.category %}<span>{{ r.category }}</span>{% endif %}<span>{{ _('pemasukan') if r.type=='income' else _('pengeluaran') }}</span>{% endif %}
+        {% if r.day_of_month %}<span>{{ _('tgl') }} {{ r.day_of_month }}</span>{% endif %}
       </div>
     </div>
     <div class="amt num {{ 'in' if r.type=='income' }}">{{ r.amount | rupiah }}</div>
   </div>
   {% include "_swact.html" %}</div></div>
-  {% else %}<div class="empty"><b>Belum ada template.</b><span>Tambahkan KPR, tagihan kartu, gaji — hal yang berulang tiap bulan.</span></div>{% endfor %}
+  {% else %}<div class="empty"><b>{{ _('Belum ada template.') }}</b><span>{{ _('Tambahkan KPR, tagihan kartu, gaji — hal yang berulang tiap bulan.') }}</span></div>{% endfor %}
   </div>
-  <div class="actions" style="margin-top:8px"><button type="button" data-open="sheet-tpl">+ Tambah template</button></div>
+  <div class="actions" style="margin-top:8px"><button type="button" data-open="sheet-tpl">{{ _('+ Tambah template') }}</button></div>
 </section>
 
 <section class="card" style="margin-top:10px">
-  <div class="sec"><h2>Buku</h2><small>kantong & saldo awal diatur di <a href="/accounts">Kantong</a></small></div>
+  <div class="sec"><h2>{{ _('Buku') }}</h2><small>{{ _('kantong & saldo awal diatur di') }} <a href="/accounts">{{ _('Kantong') }}</a></small></div>
   <form method="post" action="/settings/opening" class="sform">
-    <label>Bulan pertama yang dicatat</label><input type="month" name="first_month" value="{{ first_month }}">
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+    <label>{{ _('Bulan pertama yang dicatat') }}</label><input type="month" name="first_month" value="{{ first_month }}">
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
 </section>
 
 <section class="card" style="margin-top:10px">
-  <div class="sec"><h2>Backup & ekspor</h2><small>data Anda, milik Anda</small></div>
+  <div class="sec"><h2>{{ _('Backup & ekspor') }}</h2><small>{{ _('data Anda, milik Anda') }}</small></div>
   <div class="grid2" style="margin-top:4px">
-    <a class="btn tall" href="/backup.db" download><b>Unduh backup</b><span>file .db lengkap, bisa dipulihkan</span></a>
-    <a class="btn tall" href="/export.xlsx" download><b>Ekspor Excel</b><span>ringkasan + satu sheet per bulan</span></a>
+    <a class="btn tall" href="/backup.db" download><b>{{ _('Unduh backup') }}</b><span>{{ _('file .db lengkap, bisa dipulihkan') }}</span></a>
+    <a class="btn tall" href="/export.xlsx" download><b>{{ _('Ekspor Excel') }}</b><span>{{ _('ringkasan + satu sheet per bulan') }}</span></a>
   </div>
 </section>
 
-<section class="card" id="account" style="margin-top:10px">
-  <div class="sec"><h2>Akun</h2><small>satu pengguna</small></div>
-  <div class="row static" style="grid-template-columns:36px minmax(0,1fr) auto;display:grid;gap:12px;align-items:center;padding:8px 0 4px">
-    <span class="av" style="--h:270">RF</span>
-    <div class="main"><div class="name">Rian Fathany</div><div class="meta"><span>password tersimpan terenkripsi di database</span></div></div>
-    <a class="btn" href="/logout">Keluar</a>
-  </div>
-  <details class="acc" {{ 'open' if pw }}>
-    <summary>Ganti password</summary>
-    {% if pw=='ok' %}<div class="note ok">Password diperbarui.</div>{% elif pw=='wrong' %}<div class="note bad">Password saat ini salah.</div>{% elif pw=='mismatch' %}<div class="note bad">Password baru minimal 6 karakter dan harus sama dengan konfirmasi.</div>{% endif %}
-    <form method="post" action="/settings/password" autocomplete="off">
-      <label>Password saat ini</label><input type="password" name="current" autocomplete="current-password" required>
-      <div class="f2">
-        <div><label>Password baru</label><input type="password" name="new" autocomplete="new-password" minlength="6" required></div>
-        <div><label>Ulangi</label><input type="password" name="confirm" autocomplete="new-password" minlength="6" required></div>
+{% if is_owner %}
+<section class="card" id="users" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Pengguna') }}</h2><small>{{ users_list | length }} {{ _('akun') }}</small></div>
+  <p class="hint" style="margin:0 0 8px">{{ _('Setiap orang yang mendaftar lewat Google mendapat bukunya sendiri — data keuangan Anda tidak ikut terlihat. Email di daftar izin (di bawah) adalah pengecualian: mereka masuk ke buku Anda.') }}</p>
+  <div class="panel-wrap" style="padding:0">
+    {% for u in users_list %}
+    <div class="row static" style="--i:{{ loop.index0 }}">
+      <span class="av {{ 'in' if u.is_owner }}" style="--h:{{ u.email | hue }}">{{ (u.name or u.email)[:2] }}</span>
+      <div class="main">
+        <div class="name">{{ u.name or u.email }}</div>
+        <div class="meta">
+          {% if u.is_owner %}<span class="pill">{{ _('pemilik') }}</span>{% endif %}
+          {% if not u.active %}<span class="pill warn">{{ _('nonaktif') }}</span>{% endif %}
+          <span>{{ u.email }}</span>
+          {% if u.last_login_at %}<span>{{ _('terakhir') }} {{ u.last_login_at | stamp }}</span>{% endif %}
+        </div>
       </div>
-      <div class="actions"><button class="primary" type="submit">Simpan password</button></div>
+      {% if not u.is_owner %}
+      <form method="post" action="/settings/users/{{ u.id }}/active">
+        {% if u.active %}<button class="danger" type="submit">{{ _('Nonaktifkan') }}</button>
+        {% else %}<input type="hidden" name="active" value="1"><button type="submit">{{ _('Aktifkan') }}</button>{% endif %}
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <form method="post" action="/settings/signup" style="margin-top:10px">
+    <label class="check"><input type="checkbox" name="allow" value="1" {{ 'checked' if signup_open }} onchange="this.form.submit()">
+      <span>{{ _('Izinkan pendaftaran baru lewat Google') }}<small>{{ _('Kalau dimatikan, hanya email yang sudah terdaftar yang bisa masuk.') }}</small></span></label>
+  </form>
+</section>
+{% endif %}
+
+<section class="card" id="account" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Akun') }}</h2><small>{{ _('pemilik') if is_owner else _('pengguna') }}</small></div>
+  <div class="row static">
+    <span class="av" style="--h:{{ (me.email if me else 'x') | hue }}">{{ ((me.name or me.email) if me else '?')[:2] }}</span>
+    <div class="main">
+      <div class="name">{{ (me.name or me.email) if me else '—' }}</div>
+      <div class="meta"><span>{{ me.email if me and me.email != 'owner' else _('masuk dengan password') }}</span>
+        <span class="pill">{{ _('buku sendiri') }}</span></div>
+    </div>
+    <a class="btn" href="/logout">{{ _('Keluar') }}</a>
+  </div>
+  {% if not is_owner %}
+  <details class="acc">
+    <summary>{{ _('Hapus akun') }}</summary>
+    <p class="hint">{{ _('Akun dan seluruh catatan keuangan Anda dihapus dari server saat itu juga, dan tidak bisa dikembalikan. Unduh cadangan dulu lewat Backup & ekspor kalau perlu.') }}</p>
+    <form method="post" action="/settings/account/delete" data-confirm="{{ _('Hapus akun dan semua data?') }}" data-confirm-note="{{ _('File database Anda dihapus permanen. Tidak bisa dibatalkan.') }}">
+      <div class="actions"><button class="danger" type="submit" style="width:100%">{{ _('Hapus akun saya') }}</button></div>
+    </form>
+  </details>
+  {% endif %}
+  <p class="legal-links" style="margin-top:12px"><a href="/privacy">{{ _('Kebijakan Privasi') }}</a> · <a href="/terms">{{ _('Persyaratan Layanan') }}</a></p>
+  {% if is_owner %}
+  <details class="acc" {{ 'open' if g }}>
+    <summary>{{ _('Masuk dengan Google') }}</summary>
+    {% if g=='ok' %}<div class="note ok">{{ _('Pengaturan Google disimpan.') }}</div>{% endif %}
+    <p class="hint" style="margin:6px 0 2px">{{ _('Daftarkan URI berikut di Google Cloud Console → Credentials → OAuth client (Web application) → Authorized redirect URIs.') }}</p>
+    <div class="gcfg"><code>{{ google.redirect_uri }}</code></div>
+    <form method="post" action="/settings/google" autocomplete="off">
+      <label>{{ _('Client ID') }}</label>
+      <input name="client_id" value="{{ google.client_id }}" placeholder="1234567890-abc.apps.googleusercontent.com">
+      <label>{{ _('Client Secret') }}</label>
+      <input type="password" name="client_secret" placeholder="{{ _('tersimpan — isi hanya bila ingin mengganti') if google.has_secret else _('GOCSPX-…') }}">
+      <label>{{ _('Email yang boleh masuk') }}</label>
+      <input name="allowed" value="{{ google.allowed | join(', ') }}" placeholder="nama@gmail.com, pasangan@gmail.com">
+      <p class="hint">{{ _('Email di daftar ini masuk ke buku Anda (mis. pasangan). Email lain yang mendaftar mendapat buku kosong sendiri.') }}</p>
+      <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
+    </form>
+  </details>
+
+  {% endif %}
+  <details class="acc" {{ 'open' if pw }}>
+    <summary>{{ _('Ganti password') if has_password else _('Atur password') }}</summary>
+    {% if pw=='ok' %}<div class="note ok">{{ _('Password diperbarui.') }}</div>{% elif pw=='wrong' %}<div class="note bad">{{ _('Password saat ini salah.') }}</div>{% elif pw=='mismatch' %}<div class="note bad">{{ _('Password baru minimal 8 karakter dan harus sama dengan konfirmasi.') }}</div>{% endif %}
+    <form method="post" action="/settings/password" autocomplete="off">
+      {% if has_password %}<label>{{ _('Password saat ini') }}</label><input type="password" name="current" autocomplete="current-password" required>
+      {% else %}<p class="hint">{{ _('Akun ini masuk lewat Google. Menambah password memberi Anda pintu cadangan.') }}</p>{% endif %}
+      <div class="f2">
+        <div><label>{{ _('Password baru') }}</label><input type="password" name="new" autocomplete="new-password" minlength="8" required></div>
+        <div><label>{{ _('Ulangi') }}</label><input type="password" name="confirm" autocomplete="new-password" minlength="6" required></div>
+      </div>
+      <div class="actions"><button class="primary" type="submit">{{ _('Simpan password') }}</button></div>
     </form>
   </details>
 </section>
 
 <dialog class="sheet" id="sheet-tpl"><div class="panel"><div class="grab"></div>
-  <h3>Template rutin baru</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Template rutin baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="/settings/recurring">
     <div class="seg" style="margin-top:8px">
-      <label><input type="radio" name="type" value="expense" checked><span>Keluar</span></label>
-      <label><input type="radio" name="type" value="income"><span>Masuk</span></label>
-      <label><input type="radio" name="type" value="transfer"><span>Transfer</span></label>
+      <label><input type="radio" name="type" value="expense" checked><span>{{ _('Keluar') }}</span></label>
+      <label><input type="radio" name="type" value="income"><span>{{ _('Masuk') }}</span></label>
+      <label><input type="radio" name="type" value="transfer"><span>{{ _('Transfer') }}</span></label>
     </div>
-    <label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
-    <label>Deskripsi</label><input name="description" placeholder="mis. KPR rumah" autocomplete="off">
+    <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
+    <label>{{ _('Deskripsi') }}</label><input name="description" placeholder="{{ _('mis. KPR rumah') }}" autocomplete="off">
     <div class="f2">
-      <div><label>Kategori</label><select name="category_id"><option value="">—</option>{% for c in cats if c.active %}<option value="{{ c.id }}">{{ c.name }} · {{ 'masuk' if c.kind=='income' else 'keluar' }}</option>{% endfor %}</select></div>
-      <div><label>Tanggal (1–28)</label><input type="number" name="day_of_month" min="1" max="28" inputmode="numeric" placeholder="25"></div>
+      <div><label>{{ _('Kategori') }}</label><select name="category_id"><option value="">—</option>{% for c in cats if c.active %}<option value="{{ c.id }}">{{ c.name }} · {{ _('masuk') if c.kind=='income' else _('keluar') }}</option>{% endfor %}</select></div>
+      <div><label>{{ _('Tanggal (1–28)') }}</label><input type="number" name="day_of_month" min="1" max="28" inputmode="numeric" placeholder="25"></div>
     </div>
     <div class="f2">
-      <div><label>Kantong</label><select name="account_id">{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
-      <div><label>Ke kantong (transfer)</label><select name="to_account_id"><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+      <div><label>{{ _('Kantong') }}</label><select name="account_id">{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+      <div><label>{{ _('Ke kantong (transfer)') }}</label><select name="to_account_id"><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
     </div>
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
 </div></dialog>
 
 <dialog class="sheet" id="sheet-cat"><div class="panel"><div class="grab"></div>
-  <h3>Kategori baru</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Kategori baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="/settings/category">
     <div class="seg" style="margin-top:8px">
-      <label><input type="radio" name="kind" value="expense" checked><span>Pengeluaran</span></label>
-      <label><input type="radio" name="kind" value="income"><span>Pemasukan</span></label>
+      <label><input type="radio" name="kind" value="expense" checked><span>{{ _('Pengeluaran') }}</span></label>
+      <label><input type="radio" name="kind" value="income"><span>{{ _('Pemasukan') }}</span></label>
     </div>
-    <label>Nama</label><input name="name" placeholder="mis. Langganan, Hewan peliharaan" required autocomplete="off">
-    <label class="check"><input type="checkbox" name="is_debt" value="1"><span>Hitung sebagai cicilan/utang<small>dipakai di rasio cicilan pada laporan bulanan</small></span></label>
-    <div class="actions"><button class="primary" type="submit">Tambah</button></div>
+    <label>{{ _('Nama') }}</label><input name="name" placeholder="{{ _('mis. Langganan, Hewan peliharaan') }}" required autocomplete="off">
+    <label class="check"><input type="checkbox" name="is_debt" value="1"><span>{{ _('Hitung sebagai cicilan/utang') }}<small>{{ _('dipakai di rasio cicilan pada laporan bulanan') }}</small></span></label>
+    <div class="actions"><button class="primary" type="submit">{{ _('Tambah') }}</button></div>
   </form>
 </div></dialog>
 
 <dialog class="sheet" id="sheet-cat-edit"><div class="panel"><div class="grab"></div>
-  <h3>Ubah kategori</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Ubah kategori') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="" id="cat-form">
-    <label>Nama</label><input name="name" required autocomplete="off">
+    <label>{{ _('Nama') }}</label><input name="name" required autocomplete="off">
     <div class="f2">
-      <div><label>Urutan</label><input name="sort" inputmode="numeric" value="100"></div>
-      <div><label>Status</label><select name="active"><option value="1">Tampil</option><option value="0">Sembunyikan</option></select></div>
+      <div><label>{{ _('Urutan') }}</label><input name="sort" inputmode="numeric" value="100"></div>
+      <div><label>{{ _('Status') }}</label><select name="active"><option value="1">{{ _('Tampil') }}</option><option value="0">{{ _('Sembunyikan') }}</option></select></div>
     </div>
-    <label class="check"><input type="checkbox" name="is_debt" value="1"><span>Hitung sebagai cicilan/utang</span></label>
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+    <label class="check"><input type="checkbox" name="is_debt" value="1"><span>{{ _('Hitung sebagai cicilan/utang') }}</span></label>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
-  <form method="post" action="" id="cat-del" data-del data-confirm="Hapus kategori ini?"
-        data-confirm-note="Transaksi yang memakainya dipindah ke kategori “Lainnya” dan ditandai untuk ditinjau."
-        style="margin-top:8px"><button class="danger" type="submit" style="width:100%">Hapus</button></form>
+  <form method="post" action="" id="cat-del" data-del data-confirm="{{ _('Hapus kategori ini?') }}"
+        data-confirm-note="{{ _('Transaksi yang memakainya dipindah ke kategori “Lainnya” dan ditandai untuk ditinjau.') }}"
+        style="margin-top:8px"><button class="danger" type="submit" style="width:100%">{{ _('Hapus') }}</button></form>
 </div></dialog>
 
 <script>

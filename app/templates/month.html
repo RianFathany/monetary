@@ -5,73 +5,73 @@
 {% block content %}
 
 <!-- Strip bulan -->
-<nav class="mstrip" id="mstrip" aria-label="Pilih bulan">
+<nav class="mstrip" id="mstrip" aria-label="{{ _('Pilih bulan') }}">
   {% for m in strip %}<a href="/m/{{ m }}" class="chip {{ 'on' if m==mk }}" {% if m==mk %}aria-current="page"{% endif %}>{{ m | month_label }}</a>{% endfor %}
 </nav>
 
 <!-- Hero: sisa kas -->
 <section class="card hero" style="view-transition-name:hero">
-  <div class="k">Sisa kas · {{ mk | month_label }}</div>
+  <div class="k">{{ _('Sisa kas ·') }} {{ mk | month_label }}</div>
   <div class="v big num {{ 'bad' if s.cash_balance < 0 }}" data-count="{{ s.cash_balance }}">{{ s.cash_balance | rupiah }}</div>
   {% set delta = s.cash_balance - s.cash_prev %}
-  <div class="s"><span class="delta {{ 'up' if delta >= 0 else 'down' }}">{{ '▲' if delta >= 0 else '▼' }} {{ (delta if delta >= 0 else -delta) | short }}</span> vs saldo awal {{ s.cash_prev | short }}</div>
+  <div class="s"><span class="delta {{ 'up' if delta >= 0 else 'down' }}">{{ '▲' if delta >= 0 else '▼' }} {{ (delta if delta >= 0 else -delta) | short }}</span> {{ _('vs saldo awal') }} {{ s.cash_prev | short }}</div>
 
-  <div class="trend" aria-label="Pemasukan dan pengeluaran 6 bulan terakhir">
+  <div class="trend" aria-label="{{ _('Pemasukan dan pengeluaran 6 bulan terakhir') }}">
     {% for t in trend %}
-    <a class="tm {{ 'on' if t.month == mk }}" href="/m/{{ t.month }}" style="--i:{{ loop.index0 }}" title="{{ t.month | month_label }}: masuk {{ t.income | short }}, keluar {{ t.expense | short }}">
+    <a class="tm {{ 'on' if t.month == mk }}" href="/m/{{ t.month }}" style="--i:{{ loop.index0 }}" title="{{ t.month | month_label }}{{ _(': masuk') }} {{ t.income | short }}{{ _(', keluar') }} {{ t.expense | short }}">
       <span class="bars"><i class="in" style="--h:{{ (t.income / trend_max * 100) | round(1) }}%"></i><i class="out" style="--h:{{ (t.expense / trend_max * 100) | round(1) }}%"></i></span>
       <span class="lbl">{{ (t.month | month_label)[:3] }}</span>
     </a>
     {% endfor %}
   </div>
   {% set flow_total = (s.income + s.expense) or 1 %}
-  <div class="flow" role="img" aria-label="Pemasukan {{ s.income | rupiah }}, pengeluaran {{ s.expense | rupiah }}">
+  <div class="flow" role="img" aria-label="{{ _('Pemasukan') }} {{ s.income | rupiah }}{{ _(', pengeluaran') }} {{ s.expense | rupiah }}">
     <i class="in" style="--w:{{ (s.income / flow_total * 100) | round(1) }}%"></i><i class="out" style="--w:{{ (s.expense / flow_total * 100) | round(1) }}%"></i>
   </div>
   <div class="legend">
-    <div><b class="dot in"></b>Pemasukan <span class="num" data-count="{{ s.income }}">{{ s.income | rupiah }}</span></div>
-    <div><b class="dot out"></b>Pengeluaran <span class="num" data-count="{{ s.expense }}">{{ s.expense | rupiah }}</span>{% if s.unpaid %}<small class="warn">{{ s.unpaid | short }} belum dibayar</small>{% endif %}</div>
+    <div><b class="dot in"></b>{{ _('Pemasukan') }} <span class="num" data-count="{{ s.income }}">{{ s.income | rupiah }}</span></div>
+    <div><b class="dot out"></b>{{ _('Pengeluaran') }} <span class="num" data-count="{{ s.expense }}">{{ s.expense | rupiah }}</span>{% if s.unpaid %}<small class="warn">{{ s.unpaid | short }} {{ _('belum dibayar') }}</small>{% endif %}</div>
   </div>
   {% if s.income %}
-  <div class="s" style="margin-top:10px">Sisa bulan ini <b class="num {{ 'bad' if s.net < 0 }}">{{ s.net | rupiah }}</b> · ditabung {{ s.saved | short }} ({{ (s.saved / s.income * 100) | round(0) | int }}% dari pemasukan)</div>
+  <div class="s" style="margin-top:10px">{{ _('Sisa bulan ini') }} <b class="num {{ 'bad' if s.net < 0 }}">{{ s.net | rupiah }}</b> {{ _('· ditabung') }} {{ s.saved | short }} ({{ (s.saved / s.income * 100) | round(0) | int }}{{ _('% dari pemasukan)') }}</div>
   {% endif %}
 </section>
 
 <!-- Dana darurat & aset -->
 <div class="grid2">
   <section class="card stat" id="fund">
-    <div class="k">Dana darurat</div>
+    <div class="k">{{ _('Dana darurat') }}</div>
     <div class="v num {{ 'bad' if s.fund_balance < 0 }}" data-count="{{ s.fund_balance }}">{{ s.fund_balance | rupiah }}</div>
-    <div class="s">{% if s.fund_in %}<span class="pill ok">+{{ s.fund_in | short }}</span>{% endif %}{% if s.fund_out %}<span class="pill">−{{ s.fund_out | short }}</span>{% endif %}{% if not s.fund_in and not s.fund_out %}tidak ada mutasi{% else %}dari {{ s.fund_prev | short }}{% endif %}</div>
+    <div class="s">{% if s.fund_in %}<span class="pill ok">+{{ s.fund_in | short }}</span>{% endif %}{% if s.fund_out %}<span class="pill">−{{ s.fund_out | short }}</span>{% endif %}{% if not s.fund_in and not s.fund_out %}{{ _('tidak ada mutasi') }}{% else %}{{ _('dari') }} {{ s.fund_prev | short }}{% endif %}</div>
   </section>
   <section class="card stat">
-    <div class="k">Total aset</div>
+    <div class="k">{{ _('Total aset') }}</div>
     <div class="v num" data-count="{{ s.total_assets }}">{{ s.total_assets | rupiah }}</div>
-    <div class="s">investasi {{ s.invest | short }}{% if s.snap_month %} · <a href="/assets?mk={{ s.snap_month }}">{{ s.snap_month | month_label }}</a>{% else %} · <a href="/assets">isi snapshot</a>{% endif %}</div>
+    <div class="s">{{ _('investasi') }} {{ s.invest | short }}{% if s.snap_month %} · <a href="/assets?mk={{ s.snap_month }}">{{ s.snap_month | month_label }}</a>{% else %} · <a href="/assets">{{ _('isi snapshot') }}</a>{% endif %}</div>
   </section>
 </div>
 
 {% if review %}
 <a class="card cta" href="/review?m={{ mk }}" style="text-decoration:none;color:inherit">
-  <div><b>{{ review }} transaksi bulan ini perlu dicek kategorinya.</b>
-    <div class="s">Sisa impor dari spreadsheet. Aplikasi sudah menyiapkan tebakan — kamu tinggal memeriksa.</div></div>
-  <span class="btn">Rapikan</span>
+  <div><b>{{ review }} {{ _('transaksi bulan ini perlu dicek kategorinya.') }}</b>
+    <div class="s">{{ _('Sisa impor dari spreadsheet. Aplikasi sudah menyiapkan tebakan — kamu tinggal memeriksa.') }}</div></div>
+  <span class="btn">{{ _('Rapikan') }}</span>
 </a>
 {% endif %}
 
 {% if is_empty and has_recurring %}
 <form method="post" action="/m/{{ mk }}/apply-recurring" class="card cta">
-  <div><b>Bulan ini masih kosong.</b><div class="s">Isi dari template rutin (KPR, tagihan, gaji) lalu sesuaikan.</div></div>
-  <button type="submit" class="primary">Isi bulan ini</button>
+  <div><b>{{ _('Bulan ini masih kosong.') }}</b><div class="s">{{ _('Isi dari template rutin (KPR, tagihan, gaji) lalu sesuaikan.') }}</div></div>
+  <button type="submit" class="primary">{{ _('Isi bulan ini') }}</button>
 </form>
 {% endif %}
 
 <!-- Tab transaksi -->
 <section class="card tabs-card">
   <div class="tabs" role="tablist" id="tabs" style="--n:3">
-    <button role="tab" data-tab="expense" class="on"><span class="full">Pengeluaran</span><span class="short">Keluar</span><em>{{ expenses | length }}</em></button>
-    <button role="tab" data-tab="income"><span class="full">Pemasukan</span><span class="short">Masuk</span><em>{{ incomes | length }}</em></button>
-    <button role="tab" data-tab="transfer"><span class="full">Transfer</span><span class="short">Pindah</span><em>{{ transfers | length }}</em></button>
+    <button role="tab" data-tab="expense" class="on"><span class="full">{{ _('Pengeluaran') }}</span><span class="short">{{ _('Keluar') }}</span><em>{{ expenses | length }}</em></button>
+    <button role="tab" data-tab="income"><span class="full">{{ _('Pemasukan') }}</span><span class="short">{{ _('Masuk') }}</span><em>{{ incomes | length }}</em></button>
+    <button role="tab" data-tab="transfer"><span class="full">{{ _('Transfer') }}</span><span class="short">{{ _('Pindah') }}</span><em>{{ transfers | length }}</em></button>
     <i class="ind"></i>
   </div>
 
@@ -83,15 +83,15 @@
       <span class="av" style="--h:{{ (t.category or 'X') | hue }}">{{ (t.category or '·')[:2] }}</span>
       <div class="main">
         <div class="name">{{ t.description or t.category or '—' }}</div>
-        <div class="meta">{% if t.category and t.description %}<span>{{ t.category }}</span>{% endif %}{% if t.tx_date %}<span>{{ t.tx_date | fmt_date }}</span>{% endif %}<span>{{ t.account }}</span>{% if t.status=='planned' %}<span class="pill warn">belum</span>{% endif %}{% if t.needs_review %}<span class="pill">cek</span>{% endif %}</div>
+        <div class="meta">{% if t.category and t.description %}<span>{{ t.category }}</span>{% endif %}{% if t.tx_date %}<span>{{ t.tx_date | fmt_date }}</span>{% endif %}<span>{{ t.account }}</span>{% if t.status=='planned' %}<span class="pill warn">{{ _('belum') }}</span>{% endif %}{% if t.needs_review %}<span class="pill">{{ _('cek') }}</span>{% endif %}</div>
       </div>
       <div class="amt num">{{ t.amount | rupiah }}</div>
       <form method="post" action="/tx/{{ t.id }}/toggle" class="tgl"><input type="hidden" name="month_key" value="{{ mk }}">
         <button class="ck {{ 'done' if t.status=='paid' }}" type="submit" aria-label="{{ 'Tandai belum bayar' if t.status=='paid' else 'Tandai sudah bayar' }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></form>
     </div>
     {% include "_swact.html" %}</div></div>
-    {% else %}<div class="empty"><b>Belum ada pengeluaran.</b><span>Ketuk “− Pengeluaran” di bawah untuk mencatat.</span></div>{% endfor %}
-    {% if expenses %}<div class="foot"><span>Total</span><b class="num">{{ s.expense | rupiah }}</b></div>{% endif %}
+    {% else %}<div class="empty"><b>{{ _('Belum ada pengeluaran.') }}</b><span>{{ _('Ketuk “− Pengeluaran” di bawah untuk mencatat.') }}</span></div>{% endfor %}
+    {% if expenses %}<div class="foot"><span>{{ _('Total') }}</span><b class="num">{{ s.expense | rupiah }}</b></div>{% endif %}
   </div>
 
   <div class="tpanel" data-panel="income" id="income">
@@ -106,8 +106,8 @@
       <div class="amt num in">+{{ t.amount | rupiah | replace('Rp ','') }}</div>
     </div>
     {% include "_swact.html" %}</div></div>
-    {% else %}<div class="empty"><b>Belum ada pemasukan.</b><span>Ketuk “+ Pemasukan” di bawah.</span></div>{% endfor %}
-    {% if incomes %}<div class="foot"><span>Total</span><b class="num">{{ s.income | rupiah }}</b></div>{% endif %}
+    {% else %}<div class="empty"><b>{{ _('Belum ada pemasukan.') }}</b><span>{{ _('Ketuk “+ Pemasukan” di bawah.') }}</span></div>{% endfor %}
+    {% if incomes %}<div class="foot"><span>{{ _('Total') }}</span><b class="num">{{ s.income | rupiah }}</b></div>{% endif %}
   </div>
 
   <div class="tpanel" data-panel="transfer" id="transfer">
@@ -117,93 +117,93 @@
       <span class="av" style="--h:{{ (t.to_account or 'X') | hue }}">⇄</span>
       <div class="main">
         <div class="name">{{ t.account }} → {{ t.to_account }}</div>
-        <div class="meta">{% if t.description %}<span>{{ t.description }}</span>{% endif %}{% if t.tx_date %}<span>{{ t.tx_date | fmt_date }}</span>{% endif %}{% if t.needs_review %}<span class="pill">cek</span>{% endif %}</div>
+        <div class="meta">{% if t.description %}<span>{{ t.description }}</span>{% endif %}{% if t.tx_date %}<span>{{ t.tx_date | fmt_date }}</span>{% endif %}{% if t.needs_review %}<span class="pill">{{ _('cek') }}</span>{% endif %}</div>
       </div>
       <div class="amt num">{{ t.amount | rupiah }}</div>
     </div>
     {% include "_swact.html" %}</div></div>
-    {% else %}<div class="empty"><b>Tidak ada perpindahan bulan ini.</b><span>Menabung, setor dana darurat, atau isi kantong lain lewat “⇄ Transfer”.</span></div>{% endfor %}
-    {% if transfers %}<div class="foot"><span>Ke tabungan & investasi</span><b class="num">{{ s.saved | rupiah }}</b></div>{% endif %}
+    {% else %}<div class="empty"><b>{{ _('Tidak ada perpindahan bulan ini.') }}</b><span>{{ _('Menabung, setor dana darurat, atau isi kantong lain lewat “⇄ Transfer”.') }}</span></div>{% endfor %}
+    {% if transfers %}<div class="foot"><span>{{ _('Ke tabungan & investasi') }}</span><b class="num">{{ s.saved | rupiah }}</b></div>{% endif %}
   </div>
   </div>
 </section>
 
 <!-- Sheet: pengeluaran -->
 <dialog class="sheet" id="sheet-expense"><div class="panel"><div class="grab"></div>
-  <h3>Pengeluaran baru</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Pengeluaran baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="/m/{{ mk }}/tx"><input type="hidden" name="type" value="expense">
-    <label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
-    <label>Kategori</label>
+    <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
+    <label>{{ _('Kategori') }}</label>
     <select name="category_id">{% for c in cats_exp %}<option value="{{ c.id }}" {{ 'selected' if c.name=='Lainnya' }}>{{ c.name }}</option>{% endfor %}</select>
-    <label>Deskripsi</label><input name="description" placeholder="mis. bensin, arisan, makan siang" autocomplete="off">
+    <label>{{ _('Deskripsi') }}</label><input name="description" placeholder="{{ _('mis. bensin, arisan, makan siang') }}" autocomplete="off">
     <div class="f2">
-      <div><label>Dari kantong</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
-      <div><label>Tanggal</label><input type="date" name="tx_date" value="{{ today if today[:7]==mk else '' }}"></div>
+      <div><label>{{ _('Dari kantong') }}</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
+      <div><label>{{ _('Tanggal') }}</label><input type="date" name="tx_date" value="{{ today if today[:7]==mk else '' }}"></div>
     </div>
-    <label>Status</label><select name="status"><option value="paid">Sudah dibayar</option><option value="planned">Belum dibayar</option></select>
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+    <label>{{ _('Status') }}</label><select name="status"><option value="paid">{{ _('Sudah dibayar') }}</option><option value="planned">{{ _('Belum dibayar') }}</option></select>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
 </div></dialog>
 
 <!-- Sheet: pemasukan -->
 <dialog class="sheet" id="sheet-income"><div class="panel"><div class="grab"></div>
-  <h3>Pemasukan baru</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Pemasukan baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="/m/{{ mk }}/tx"><input type="hidden" name="type" value="income">
-    <label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
-    <label>Sumber / deskripsi</label><input name="description" placeholder="mis. Gaji Rian, Nuke, bonus" autocomplete="off">
+    <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
+    <label>{{ _('Sumber / deskripsi') }}</label><input name="description" placeholder="{{ _('mis. Gaji John, bonus, proyek') }}" autocomplete="off">
     <div class="f2">
-      <div><label>Kategori</label><select name="category_id">{% for c in cats_inc %}<option value="{{ c.id }}" {{ 'selected' if c.name=='Gaji' }}>{{ c.name }}</option>{% endfor %}</select></div>
-      <div><label>Masuk ke</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
+      <div><label>{{ _('Kategori') }}</label><select name="category_id">{% for c in cats_inc %}<option value="{{ c.id }}" {{ 'selected' if c.name=='Gaji' }}>{{ c.name }}</option>{% endfor %}</select></div>
+      <div><label>{{ _('Masuk ke') }}</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
     </div>
-    <label>Tanggal</label><input type="date" name="tx_date" value="{{ today if today[:7]==mk else '' }}">
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+    <label>{{ _('Tanggal') }}</label><input type="date" name="tx_date" value="{{ today if today[:7]==mk else '' }}">
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
 </div></dialog>
 
 <!-- Sheet: transfer -->
 <dialog class="sheet" id="sheet-transfer"><div class="panel"><div class="grab"></div>
-  <h3>Pindah antar kantong</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Pindah antar kantong') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="/m/{{ mk }}/tx"><input type="hidden" name="type" value="transfer">
-    <label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
+    <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
     <div class="f2">
-      <div><label>Dari</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
-      <div><label>Ke</label><select name="to_account_id">{% for a in accounts %}<option value="{{ a.id }}" {{ 'selected' if a.type=='savings' }}>{{ a.name }}</option>{% endfor %}</select></div>
+      <div><label>{{ _('Dari') }}</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>
+      <div><label>{{ _('Ke') }}</label><select name="to_account_id">{% for a in accounts %}<option value="{{ a.id }}" {{ 'selected' if a.type=='savings' }}>{{ a.name }}</option>{% endfor %}</select></div>
     </div>
-    <label>Keterangan</label><input name="description" placeholder="mis. setor tabungan, top up" autocomplete="off">
-    <label>Tanggal</label><input type="date" name="tx_date" value="{{ today if today[:7]==mk else '' }}">
-    <p class="hint">Uang pindah tempat, bukan belanja — tidak masuk hitungan pengeluaran bulan ini.</p>
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+    <label>{{ _('Keterangan') }}</label><input name="description" placeholder="{{ _('mis. setor tabungan, top up') }}" autocomplete="off">
+    <label>{{ _('Tanggal') }}</label><input type="date" name="tx_date" value="{{ today if today[:7]==mk else '' }}">
+    <p class="hint">{{ _('Uang pindah tempat, bukan belanja — tidak masuk hitungan pengeluaran bulan ini.') }}</p>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
 </div></dialog>
 
 <!-- Sheet: edit -->
 <dialog class="sheet" id="sheet-edit"><div class="panel"><div class="grab"></div>
-  <h3>Edit</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Edit') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="">
     <input type="hidden" name="month_key" value="{{ mk }}">
-    <label>Jumlah</label><input class="money num" name="amount" inputmode="numeric" required autocomplete="off">
+    <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" required autocomplete="off">
     <div id="edit-category-wrap">
-      <label>Kategori</label>
+      <label>{{ _('Kategori') }}</label>
       <select name="category_id" id="edit-category"><option value="">—</option></select>
     </div>
     <script>window.CATS = { expense: {{ cats_exp | map(attribute='id') | list | tojson }}, expenseNames: {{ cats_exp | map(attribute='name') | list | tojson }}, income: {{ cats_inc | map(attribute='id') | list | tojson }}, incomeNames: {{ cats_inc | map(attribute='name') | list | tojson }} };</script>
-    <label>Deskripsi</label><input name="description" autocomplete="off">
+    <label>{{ _('Deskripsi') }}</label><input name="description" autocomplete="off">
     <div class="f2">
-      <div id="edit-account-wrap"><label>Kantong</label><select name="account_id">{{ accopt(accounts, None) }}</select></div>
-      <div id="edit-to-wrap" hidden><label>Ke kantong</label><select name="to_account_id">{{ accopt(accounts, None) }}</select></div>
-      <div><label>Tanggal</label><input type="date" name="tx_date"></div>
+      <div id="edit-account-wrap"><label>{{ _('Kantong') }}</label><select name="account_id">{{ accopt(accounts, None) }}</select></div>
+      <div id="edit-to-wrap" hidden><label>{{ _('Ke kantong') }}</label><select name="to_account_id">{{ accopt(accounts, None) }}</select></div>
+      <div><label>{{ _('Tanggal') }}</label><input type="date" name="tx_date"></div>
     </div>
-    <div id="edit-status-wrap"><label>Status</label><select name="status"><option value="paid">Sudah dibayar</option><option value="planned">Belum dibayar</option></select></div>
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+    <div id="edit-status-wrap"><label>{{ _('Status') }}</label><select name="status"><option value="paid">{{ _('Sudah dibayar') }}</option><option value="planned">{{ _('Belum dibayar') }}</option></select></div>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
-  <form method="post" action="" data-del data-confirm="Hapus entri ini?" data-confirm-note="Entri dihapus dari bulan ini." style="margin-top:8px"><input type="hidden" name="month_key" value="{{ mk }}"><button class="danger" type="submit" style="width:100%">Hapus</button></form>
+  <form method="post" action="" data-del data-confirm="{{ _('Hapus entri ini?') }}" data-confirm-note="{{ _('Entri dihapus dari bulan ini.') }}" style="margin-top:8px"><input type="hidden" name="month_key" value="{{ mk }}"><button class="danger" type="submit" style="width:100%">{{ _('Hapus') }}</button></form>
 </div></dialog>
 {% endblock %}
 
 {% block fab %}
 <div class="fab"><div class="in">
-  <button type="button" data-open="sheet-expense"><b>−</b> <span class="full">Pengeluaran</span><span class="short">Keluar</span></button>
-  <button type="button" class="primary" data-open="sheet-income"><b>+</b> <span class="full">Pemasukan</span><span class="short">Masuk</span></button>
-  <button type="button" data-open="sheet-transfer"><b>⇄</b> <span class="full">Transfer</span><span class="short">Pindah</span></button>
+  <button type="button" data-open="sheet-expense"><b>−</b> <span class="full">{{ _('Pengeluaran') }}</span><span class="short">{{ _('Keluar') }}</span></button>
+  <button type="button" class="primary" data-open="sheet-income"><b>+</b> <span class="full">{{ _('Pemasukan') }}</span><span class="short">{{ _('Masuk') }}</span></button>
+  <button type="button" data-open="sheet-transfer"><b>⇄</b> <span class="full">{{ _('Transfer') }}</span><span class="short">{{ _('Pindah') }}</span></button>
 </div></div>
 {% endblock %}

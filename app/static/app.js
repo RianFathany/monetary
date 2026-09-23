@@ -1,3 +1,18 @@
+// Teks antarmuka (diisi dari server lewat window.I18N; fallback: bahasa Indonesia).
+const T = Object.assign({
+  req: 'wajib diisi', amount: 'Jumlah wajib diisi', amountZero: 'Jumlah harus lebih dari 0',
+  password: 'Password wajib diisi', name: 'Nama wajib diisi', symbol: 'Simbol wajib diisi',
+  category: 'Kategori wajib diisi', field: 'Kolom ini', fieldReq: 'wajib diisi',
+  oneMissing: 'Ada kolom wajib (*) yang belum diisi', manyMissing: '{n} kolom wajib (*) belum diisi',
+  confirmTitle: 'Hapus entri ini?', del: 'Hapus', noResults: 'Tidak ada hasil', clear: 'Kosongkan',
+  today: 'Hari ini', thisMonth: 'Bulan ini', prev: 'Sebelumnya', next: 'Berikutnya',
+  pickDate: 'Pilih tanggal', pickMonth: 'Pilih bulan',
+  months: ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'],
+  monthsLong: ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'],
+  days: ['Sen','Sel','Rab','Kam','Jum','Sab','Min'],
+  wrongPw: 'Password salah.', locked: 'Terlalu banyak percobaan. Coba lagi dalam {n} menit.'
+}, window.I18N || {});
+
 // Format ribuan saat mengetik (11000000 -> 11.000.000). Server menerima keduanya.
 function fmtMoney(el){
   const d = el.value.replace(/[^\d]/g,'');
@@ -84,12 +99,12 @@ document.addEventListener('click', e => {
 // confirmDialog({title, what, sub, note}) -> Promise<boolean>
 window.confirmDialog = function(opt){
   const dlg = document.getElementById('confirm');
-  if (!dlg || !dlg.showModal) return Promise.resolve(confirm(opt.title || 'Hapus?'));
-  dlg.querySelector('#confirm-title').textContent = opt.title || 'Hapus entri ini?';
+  if (!dlg || !dlg.showModal) return Promise.resolve(confirm(opt.title || T.confirmTitle));
+  dlg.querySelector('#confirm-title').textContent = opt.title || T.confirmTitle;
   const what = dlg.querySelector('#confirm-what');
   what.hidden = !opt.what; what.querySelector('b').textContent = opt.what || ''; what.querySelector('span').textContent = opt.sub || '';
   const note = dlg.querySelector('#confirm-note'); note.hidden = !opt.note; note.textContent = opt.note || '';
-  dlg.querySelector('[data-confirm-yes]').textContent = opt.yes || 'Hapus';
+  dlg.querySelector('[data-confirm-yes]').textContent = opt.yes || T.del;
   return new Promise(res => {
     const yes = dlg.querySelector('[data-confirm-yes]'), no = dlg.querySelector('[data-confirm-no]');
     function finish(v){
@@ -125,7 +140,7 @@ document.addEventListener('submit', e => {
   function closeOpen(){ if (openEl) { openEl.classList.add('snap'); setX(openEl, 0); openEl.classList.remove('open', 'arm'); openEl = null; } }
   function ask(el){
     closeOpen(); el.classList.add('snap'); setX(el, W); el.classList.add('open'); openEl = el;
-    confirmDialog({ title: 'Hapus entri ini?', what: el.dataset.delTitle, sub: el.dataset.delSub, note: el.dataset.delNote }).then(ok => {
+    confirmDialog({ title: T.confirmTitle, what: el.dataset.delTitle, sub: el.dataset.delSub, note: el.dataset.delNote }).then(ok => {
       if (!ok) { closeOpen(); return; }
       const f = document.getElementById('swform'); if (!f) return;
       f.action = el.dataset.del;
@@ -200,7 +215,7 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
     new TomSelect(el, {
       create: false, allowEmptyOption: true, maxOptions: 200,
       plugins: isMobile ? ['dropdown_input'] : [],     // di ponsel, kotak cari di dalam dropdown agar keyboard tidak menutup pilihan
-      render: { no_results: () => '<div class="no-results">Tidak ada hasil</div>' },
+      render: { no_results: () => `<div class="no-results">${T.noResults}</div>` },
       onInitialize(){ this.wrapper.classList.add('num'); }
     });
   });
@@ -269,13 +284,13 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
 
 // ===== Picker tanggal & bulan bertema (mengganti input date/month bawaan) =====
 (function(){
-  const M = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-  const ML = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-  const D = ['Sen','Sel','Rab','Kam','Jum','Sab','Min'];
+  const M = T.months;
+  const ML = T.monthsLong;
+  const D = T.days;
   const pad = n => String(n).padStart(2, '0');
   const today = new Date(); const todayKey = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
   function label(kind, v){
-    if (!v) return kind === 'month' ? 'Pilih bulan' : 'Pilih tanggal';
+    if (!v) return kind === 'month' ? T.pickMonth : T.pickDate;
     const [y, m, d] = v.split('-').map(Number);
     return kind === 'month' ? `${M[m-1]} ${y}` : `${d} ${M[m-1]} ${y}`;
   }
@@ -292,7 +307,7 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
     function set(v){ input.value = v; btn.querySelector('span').textContent = label(kind, v); btn.classList.toggle('empty', !v); input.dispatchEvent(new Event('change', { bubbles: true })); close(); }
     function render(){
       const cur = input.value;
-      let h = `<div class="dp-h"><button type="button" class="dp-nav" data-go="-1" aria-label="Sebelumnya">‹</button><b>${kind === 'month' ? vy : ML[vm-1] + ' ' + vy}</b><button type="button" class="dp-nav" data-go="1" aria-label="Berikutnya">›</button></div>`;
+      let h = `<div class="dp-h"><button type="button" class="dp-nav" data-go="-1" aria-label="${T.prev}">‹</button><b>${kind === 'month' ? vy : ML[vm-1] + ' ' + vy}</b><button type="button" class="dp-nav" data-go="1" aria-label="${T.next}">›</button></div>`;
       if (kind === 'month') {
         h += '<div class="dp-grid m">' + M.map((n, i) => { const v = `${vy}-${pad(i+1)}`; return `<button type="button" data-v="${v}" class="${v === cur ? 'on' : ''} ${v === todayKey.slice(0,7) ? 'today' : ''}">${n}</button>`; }).join('') + '</div>';
       } else {
@@ -302,7 +317,7 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
         for (let d = 1; d <= days; d++) { const v = `${vy}-${pad(vm)}-${pad(d)}`; h += `<button type="button" data-v="${v}" class="${v === cur ? 'on' : ''} ${v === todayKey ? 'today' : ''}">${d}</button>`; }
         h += '</div>';
       }
-      h += `<div class="dp-f"><button type="button" class="dp-x" data-clear>Kosongkan</button><button type="button" class="dp-x" data-today>${kind === 'month' ? 'Bulan ini' : 'Hari ini'}</button></div>`;
+      h += `<div class="dp-f"><button type="button" class="dp-x" data-clear>${T.clear}</button><button type="button" class="dp-x" data-today>${kind === 'month' ? T.thisMonth : T.today}</button></div>`;
       pop.innerHTML = h;
     }
     pop.addEventListener('click', e => {
@@ -353,20 +368,20 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
 
 // ===== Kolom wajib: tanda * pada label, catatan di footer, dan pesan jelas saat kosong =====
 (function(){
-  const MSG = { amount: 'Jumlah wajib diisi', password: 'Password wajib diisi', name: 'Nama wajib diisi', symbol: 'Simbol wajib diisi', category: 'Kategori wajib diisi' };
+  const MSG = { amount: T.amount, password: T.password, name: T.name, symbol: T.symbol, category: T.category };
   const label = f => { let el = f.previousElementSibling; while (el && el.tagName !== 'LABEL') el = el.previousElementSibling; if (!el) { const w = f.parentElement; el = w && w.querySelector(':scope > label'); } return el; };
   document.querySelectorAll('form').forEach(form => {
     const req = [...form.querySelectorAll('[required]')]; if (!req.length) return;
     form.noValidate = true;                                   // pakai pesan kita, bukan balon bawaan browser
     req.forEach(f => { const l = label(f); if (l) l.classList.add('req'); });
     const act = form.querySelector('.actions');
-    if (act && !act.querySelector('.reqnote') && !form.closest('.doorcard')) act.insertAdjacentHTML('afterbegin', '<small class="reqnote"><b>*</b> wajib diisi</small>');
+    if (act && !act.querySelector('.reqnote') && !form.closest('.doorcard')) act.insertAdjacentHTML('afterbegin', `<small class="reqnote"><b>*</b> ${T.req}</small>`);
   });
   function fieldEl(f){ return f.tomselect ? f.tomselect.wrapper : (f.dataset.picker ? f.nextElementSibling : f); }
   function msgFor(f){
-    if (f.classList.contains('money')) return (f.value.replace(/\D/g, '') === '' ? MSG.amount : 'Jumlah harus lebih dari 0');
+    if (f.classList.contains('money')) return (f.value.replace(/\D/g, '') === '' ? MSG.amount : T.amountZero);
     if (MSG[f.name]) return MSG[f.name];
-    const l = label(f); return (l ? l.textContent.replace('*', '').trim() : 'Kolom ini') + ' wajib diisi';
+    const l = label(f); return (l ? l.textContent.replace('*', '').trim() : T.field) + ' ' + T.fieldReq;
   }
   function invalid(f){
     if (f.disabled) return false;
@@ -388,7 +403,7 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     if (navigator.vibrate) navigator.vibrate([12, 40, 12]);
     (first.tomselect ? first.tomselect.control_input : (first.dataset.picker ? el : first)).focus({ preventScroll: true });
-    const text = bad.length === 1 ? 'Ada kolom wajib (*) yang belum diisi' : `${bad.length} kolom wajib (*) belum diisi`;
+    const text = bad.length === 1 ? T.oneMissing : T.manyMissing.replace('{n}', bad.length);
     if (form.closest('dialog[open]')) {                       // di dalam sheet: toast tertutup backdrop, pakai banner di atas form
       let b = form.querySelector('.fbanner'); if (!b) { b = document.createElement('div'); b.className = 'fbanner'; form.prepend(b); }
       b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg><span>${text}</span>`;
@@ -410,4 +425,61 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   const on = document.querySelector('.nav a.on'); if (!on) return;
   const nav = on.parentElement;
   if (nav.scrollWidth > nav.clientWidth + 4) nav.scrollTo({ left: on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2 });
+})();
+
+// ===== Layar kunci saat sesi berakhir =====
+// Sesi habis tidak melempar keluar: halaman tetap terbuka, cukup isi password.
+// Kalau halaman di-refresh barulah server mengarahkan ke /login seperti biasa.
+(function(){
+  const dlg = document.getElementById('lock'); if (!dlg) return;
+  const form = document.getElementById('lock-form'), err = document.getElementById('lock-err');
+  let left = Number(window.SESSION_LEFT || 0), timer = null, pending = null, checking = false;
+
+  function open(){
+    if (dlg.open) return;
+    dlg.showModal();
+    setTimeout(() => document.getElementById('lock-pw').focus(), 60);
+  }
+  function arm(){
+    clearTimeout(timer);
+    if (left > 0) timer = setTimeout(() => check(true), Math.min(left, 3600) * 1000);
+  }
+  async function check(force){
+    if (checking) return true;
+    checking = true;
+    try {
+      const r = await fetch('/auth/ping', { cache: 'no-store' });
+      if (r.ok) { const d = await r.json(); left = d.left; arm(); return true; }
+      open(); return false;
+    } catch (e) { return !force; }        // jaringan mati: jangan ganggu
+    finally { checking = false; }
+  }
+  arm();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(false); });
+
+  // Sebelum menyimpan apa pun, pastikan sesi masih hidup — kalau tidak, tahan
+  // kiriman itu dan jalankan lagi setelah password benar.
+  document.addEventListener('submit', async e => {
+    const f = e.target;
+    if (f === form || f.dataset.checked || !f.method || f.method.toLowerCase() !== 'post') return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (await check(false)) { f.dataset.checked = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); return; }
+    pending = f;
+  }, true);
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const pw = document.getElementById('lock-pw');
+    const body = new URLSearchParams({ password: pw.value });
+    const r = await fetch('/auth/unlock', { method: 'POST', body });
+    if (r.ok) {
+      const d = await r.json(); left = d.left; arm();
+      pw.value = ''; err.hidden = true; dlg.close();
+      if (pending) { const f = pending; pending = null; f.dataset.checked = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); }
+      return;
+    }
+    const d = await r.json().catch(() => ({}));
+    err.textContent = d.error === 'locked' ? (T.locked || '').replace('{n}', d.wait) : (T.wrongPw || 'Password salah.');
+    err.hidden = false; pw.select();
+  });
 })();

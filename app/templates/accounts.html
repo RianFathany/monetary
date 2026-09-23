@@ -3,10 +3,10 @@
 {% block content %}
 
 <section class="card hero">
-  <div class="k">Kekayaan bersih</div>
+  <div class="k">{{ _('Kekayaan bersih') }}</div>
   {% set net = cash + fund + invest %}
   <div class="v big num {{ 'bad' if net < 0 }}" data-count="{{ net }}">{{ net | rupiah }}</div>
-  <div class="s">kas {{ cash | short }} · tabungan {{ fund | short }} · investasi {{ invest | short }}</div>
+  <div class="s">{{ _('kas') }} {{ cash | short }} {{ _('· tabungan') }} {{ fund | short }} {{ _('· investasi') }} {{ invest | short }}</div>
   {% if net > 0 %}
   <div class="flow" style="margin-top:14px">
     <i style="--w:{{ (cash / net * 100) | round(1) }}%;background:hsl(210 65% 55%)"></i>
@@ -14,9 +14,9 @@
     <i style="--w:{{ (invest / net * 100) | round(1) }}%;background:hsl(35 80% 55%)"></i>
   </div>
   <div class="legend" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
-    <div><b class="dot" style="background:hsl(210 65% 55%)"></b>Kas <span class="num">{{ cash | rupiah }}</span></div>
-    <div><b class="dot" style="background:hsl(150 60% 45%)"></b>Tabungan <span class="num">{{ fund | rupiah }}</span></div>
-    <div><b class="dot" style="background:hsl(35 80% 55%)"></b>Investasi <span class="num">{{ invest | rupiah }}</span><small>{{ 'nilai pasar ' + (snap | month_label) if snap else 'belum ada snapshot' }}</small></div>
+    <div><b class="dot" style="background:hsl(210 65% 55%)"></b>{{ _('Kas') }} <span class="num">{{ cash | rupiah }}</span></div>
+    <div><b class="dot" style="background:hsl(150 60% 45%)"></b>{{ _('Tabungan') }} <span class="num">{{ fund | rupiah }}</span></div>
+    <div><b class="dot" style="background:hsl(35 80% 55%)"></b>{{ _('Investasi') }} <span class="num">{{ invest | rupiah }}</span><small>{{ _('nilai pasar') + ' ' + (snap | month_label) if snap else _('belum ada snapshot') }}</small></div>
   </div>
   {% endif %}
 </section>
@@ -24,16 +24,16 @@
 {% for type, title in types.items() %}
 {% if groups.get(type) %}
 <section class="card" style="margin-top:10px">
-  <div class="sec"><h2>{{ title }}</h2><small>ketuk untuk mengubah</small></div>
+  <div class="sec"><h2>{{ title }}</h2><small>{{ _('ketuk untuk mengubah') }}</small></div>
   <div class="panel-wrap" style="padding:0">
     {% for a in groups[type] %}
     <div class="row {{ '' if a.active else 'planned' }}" style="--i:{{ loop.index0 }}"
          data-open="sheet-account" data-fill='{{ {"id":a.account_id,"name":a.name,"opening_balance":a.opening_balance,"note":a.note or "","active":"1" if a.active else "0"} | tojson }}'>
       <span class="av" style="--h:{{ a.name | hue }}">{{ a.name[:2] }}</span>
       <div class="main">
-        <div class="name">{{ a.name }}{% if not a.active %} <span class="pill">nonaktif</span>{% endif %}</div>
-        <div class="meta">{% if a.note %}<span>{{ a.note }}</span>{% endif %}{% if a.opening_balance %}<span>saldo awal {{ a.opening_balance | short }}</span>{% endif %}
-          {% if type=='investment' and market.get(a.account_id) %}<span>modal {{ a.balance | short }} · nilai {{ market[a.account_id] | short }}</span>{% endif %}</div>
+        <div class="name">{{ a.name }}{% if not a.active %} <span class="pill">{{ _('nonaktif') }}</span>{% endif %}</div>
+        <div class="meta">{% if a.note %}<span>{{ a.note }}</span>{% endif %}{% if a.opening_balance %}<span>{{ _('saldo awal') }} {{ a.opening_balance | short }}</span>{% endif %}
+          {% if type=='investment' and market.get(a.account_id) %}<span>{{ _('modal') }} {{ a.balance | short }} {{ _('· nilai') }} {{ market[a.account_id] | short }}</span>{% endif %}</div>
       </div>
       <div class="amt num {{ 'bad' if a.balance < 0 }}">{{ (market[a.account_id] if type=='investment' and market.get(a.account_id) else a.balance) | rupiah }}</div>
     </div>
@@ -44,39 +44,38 @@
 {% endfor %}
 
 <section class="card" style="margin-top:10px">
-  <div class="sec"><h2>Cara kerjanya</h2></div>
+  <div class="sec"><h2>{{ _('Cara kerjanya') }}</h2></div>
   <p class="hint" style="margin:0">
-    Uang yang pindah antar kantong dicatat sebagai <b>transfer</b> — menabung, setor dana darurat, atau isi ulang
-    kantong belanja tidak dihitung sebagai pengeluaran. Nilai kantong investasi diambil dari
-    <a href="/assets">snapshot bulanan</a>; selisihnya dengan modal yang kamu setor adalah untung/rugi.
+    {{ _('Uang yang pindah antar kantong dicatat sebagai') }} <b>{{ _('transfer') }}</b> {{ _('— menabung, setor dana darurat, atau isi ulang\n    kantong belanja tidak dihitung sebagai pengeluaran. Nilai kantong investasi diambil dari') }}
+    <a href="/assets">{{ _('snapshot bulanan') }}</a>{{ _('; selisihnya dengan modal yang kamu setor adalah untung/rugi.') }}
   </p>
 </section>
 
 <dialog class="sheet" id="sheet-account"><div class="panel"><div class="grab"></div>
-  <h3>Kantong</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Kantong') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="" id="account-form">
-    <label>Nama</label><input name="name" required autocomplete="off" placeholder="mis. BCA, Dana Darurat">
-    <label>Saldo awal</label><input class="money num" name="opening_balance" inputmode="numeric" placeholder="0">
-    <label>Catatan</label><input name="note" autocomplete="off" placeholder="opsional">
-    <label>Status</label><select name="active"><option value="1">Aktif</option><option value="0">Nonaktif</option></select>
+    <label>{{ _('Nama') }}</label><input name="name" required autocomplete="off" placeholder="{{ _('mis. BCA, Dana Darurat') }}">
+    <label>{{ _('Saldo awal') }}</label><input class="money num" name="opening_balance" inputmode="numeric" placeholder="0">
+    <label>{{ _('Catatan') }}</label><input name="note" autocomplete="off" placeholder="{{ _('opsional') }}">
+    <label>{{ _('Status') }}</label><select name="active"><option value="1">{{ _('Aktif') }}</option><option value="0">{{ _('Nonaktif') }}</option></select>
     <input type="hidden" name="id">
-    <p class="hint">Saldo awal = posisi sebelum bulan pertama yang kamu catat. Saldo berjalan dihitung dari transaksi.</p>
-    <div class="actions"><button class="primary" type="submit">Simpan</button></div>
+    <p class="hint">{{ _('Saldo awal = posisi sebelum bulan pertama yang kamu catat. Saldo berjalan dihitung dari transaksi.') }}</p>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
-  <form method="post" action="" id="account-del" data-del data-confirm="Hapus kantong ini?"
-        data-confirm-note="Kalau sudah dipakai transaksi, kantong hanya dinonaktifkan agar riwayat tetap utuh."
-        style="margin-top:8px"><button class="danger" type="submit" style="width:100%">Hapus</button></form>
+  <form method="post" action="" id="account-del" data-del data-confirm="{{ _('Hapus kantong ini?') }}"
+        data-confirm-note="{{ _('Kalau sudah dipakai transaksi, kantong hanya dinonaktifkan agar riwayat tetap utuh.') }}"
+        style="margin-top:8px"><button class="danger" type="submit" style="width:100%">{{ _('Hapus') }}</button></form>
 </div></dialog>
 
 <dialog class="sheet" id="sheet-account-new"><div class="panel"><div class="grab"></div>
-  <h3>Kantong baru</h3><button class="sm ghost close" data-close type="button" aria-label="Tutup">✕</button>
+  <h3>{{ _('Kantong baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
   <form method="post" action="/accounts">
-    <label>Nama</label><input name="name" required autocomplete="off" placeholder="mis. BCA, Reksadana">
-    <label>Jenis</label>
+    <label>{{ _('Nama') }}</label><input name="name" required autocomplete="off" placeholder="{{ _('mis. BCA, Reksadana') }}">
+    <label>{{ _('Jenis') }}</label>
     <select name="type">{% for t, label in types.items() %}<option value="{{ t }}">{{ label }}</option>{% endfor %}</select>
-    <label>Saldo awal</label><input class="money num" name="opening_balance" inputmode="numeric" placeholder="0">
-    <label>Catatan</label><input name="note" autocomplete="off" placeholder="opsional">
-    <div class="actions"><button class="primary" type="submit">Tambah</button></div>
+    <label>{{ _('Saldo awal') }}</label><input class="money num" name="opening_balance" inputmode="numeric" placeholder="0">
+    <label>{{ _('Catatan') }}</label><input name="note" autocomplete="off" placeholder="{{ _('opsional') }}">
+    <div class="actions"><button class="primary" type="submit">{{ _('Tambah') }}</button></div>
   </form>
 </div></dialog>
 
@@ -95,6 +94,6 @@ document.addEventListener('click', e => {
 
 {% block fab %}
 <div class="fab"><div class="in" style="grid-template-columns:1fr">
-  <button type="button" class="primary" data-open="sheet-account-new"><b>+</b> Tambah kantong</button>
+  <button type="button" class="primary" data-open="sheet-account-new"><b>+</b> {{ _('Tambah kantong') }}</button>
 </div></div>
 {% endblock %}

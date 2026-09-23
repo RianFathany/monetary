@@ -78,9 +78,14 @@ CREATE TABLE IF NOT EXISTS transactions (
     CHECK (type <> 'transfer' OR (to_account_id IS NOT NULL AND to_account_id <> account_id AND category_id IS NULL)),
     CHECK (type =  'transfer' OR to_account_id IS NULL)
 );
-CREATE INDEX IF NOT EXISTS idx_tx_month   ON transactions(ledger_id, month_key, type);
-CREATE INDEX IF NOT EXISTS idx_tx_account ON transactions(account_id);
-CREATE INDEX IF NOT EXISTS idx_tx_to      ON transactions(to_account_id);
+-- Indeks mengikuti query yang benar-benar dipakai. Semuanya parsial
+-- (deleted_at IS NULL) karena tidak ada satu pun halaman yang membaca baris
+-- terhapus: indeksnya jadi lebih kecil sekaligus cocok dengan bentuk query.
+CREATE INDEX IF NOT EXISTS idx_tx_month   ON transactions(month_key, type)     WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_tx_cat     ON transactions(category_id)         WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_tx_account ON transactions(account_id)          WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_tx_to      ON transactions(to_account_id)       WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_tx_review  ON transactions(month_key)           WHERE deleted_at IS NULL AND needs_review = 1;
 
 -- Nilai kantong investasi/tabungan yang tidak bisa dihitung dari mutasi
 -- (harga saham & crypto bergerak sendiri). Diisi manual per bulan.
@@ -178,9 +183,58 @@ DEFAULT_SETTINGS = {
 }
 
 
+# Indeks versi lama yang bentuknya tidak cocok dengan query — dibuang sekali,
+# lalu dibuat ulang oleh SCHEMA di atas.
+OLD_INDEXES = ("idx_tx_month", "idx_tx_account", "idx_tx_to")
+
+
 def apply_schema(conn) -> None:
+    for name in OLD_INDEXES:
+        row = conn.execute("SELECT sql FROM sqlite_master WHERE type='index' AND name=?", (name,)).fetchone()
+        if row and row[0] and "WHERE deleted_at IS NULL" not in row[0]:
+            conn.execute(f"DROP INDEX IF EXISTS {name}")
     conn.executescript(SCHEMA)
     conn.execute("INSERT OR IGNORE INTO ledgers(id, name) VALUES (1, 'Pribadi')")
+
+
+# Perubahan skema setelah versi 2. Satu entri = satu versi; isinya perintah yang
+# aman dijalankan ulang. Dijalankan untuk SETIAP buku (pemilik maupun pengguna
+# lain) saat pertama dibuka setelah aplikasi diperbarui.
+#
+#   MIGRATIONS = {3: ["ALTER TABLE transactions ADD COLUMN tag TEXT"]}
+#
+# Naikkan SCHEMA_VERSION bersamaan dengan menambah entri di sini.
+MIGRATIONS: dict = {}
+
+
+def book_version(conn) -> int:
+    try:
+        row = conn.execute("SELECT value FROM settings WHERE key='schema_version'").fetchone()
+    except Exception:
+        return 0
+    try:
+        return int(row[0]) if row and row[0] else 0
+    except (TypeError, ValueError):
+        return 0
+
+
+def upgrade(conn) -> int:
+    """Bawa satu buku ke versi skema terbaru. Idempoten dan murah kalau sudah terbaru."""
+    cur = book_version(conn)
+    if cur == SCHEMA_VERSION:
+        return cur
+    apply_schema(conn)                                   # tabel/indeks baru + buang indeks usang
+    for version in sorted(v for v in MIGRATIONS if v > cur):
+        for stmt in MIGRATIONS[version]:
+            try:
+                conn.execute(stmt)
+            except Exception as e:                       # kolom sudah ada dari skema baru
+                if "duplicate column" not in str(e).lower():
+                    raise
+    seed_defaults(conn, accounts=False)                  # kategori bawaan yang baru ditambahkan
+    conn.execute("INSERT INTO settings(key,value) VALUES ('schema_version',?) "
+                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(SCHEMA_VERSION),))
+    return SCHEMA_VERSION
 
 
 def seed_defaults(conn, accounts=True) -> None:

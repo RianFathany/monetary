@@ -13,6 +13,7 @@ import json
 from datetime import date
 
 from .db import ASSET_TYPES, CASH_TYPES, asset_view, balance_upto
+from .i18n import get_lang, t, units
 
 LOOKBACK = 3          # bulan pembanding untuk rata-rata
 SPIKE = 0.30          # kenaikan kategori dianggap menonjol di atas 30%
@@ -63,11 +64,11 @@ def build_metrics(db, mk: str) -> dict:
 
     # kategori: bulan ini vs rata-rata 3 bulan sebelumnya
     now_rows = db.execute(
-        "SELECT COALESCE(c.name,'Tanpa kategori') name, SUM(t.amount) v, COUNT(*) n FROM transactions t "
+        "SELECT COALESCE(c.name,'" + t("Tanpa kategori") + "') name, SUM(t.amount) v, COUNT(*) n FROM transactions t "
         "LEFT JOIN categories c ON c.id=t.category_id WHERE t.deleted_at IS NULL AND t.month_key=? "
         "AND t.type='expense' GROUP BY t.category_id ORDER BY v DESC", (mk,)).fetchall()
     prev_avg = {r["name"]: r["v"] / LOOKBACK for r in db.execute(
-        f"SELECT COALESCE(c.name,'Tanpa kategori') name, SUM(t.amount) v FROM transactions t "
+        f"SELECT COALESCE(c.name,'{t('Tanpa kategori')}') name, SUM(t.amount) v FROM transactions t "
         f"LEFT JOIN categories c ON c.id=t.category_id WHERE t.deleted_at IS NULL AND t.type='expense' "
         f"AND t.month_key IN ({ph}) GROUP BY t.category_id", prev_months)}
     cats, spikes = [], []
@@ -124,12 +125,13 @@ def build_metrics(db, mk: str) -> dict:
 def _rp(n) -> str:
     n = int(n or 0)
     a = abs(n)
+    rb, jt, M = units()
     if a >= 1_000_000_000:
-        s = f"{a/1_000_000_000:.1f}".rstrip("0").rstrip(".") + " M"
+        s = f"{a/1_000_000_000:.1f}".rstrip("0").rstrip(".") + " " + M
     elif a >= 1_000_000:
-        s = f"{a/1_000_000:.1f}".rstrip("0").rstrip(".") + " jt"
+        s = f"{a/1_000_000:.1f}".rstrip("0").rstrip(".") + " " + jt
     elif a >= 1_000:
-        s = f"{a/1_000:.0f} rb"
+        s = f"{a/1_000:.0f} " + rb
     else:
         s = str(a)
     return ("−" if n < 0 else "") + "Rp " + s
@@ -140,77 +142,87 @@ def render_rules(m: dict) -> dict:
     mk = m["month"]
 
     if m["net"] >= 0:
-        summary = (f"Masuk {_rp(m['income'])}, keluar {_rp(m['expense'])} — sisa {_rp(m['net'])} "
-                   f"({m['savings_rate'] * 100:.0f}% dari pemasukan).")
+        summary = t("Masuk {inc}, keluar {exp} — sisa {net} ({rate}% dari pemasukan).",
+                    inc=_rp(m["income"]), exp=_rp(m["expense"]), net=_rp(m["net"]),
+                    rate=f"{m['savings_rate'] * 100:.0f}")
     else:
-        summary = (f"Masuk {_rp(m['income'])}, keluar {_rp(m['expense'])} — defisit {_rp(-m['net'])}, "
-                   f"ditutup dari saldo atau dana darurat.")
+        summary = t("Masuk {inc}, keluar {exp} — defisit {net}, ditutup dari saldo atau dana darurat.",
+                    inc=_rp(m["income"]), exp=_rp(m["expense"]), net=_rp(-m["net"]))
     if m["saved"] > 0:
-        summary += f" {_rp(m['saved'])} dipindahkan ke tabungan/investasi."
+        summary += " " + t("{v} dipindahkan ke tabungan/investasi.", v=_rp(m["saved"]))
     elif m["saved"] < 0:
-        summary += f" {_rp(-m['saved'])} ditarik dari tabungan/investasi."
+        summary += " " + t("{v} ditarik dari tabungan/investasi.", v=_rp(-m["saved"]))
 
     health = []
     sr = m["savings_rate"]
-    health.append(dict(label="Tingkat menabung", value=f"{sr * 100:.0f}%",
+    health.append(dict(label=t("Tingkat menabung"), value=f"{sr * 100:.0f}%",
                        tone="ok" if sr >= 0.2 else ("warn" if sr >= 0 else "bad"),
-                       note="pemasukan dikurangi pengeluaran" +
-                            ("" if sr >= 0.2 else " — patokan sehat 20%")))
+                       note=t("pemasukan dikurangi pengeluaran") +
+                            ("" if sr >= 0.2 else t(" — patokan sehat 20%"))))
     dr = m["debt_ratio"]
-    health.append(dict(label="Rasio cicilan", value=f"{dr * 100:.0f}%" if m["income"] else "–",
+    health.append(dict(label=t("Rasio cicilan"), value=f"{dr * 100:.0f}%" if m["income"] else "–",
                        tone="ok" if dr <= DEBT_WARN else "bad",
-                       note=f"{_rp(m['debt'])} cicilan & tagihan kartu" +
-                            ("" if dr <= DEBT_WARN else f" — di atas batas sehat {DEBT_WARN * 100:.0f}%")))
+                       note=t("{v} cicilan & tagihan kartu", v=_rp(m["debt"])) +
+                            ("" if dr <= DEBT_WARN else t(" — di atas batas sehat {pct}%",
+                                                          pct=f"{DEBT_WARN * 100:.0f}"))))
     cm = m["cover_months"]
-    health.append(dict(label="Cakupan dana darurat", value=f"{cm:.1f} bln" if cm else "–",
+    health.append(dict(label=t("Cakupan dana darurat"),
+                       value=(f"{cm:.1f} " + t("bln")) if cm else "–",
                        tone="ok" if cm >= COVER_TARGET else ("warn" if cm >= 3 else "bad"),
-                       note=f"{_rp(m['fund'])} dibanding belanja rata-rata {_rp(m['avg_expense'])}/bln"))
-    health.append(dict(label="Total aset", value=_rp(m["assets"]),
+                       note=t("{fund} dibanding belanja rata-rata {avg}/bln",
+                              fund=_rp(m["fund"]), avg=_rp(m["avg_expense"]))))
+    health.append(dict(label=t("Total aset"), value=_rp(m["assets"]),
                        tone="ok" if m["assets_delta"] >= 0 else "warn",
-                       note=("naik " if m["assets_delta"] >= 0 else "turun ") + _rp(abs(m["assets_delta"])) +
-                            " dari bulan lalu"))
+                       note=(t("naik {v} dari bulan lalu", v=_rp(abs(m["assets_delta"])))
+                             if m["assets_delta"] >= 0 else
+                             t("turun {v} dari bulan lalu", v=_rp(abs(m["assets_delta"]))))))
 
     highlights = []
     for c in m["spikes"][:3]:
-        highlights.append(f"{c['name']} {_rp(c['value'])}, naik {_rp(c['delta'])} dari rata-rata "
-                          f"{LOOKBACK} bulan ({_rp(c['avg'])}).")
+        highlights.append(t("{name} {value}, naik {delta} dari rata-rata {n} bulan ({avg}).",
+                            name=c["name"], value=_rp(c["value"]), delta=_rp(c["delta"]),
+                            n=LOOKBACK, avg=_rp(c["avg"])))
     if m["categories"]:
         big = m["categories"][0]
         if big["share"] >= 0.3 and big not in m["spikes"][:3]:
-            highlights.append(f"{big['name']} menyerap {big['share'] * 100:.0f}% pengeluaran bulan ini "
-                              f"({_rp(big['value'])}).")
+            highlights.append(t("{name} menyerap {pct}% pengeluaran bulan ini ({value}).",
+                                name=big["name"], pct=f"{big['share'] * 100:.0f}", value=_rp(big["value"])))
     if m["top"] and m["expense"] and m["top"][0]["amount"] >= m["expense"] * 0.2:
-        t = m["top"][0]
-        highlights.append(f"Pengeluaran terbesar: {t['desc']} {_rp(t['amount'])}.")
+        big_tx = m["top"][0]
+        highlights.append(t("Pengeluaran terbesar: {desc} {value}.",
+                            desc=big_tx["desc"], value=_rp(big_tx["amount"])))
     if m["unpaid"]:
-        highlights.append(f"{_rp(m['unpaid'])} masih bertanda belum dibayar.")
+        highlights.append(t("{v} masih bertanda belum dibayar.", v=_rp(m["unpaid"])))
 
     tips = []
     if m["review_count"]:
-        tips.append(dict(text=f"{m['review_count']} transaksi senilai {_rp(m['review_value'])} belum berkategori "
-                              f"atau masih bertanda perlu dicek — laporan ini ikut melenceng selama itu dibiarkan.",
-                         label="Rapikan", href=f"/review?m={mk}"))
+        tips.append(dict(text=t("{n} transaksi senilai {v} belum berkategori atau masih bertanda perlu "
+                                "dicek — laporan ini ikut melenceng selama itu dibiarkan.",
+                                n=m["review_count"], v=_rp(m["review_value"])),
+                         label=t("Rapikan"), href=f"/review?m={mk}"))
     if m["debt_ratio"] > DEBT_WARN:
-        tips.append(dict(text=f"Cicilan & tagihan kartu {m['debt_ratio'] * 100:.0f}% dari pemasukan "
-                              f"({_rp(m['debt'])}). Di atas 35% ruang gerak bulanan jadi sempit.",
-                         label="Lihat kategori", href="/settings#categories"))
+        tips.append(dict(text=t("Cicilan & tagihan kartu {pct}% dari pemasukan ({v}). Di atas 35% ruang "
+                                "gerak bulanan jadi sempit.",
+                                pct=f"{m['debt_ratio'] * 100:.0f}", v=_rp(m["debt"])),
+                         label=t("Lihat kategori"), href="/settings#categories"))
     if m["cover_months"] and m["cover_months"] < 3:
-        tips.append(dict(text=f"Dana darurat menutup {m['cover_months']:.1f} bulan belanja. "
-                              f"Idealnya {COVER_TARGET} bulan ({_rp(m['avg_expense'] * COVER_TARGET)}).",
-                         label="Kantong", href="/accounts"))
+        tips.append(dict(text=t("Dana darurat menutup {n} bulan belanja. Idealnya {target} bulan ({v}).",
+                                n=f"{m['cover_months']:.1f}", target=COVER_TARGET,
+                                v=_rp(m["avg_expense"] * COVER_TARGET)),
+                         label=t("Kantong"), href="/accounts"))
     elif m["cover_months"] >= COVER_TARGET and m["saved"] > 0:
-        tips.append(dict(text=f"Dana darurat sudah menutup {m['cover_months']:.1f} bulan belanja. "
-                              f"Setoran berikutnya lebih berguna diarahkan ke investasi.",
-                         label="Aset", href="/assets"))
+        tips.append(dict(text=t("Dana darurat sudah menutup {n} bulan belanja. Setoran berikutnya lebih "
+                                "berguna diarahkan ke investasi.", n=f"{m['cover_months']:.1f}"),
+                         label=t("Aset"), href="/assets"))
     if m["savings_rate"] < 0:
-        tips.append(dict(text=f"Pengeluaran melebihi pemasukan {_rp(-m['net'])} bulan ini. "
-                              f"Tiga kategori teratas: " +
-                              ", ".join(f"{c['name']} {_rp(c['value'])}" for c in m["categories"][:3]) + ".",
-                         label="Rincian", href=f"/overview?m={mk}"))
+        tips.append(dict(text=t("Pengeluaran melebihi pemasukan {v} bulan ini. Tiga kategori teratas: {list}.",
+                                v=_rp(-m["net"]),
+                                list=", ".join(f"{c['name']} {_rp(c['value'])}" for c in m["categories"][:3])),
+                         label=t("Rincian"), href=f"/overview?m={mk}"))
     if m["stale_pots"]:
-        tips.append(dict(text="Nilai " + " & ".join(m["stale_pots"]) + " belum diperbarui untuk bulan ini, "
-                              "jadi total aset memakai angka lama.",
-                         label="Perbarui", href=f"/assets?mk={mk}"))
+        tips.append(dict(text=t("Nilai {pots} belum diperbarui untuk bulan ini, jadi total aset memakai "
+                                "angka lama.", pots=" & ".join(m["stale_pots"])),
+                         label=t("Perbarui"), href=f"/assets?mk={mk}"))
 
     plan = [dict(desc=r["desc"], amount=r["amount"], day=r["day"]) for r in m["missing_recurring"]]
     return dict(month=mk, summary=summary, health=health, highlights=highlights,
@@ -218,6 +230,7 @@ def render_rules(m: dict) -> dict:
 
 
 def get_or_build(db, mk: str, engine: str = "rules", force: bool = False) -> dict:
+    engine = f"{engine}:{get_lang()}"        # narasi disimpan terpisah per bahasa
     row = None if force else db.execute(
         "SELECT content_json, generated_at FROM reports WHERE month_key=? AND engine=?", (mk, engine)).fetchone()
     if row:
@@ -228,5 +241,5 @@ def get_or_build(db, mk: str, engine: str = "rules", force: bool = False) -> dic
     db.execute("INSERT INTO reports(month_key, engine, content_json, generated_at) VALUES (?,?,?,datetime('now')) "
                "ON CONFLICT(ledger_id, month_key, engine) DO UPDATE SET content_json=excluded.content_json,"
                " generated_at=excluded.generated_at", (mk, engine, json.dumps(data, ensure_ascii=False)))
-    data["generated_at"] = "baru saja"
+    data["generated_at"] = t("baru saja")
     return data

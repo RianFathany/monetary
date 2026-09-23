@@ -1,26 +1,94 @@
-"""Akses SQLite. Satu file, WAL, skema v2 dibuat saat pertama jalan."""
+"""Akses SQLite.
+
+Satu **file per buku**. Buku pemilik = `data/monetary.db`; setiap pengguna yang
+mendaftar lewat Google mendapat filenya sendiri di `data/books/`. Pemisahan di
+tingkat file dipilih supaya data antar pengguna mustahil tercampur — tidak ada
+satu pun query yang perlu ingat menyaring `ledger_id`.
+
+Hal yang berlaku untuk seluruh aplikasi (daftar pengguna, password pemilik,
+secret cookie, konfigurasi Google) tinggal di `data/system.db`.
+"""
 import os
 import sqlite3
 from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 
-from .schema import SCHEMA_VERSION, apply_schema, seed_defaults
+from .schema import SCHEMA_VERSION, apply_schema, seed_defaults, upgrade
 
 DB_PATH = os.environ.get("MONETARY_DB", str(Path(__file__).resolve().parent.parent / "data" / "monetary.db"))
+# Dihitung dari DB_PATH setiap kali dipakai, bukan sekali saat impor: skrip dan
+# tes yang mengarahkan DB_PATH ke folder lain otomatis ikut terpisah.
 
 
-def connect() -> sqlite3.Connection:
-    Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+def data_dir() -> Path:
+    return Path(DB_PATH).parent
+
+
+def books_dir() -> Path:
+    return data_dir() / "books"
+
+
+def system_path() -> Path:
+    return data_dir() / "system.db"
+
+# Buku yang sedang dibuka permintaan ini. Diisi middleware dari sesi; di luar
+# permintaan (skrip, tes, startup) berlaku buku pemilik.
+_book: ContextVar[str] = ContextVar("book", default="")
+
+
+_ready: set = set()        # buku yang sudah dipastikan versinya di proses ini
+
+
+def set_book(path: str) -> None:
+    _book.set(path or "")
+    ensure_book(path or DB_PATH)
+
+
+def ensure_book(path: str) -> None:
+    """Pastikan file buku ini memakai skema terbaru.
+
+    Dipanggil sekali per buku per proses (sekali per deploy, praktisnya), jadi
+    menambah kolom/tabel/indeks di versi berikutnya otomatis sampai ke buku
+    semua pengguna tanpa langkah manual.
+    """
+    path = path or DB_PATH
+    if path in _ready or not Path(path).exists():
+        return
+    with get_db(path) as conn:
+        upgrade(conn)
+    _ready.add(path)
+
+
+def book_path() -> str:
+    return _book.get() or DB_PATH
+
+
+def book_file(name: str) -> str:
+    """Nama file buku -> path lengkap. Nama berasal dari database sendiri."""
+    return DB_PATH if not name or name == Path(DB_PATH).name else str(books_dir() / name)
+
+
+def _open(path: str) -> sqlite3.Connection:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA journal_mode=WAL")       # pembaca tidak pernah memblokir penulis
+    conn.execute("PRAGMA synchronous=NORMAL")     # aman di WAL, jauh lebih ringan saat menyimpan
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=5000")      # tunggu, jangan langsung 'database is locked'
+    conn.execute("PRAGMA cache_size=-8000")       # 8 MB per koneksi
+    conn.execute("PRAGMA temp_store=MEMORY")
     return conn
 
 
+def connect() -> sqlite3.Connection:
+    return _open(book_path())
+
+
 @contextmanager
-def get_db():
-    conn = connect()
+def get_db(path: str = ""):
+    conn = _open(path or book_path())
     try:
         yield conn
         conn.commit()
@@ -65,6 +133,143 @@ def _adopt_prepared_db() -> bool:
     return True
 
 
+@contextmanager
+def system_db():
+    """Database lintas-pengguna: daftar pengguna, password pemilik, konfigurasi Google."""
+    conn = _open(str(system_path()))
+    try:
+        if str(system_path()) not in _system_ready:
+            conn.executescript(SYSTEM_SCHEMA)
+            have = {r["name"] for r in conn.execute("PRAGMA table_info(users)")}
+            for col, decl in SYSTEM_COLUMNS:
+                if col not in have:
+                    conn.execute(f"ALTER TABLE users ADD COLUMN {col} {decl}")
+            _system_ready.add(str(system_path()))
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+_system_ready: set = set()      # skema system.db cukup dipastikan sekali per proses
+
+# Kolom yang ditambahkan setelah system.db pertama kali dibuat.
+SYSTEM_COLUMNS = (
+    ("password_hash", "TEXT"),
+    ("email_verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("session_epoch", "INTEGER NOT NULL DEFAULT 0"),
+)
+
+SYSTEM_SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id             INTEGER PRIMARY KEY,
+    email          TEXT NOT NULL UNIQUE,
+    name           TEXT,
+    book           TEXT NOT NULL,              -- nama file di data/books (pemilik: monetary.db)
+    is_owner       INTEGER NOT NULL DEFAULT 0,
+    active         INTEGER NOT NULL DEFAULT 1,
+    password_hash  TEXT,                       -- daftar dengan email+password (boleh kosong: SSO saja)
+    email_verified INTEGER NOT NULL DEFAULT 0, -- 1 setelah Google membuktikan kepemilikan email
+    session_epoch  INTEGER NOT NULL DEFAULT 0, -- dinaikkan untuk mencabut semua sesi pengguna ini
+    created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+    last_login_at  TEXT
+);
+CREATE TABLE IF NOT EXISTS app_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT
+);
+"""
+
+
+def get_app_setting(key: str, default: str = "") -> str:
+    with system_db() as db:
+        row = db.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone()
+    return row["value"] if row and row["value"] is not None else default
+
+
+def set_app_setting(key: str, value: str) -> None:
+    with system_db() as db:
+        db.execute("INSERT INTO app_settings(key, value) VALUES (?,?) "
+                   "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (key, value))
+
+
+APP_KEYS = ("password_hash", "secret", "google_client_id", "google_client_secret",
+            "google_allowed", "allow_signup")
+
+
+def all_books() -> list:
+    """Semua file buku yang ada: milik pemilik + milik setiap pengguna."""
+    paths = [DB_PATH]
+    try:
+        with system_db() as db:
+            rows = db.execute("SELECT book FROM users").fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    for r in rows:
+        path = book_file(r["book"])
+        if path not in paths:
+            paths.append(path)
+    for extra in sorted(books_dir().glob("*.db")):        # file yatim (mis. sisa impor manual)
+        if str(extra) not in paths:
+            paths.append(str(extra))
+    return [p for p in paths if Path(p).exists()]
+
+
+def upgrade_all_books() -> list:
+    """Bawa SEMUA buku ke skema terbaru. Dipanggil sekali saat aplikasi start,
+    jadi setiap deploy langsung merapikan buku semua pengguna — bukan menunggu
+    orangnya membuka aplikasi."""
+    done = []
+    for path in all_books():
+        before = None
+        with get_db(path) as conn:
+            before = schema_of(conn)
+            after = upgrade(conn)
+        _ready.add(path)
+        if before != after:
+            done.append((path, before, after))
+    return done
+
+
+def schema_of(conn) -> int:
+    from .schema import book_version
+    return book_version(conn)
+
+
+def init_system() -> None:
+    """Siapkan system.db, dan pindahkan setelan lintas-aplikasi dari buku pemilik
+    kalau aplikasi ini sebelumnya masih satu pengguna."""
+    with system_db() as sysdb:
+        have = {r["key"] for r in sysdb.execute("SELECT key FROM app_settings")}
+        if not have and Path(DB_PATH).exists():
+            with get_db(DB_PATH) as owner:
+                try:
+                    rows = owner.execute(
+                        f"SELECT key, value FROM settings WHERE key IN ({','.join('?' * len(APP_KEYS))})",
+                        APP_KEYS).fetchall()
+                except sqlite3.OperationalError:
+                    rows = []
+            for r in rows:
+                sysdb.execute("INSERT OR IGNORE INTO app_settings(key, value) VALUES (?,?)", (r["key"], r["value"]))
+        owner_book = Path(DB_PATH).name
+        sysdb.execute("INSERT OR IGNORE INTO users(id, email, name, book, is_owner) "
+                      "VALUES (1, 'owner', 'Pemilik', ?, 1)", (owner_book,))
+
+
+def init_book(path: str) -> None:
+    """Buat/siapkan satu file buku: skema + kategori & kantong bawaan."""
+    with get_db(path) as db:
+        apply_schema(db)
+        seed_defaults(db, accounts=True)
+        db.execute("INSERT INTO settings(key,value) VALUES ('schema_version',?) "
+                   "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(SCHEMA_VERSION),))
+        db.execute("ANALYZE")
+    _ready.add(path)
+
+
 def init_db() -> None:
     with get_db() as db:
         legacy = db.execute(
@@ -82,6 +287,8 @@ def init_db() -> None:
         seed_defaults(db, accounts=first_run)
         db.execute("INSERT INTO settings(key,value) VALUES ('schema_version',?) "
                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(SCHEMA_VERSION),))
+        db.execute("ANALYZE")                      # statistik untuk perencana query
+    init_system()
 
 
 def get_setting(db, key: str, default: str = "") -> str:

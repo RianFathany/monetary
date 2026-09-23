@@ -72,9 +72,148 @@ fly certs add monetary.rianfathany.com      # lalu tambah CNAME di Cloudflare (D
 
 Setelah deploy, jalankan import sekali: `fly ssh console -C "python scripts/import_xlsx.py /tmp/cashflow.xlsx --reset"` (upload file dulu dengan `fly ssh sftp shell`), atau cukup salin `data/monetary.db` lokal ke volume.
 
+## Bahasa
+
+Antarmuka tersedia dalam **Bahasa Indonesia** (bawaan) dan **English**, diganti lewat
+Setelan > Bahasa. Pilihannya disimpan di tabel `settings` (`lang`), dibaca sekali per
+permintaan lewat middleware, lalu dipakai oleh:
+
+- template — teks dibungkus `{{ _('...') }}`, kunci kamus = teks Indonesia apa adanya;
+- filter angka & tanggal — `month_label`, `fmt_date`, `short` (jt/rb vs M/k);
+- narasi laporan di `report.py` — `t("... {placeholder}", placeholder=...)`;
+- JavaScript — string dikirim lewat `window.I18N` di `base.html`.
+
+Menambah teks baru: tulis apa adanya dalam bahasa Indonesia, bungkus `_()`, lalu tambahkan
+satu baris di `app/lang_en.py`. Tes `tests/test_i18n.py` gagal kalau ada yang terlewat.
+Narasi laporan disimpan per bahasa (`engine = "rules:id"` / `"rules:en"`), jadi ganti bahasa
+tidak membuat laporan lama dihitung ulang.
+
 ## Login
 
 Satu password, disimpan sebagai hash PBKDF2 di tabel `settings` bersama secret cookie (dibuat otomatis) — tidak butuh `.env`. Ganti lewat Setelan › Akun. Cookie 30 hari. Halaman login memakai rule yang sama dengan rianfathany.com: klip Jakarta sesuai jam (pagi/siang/senja/malam) dan otomatis klip hujan bila sedang hujan (Open-Meteo), plus jam dan nama kota dari geolocation browser (fallback Jakarta). Klip disalin dari `application/assets/video/`. Tombol keluar ada di header kanan atas.
+
+## Masuk dengan Google (opsional)
+
+Tombol "Masuk dengan Google" di halaman login hanya muncul kalau Client ID, Client Secret,
+dan daftar email sudah diisi di **Setelan → Akun → Masuk dengan Google**. Password tetap
+jalan sebagai cadangan.
+
+Sekali saja di [console.cloud.google.com](https://console.cloud.google.com):
+
+1. **New Project** → beri nama (mis. `Monetary`) → Create.
+2. **APIs & Services → OAuth consent screen** → User type **External** → Create.
+   Isi App name, User support email, Developer contact. Simpan. Biarkan status **Testing**.
+3. Di halaman yang sama → **Audience / Test users → Add users** → masukkan email Google
+   yang akan dipakai masuk. Mode Testing hanya melayani email di daftar ini (maks. 100).
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID** →
+   Application type **Web application**.
+5. **Authorized redirect URIs → Add URI**, isi dua-duanya:
+   - `https://monetary.rianfathany.com/auth/google/callback`
+   - `http://127.0.0.1:8765/auth/google/callback` (untuk uji di laptop)
+6. Create → salin **Client ID** dan **Client secret**.
+7. Buka Monetary → Setelan → Akun → Masuk dengan Google → tempel keduanya, isi email yang
+   boleh masuk (pisahkan dengan koma), Simpan.
+
+Yang dipakai hanya scope `openid email profile`; aplikasi tidak meminta akses apa pun ke
+data Google lain. Email harus berstatus terverifikasi di Google dan ada di daftar izin.
+
+**Kalau sesi habis** (30 hari), halaman yang sedang terbuka tidak dilempar keluar: muncul
+popup untuk mengisi password lagi, dan kiriman form yang tertahan dilanjutkan setelah itu.
+Refresh halaman tetap mengarah ke `/login` seperti biasa.
+
+## Banyak pengguna, data terpisah
+
+Satu pengguna = **satu file database**. Pemisahannya di tingkat file, bukan kolom,
+supaya tidak ada satu pun query yang bisa lupa menyaring milik siapa:
+
+```
+data/monetary.db      buku pemilik (data lama Anda, tidak berubah)
+data/books/book-2.db  buku pengguna kedua, dst.
+data/system.db        daftar pengguna + setelan aplikasi (password pemilik, secret, konfigurasi Google)
+```
+
+Alur masuk lewat Google:
+
+| Email | Hasil |
+|---|---|
+| sudah terdaftar | masuk ke bukunya sendiri |
+| ada di **daftar izin** (Setelan → Akun) | masuk ke **buku pemilik** — untuk pasangan/keluarga yang memang berbagi catatan |
+| email lain, pendaftaran dibuka | dibuatkan **buku kosong** berisi kategori & kantong bawaan |
+| email lain, pendaftaran ditutup | ditolak dengan pesan |
+
+
+**Ukuran & kecepatan** (diukur 2026-09-23, data asli 336 transaksi):
+halaman dirender 4–9 ms; dengan simulasi 10.416 transaksi (≈10 tahun) query terberat
+tetap di bawah 2,5 ms. Buku kosong baru = 84 KB, jadi volume 1 GB di Fly muat belasan ribu
+buku. Membuka koneksi per permintaan 0,33 ms — tidak perlu connection pool.
+
+Indeks sengaja **parsial** (`WHERE deleted_at IS NULL`) dan mengikuti bentuk query yang
+ada; versi lama yang berawalan `ledger_id` tidak pernah terpakai oleh query mana pun
+(semua query memfilter `month_key`, bukan `ledger_id`) dan dibuang otomatis saat skema
+diterapkan. Pragma: WAL, `synchronous=NORMAL`, `busy_timeout=5000`, cache 8 MB,
+`temp_store=MEMORY`, plus `ANALYZE` sekali saat buku disiapkan.
+
+**Update aplikasi = semua buku ikut naik versi.** Perubahan skema ditulis sekali di
+`app/schema.py`:
+
+```python
+SCHEMA_VERSION = 3
+MIGRATIONS = {3: ["ALTER TABLE transactions ADD COLUMN tag TEXT"]}
+```
+
+Saat aplikasi start, `upgrade_all_books()` menaikkan versi **setiap** file buku (pemilik
+dan seluruh pengguna) dan mencatatnya di log; buku yang kebetulan tidak ikut — misalnya
+dibuat oleh proses lain — diperbaiki begitu dibuka, karena `set_book()` memanggil
+`ensure_book()` (sekali per buku per proses). Tabel/indeks baru cukup ditulis di `SCHEMA`
+(semuanya `IF NOT EXISTS`); `MIGRATIONS` hanya untuk yang tidak bisa dinyatakan begitu,
+seperti `ALTER TABLE`. Kategori bawaan yang baru ditambahkan ikut ter-seed ke buku lama.
+Perilaku ini dijaga oleh `tests/test_users.py::TestPembaruanSkema`.
+
+
+**Dua jalan masuk.** Pengguna bisa mendaftar lewat Google (SSO) atau lewat email +
+password di `/register`. Keduanya menghasilkan hal yang sama: satu akun dan satu file
+buku kosong.
+
+Karena aplikasi ini tidak mengirim surel, email dari pendaftaran password **tidak
+diverifikasi**. Risikonya jelas (orang bisa mendaftar memakai email orang lain), dan
+ditangani begitu pemilik email sebenarnya masuk lewat Google: akunnya ditandai
+terverifikasi, password lama dibuang, dan seluruh sesi lama dicabut — jadi pendaftar
+semula kehilangan akses, sementara bukunya tetap utuh untuk pemilik email yang sah.
+
+Kolom `users.session_epoch` dinaikkan setiap password diganti atau akun diambil alih;
+cookie membawa angka itu, sehingga sesi di perangkat lain berhenti berlaku tanpa perlu
+memutar secret aplikasi (yang akan mengeluarkan semua pengguna sekaligus).
+
+Middleware menentukan file buku sekali per permintaan dari sesi (`app/main.py`,
+`_book_and_language`), lalu semua query memakai `get_db()` seperti biasa tanpa tahu
+siapa penggunanya. Setelan yang berlaku untuk seluruh aplikasi diambil lewat
+`get_app_setting()` (system.db), setelan per buku tetap lewat `get_setting(db, ...)`.
+
+Pemilik mengelola pengguna di **Setelan → Pengguna**: melihat daftar, menonaktifkan
+akun (bukunya tidak dihapus), dan menutup pendaftaran baru. Ganti password dan
+konfigurasi Google hanya bisa disentuh pemilik.
+
+Selama OAuth consent screen Google masih mode **Testing**, hanya email yang Anda
+daftarkan sebagai *test user* di Google yang bisa sampai ke halaman pendaftaran —
+itu lapis pertama, tombol "Izinkan pendaftaran baru" lapis kedua.
+
+
+**Membuka pendaftaran untuk umum** (Google Console → Audience → **Publish app**).
+Karena scope-nya non-sensitif (`openid email profile`), tidak perlu verifikasi Google.
+Yang diminta consent screen sudah tersedia di aplikasi:
+
+| Kolom di Google | Isi |
+|---|---|
+| Application home page | `https://monetary.rianfathany.com` |
+| Privacy policy URL | `https://monetary.rianfathany.com/privacy` |
+| Terms of service URL | `https://monetary.rianfathany.com/terms` |
+| Authorized domain | `rianfathany.com` |
+
+Kedua halaman itu dirender dari `app/legal.py` (dwibahasa, tanpa perlu login) dan
+menyebut apa adanya: hanya email + nama yang diambil dari Google, data disimpan di
+file terpisah per pengguna di Fly region Singapura, tidak ada iklan/pelacak, dan cara
+menghapus akun. Pengguna non-pemilik bisa menghapus akunnya sendiri lewat
+**Setelan → Akun → Hapus akun**: baris pengguna dan file bukunya hilang saat itu juga.
 
 ## Struktur
 
@@ -82,8 +221,13 @@ Satu password, disimpan sebagai hash PBKDF2 di tabel `settings` bersama secret c
 app/main.py        routes (bulan, transaksi, kantong, aset, laporan, ringkasan, setelan)
 app/report.py      laporan bulanan: build_metrics() hitung angka, render_rules() susun narasi
 app/suggest.py     tebakan kategori dari kata kunci deskripsi (dipakai layar perapihan)
+app/users.py       pengguna + buku masing-masing (file database terpisah)
+app/legal.py       isi halaman /privacy dan /terms (dipakai consent screen Google)
+app/oauth.py       masuk dengan Google (OAuth2 + PKCE), daftar email yang diizinkan
+app/i18n.py        dwibahasa: bahasa aktif per-permintaan, nama bulan, satuan angka
+app/lang_en.py     kamus terjemahan Inggris (kunci = teks Indonesia di template/kode)
 tests/            unittest, jalan tanpa server dan tanpa database asli
-app/db.py          koneksi SQLite + perhitungan saldo kantong
+app/db.py          koneksi SQLite per buku, system.db, perhitungan saldo kantong
 app/schema.py      skema v2 + kategori/kantong bawaan
 app/auth.py        login satu user, cookie bertanda tangan
 app/templates/     Jinja2 — base, month, accounts, assets, report, review, overview, settings, login
