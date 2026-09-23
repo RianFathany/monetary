@@ -2,10 +2,12 @@
 {% block title %}Setelan · Monetary{% endblock %}
 {% block content %}
 
+{% if review_count %}
 <section class="card">
-  <div class="sec"><h2>{{ _('Perapihan') }}</h2><small>{{ _('transaksi impor yang kategorinya perlu dicek') }}</small></div>
+  <div class="sec"><h2>{{ _('Perapihan') }}</h2><small>{{ review_count }} {{ _('transaksi perlu dicek') }}</small></div>
   <a class="btn tall" href="/review" style="display:block"><b>{{ _('Buka layar perapihan') }}</b><span>{{ _('aplikasi menyarankan kategori dari deskripsi; kamu yang memutuskan') }}</span></a>
 </section>
+{% endif %}
 
 <section class="card" id="categories" style="margin-top:10px">
   <div class="sec"><h2>{{ _('Kategori') }}</h2><small>{{ _('ketuk untuk mengubah nama, urutan, atau menandai cicilan') }}</small></div>

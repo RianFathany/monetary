@@ -209,6 +209,8 @@ def render(request: Request, name: str, **ctx):
 
 # ---------- domain ----------
 
+REVIEW_WHERE = ("t.deleted_at IS NULL AND (t.needs_review=1 OR (t.category_id IS NULL AND t.type<>'transfer'))")
+
 def categories(db, kind: Optional[str] = None, active_only: bool = True):
     sql = "SELECT * FROM categories WHERE deleted_at IS NULL"
     args: list = []
@@ -690,11 +692,12 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = ""):
             "SELECT category_id, COUNT(*) c FROM transactions WHERE deleted_at IS NULL GROUP BY category_id")}
         accs = accounts(db)
         first_month = get_setting(db, "first_month", "")
+        review_count = db.execute(f"SELECT COUNT(*) c FROM transactions t WHERE {REVIEW_WHERE}").fetchone()["c"]
         gc = oauth.config()
         google = dict(client_id=gc["client_id"], allowed=gc["allowed"], has_secret=bool(gc["client_secret"]),
                       redirect_uri=oauth.redirect_uri(request))
     u = me(request)
-    return render(request, "settings.html", has_password=bool(u and (u["password_hash"] or u["is_owner"])),
+    return render(request, "settings.html", review_count=review_count, has_password=bool(u and (u["password_hash"] or u["is_owner"])),
                   google=google, recurring=rec, cats=cats, used=used, accounts=accs,
                   first_month=first_month, page="settings", mk=this_month(), pw=pw, g=g,
                   me=u, is_owner=bool(u and u["is_owner"]),
@@ -946,7 +949,6 @@ def assets_delete(request: Request, aid: int, month_key: str = Form(...)):
 
 # ---------- perapihan kategori ----------
 
-REVIEW_WHERE = ("t.deleted_at IS NULL AND (t.needs_review=1 OR (t.category_id IS NULL AND t.type<>'transfer'))")
 
 
 @app.get("/review", response_class=HTMLResponse)

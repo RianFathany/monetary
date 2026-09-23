@@ -536,4 +536,5 @@ EN = {
     "Kalau dimatikan, hanya akun yang sudah ada yang bisa masuk.": "When off, only existing accounts can sign in.",
     "Setiap orang yang mendaftar mendapat bukunya sendiri — data keuangan Anda tidak ikut terlihat. Mereka hanya bisa mengurus bukunya sendiri: tidak bisa melihat daftar pengguna, mengubah konfigurasi Google, atau menyentuh setelan aplikasi.":
         "Everyone who signs up gets their own book — your finances stay out of sight. They can only manage their own book: no user list, no Google settings, nothing app-level.",
+    "transaksi perlu dicek": "transactions need a check",
 }
