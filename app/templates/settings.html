@@ -77,8 +77,9 @@
 
 {% if is_owner %}
 <section class="card" id="users" style="margin-top:10px">
-  <div class="sec"><h2>{{ _('Pengguna') }}</h2><small>{{ users_list | length }} {{ _('akun') }}</small></div>
-  <p class="hint" style="margin:0 0 8px">{{ _('Setiap orang yang mendaftar lewat Google mendapat bukunya sendiri — data keuangan Anda tidak ikut terlihat. Email di daftar izin (di bawah) adalah pengecualian: mereka masuk ke buku Anda.') }}</p>
+  <div class="sec"><h2>{{ _('Pengguna') }}</h2><small>{{ user_count }} / {{ max_users }} {{ _('akun') }}</small></div>
+  {% if adm=='ok' %}<div class="note ok">{{ _('Pengaturan admin disimpan.') }}</div>{% elif adm=='email' %}<div class="note bad">{{ _('Alamat email tidak valid.') }}</div>{% endif %}
+  <p class="hint" style="margin:0 0 8px">{{ _('Setiap orang yang mendaftar mendapat bukunya sendiri — data keuangan Anda tidak ikut terlihat. Mereka hanya bisa mengurus bukunya sendiri: tidak bisa melihat daftar pengguna, mengubah konfigurasi Google, atau menyentuh setelan aplikasi.') }}</p>
   <div class="panel-wrap" style="padding:0">
     {% for u in users_list %}
     <div class="row static" style="--i:{{ loop.index0 }}">
@@ -86,7 +87,7 @@
       <div class="main">
         <div class="name">{{ u.name or u.email }}</div>
         <div class="meta">
-          {% if u.is_owner %}<span class="pill">{{ _('pemilik') }}</span>{% endif %}
+          {% if u.is_owner %}<span class="pill ok">{{ _('superadmin') }}</span>{% endif %}
           {% if not u.active %}<span class="pill warn">{{ _('nonaktif') }}</span>{% endif %}
           <span>{{ u.email }}</span>
           {% if u.last_login_at %}<span>{{ _('terakhir') }} {{ u.last_login_at | stamp }}</span>{% endif %}
@@ -103,13 +104,26 @@
   </div>
   <form method="post" action="/settings/signup" style="margin-top:10px">
     <label class="check"><input type="checkbox" name="allow" value="1" {{ 'checked' if signup_open }} onchange="this.form.submit()">
-      <span>{{ _('Izinkan pendaftaran baru lewat Google') }}<small>{{ _('Kalau dimatikan, hanya email yang sudah terdaftar yang bisa masuk.') }}</small></span></label>
+      <span>{{ _('Izinkan pendaftaran baru') }}<small>{{ _('Kalau dimatikan, hanya akun yang sudah ada yang bisa masuk.') }}</small></span></label>
   </form>
+
+  <details class="acc" {{ 'open' if adm }}>
+    <summary>{{ _('Akun superadmin') }}</summary>
+    <form method="post" action="/settings/admin" autocomplete="off">
+      <label>{{ _('Email superadmin') }}</label>
+      <input name="owner_email" value="{{ owner_email }}" placeholder="nama@gmail.com">
+      <p class="hint">{{ _('Hanya email ini yang memegang buku utama beserta seluruh setelan aplikasi. Email lain — termasuk yang ada di daftar izin — masuk sebagai pengguna biasa.') }}</p>
+      <label>{{ _('Batas jumlah akun') }}</label>
+      <input name="max_users" type="number" min="1" max="1000" value="{{ max_users }}">
+      <p class="hint">{{ _('Pendaftaran otomatis berhenti setelah batas ini tercapai.') }}</p>
+      <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
+    </form>
+  </details>
 </section>
 {% endif %}
 
 <section class="card" id="account" style="margin-top:10px">
-  <div class="sec"><h2>{{ _('Akun') }}</h2><small>{{ _('pemilik') if is_owner else _('pengguna') }}</small></div>
+  <div class="sec"><h2>{{ _('Akun') }}</h2><small>{{ _('superadmin') if is_owner else _('pengguna') }}</small></div>
   <div class="row static">
     <span class="av" style="--h:{{ (me.email if me else 'x') | hue }}">{{ ((me.name or me.email) if me else '?')[:2] }}</span>
     <div class="main">

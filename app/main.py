@@ -678,7 +678,7 @@ def account_delete(request: Request, aid: int):
 # ---------- setelan: kategori, rutin, akun ----------
 
 @app.get("/settings", response_class=HTMLResponse)
-def settings_page(request: Request, pw: str = "", g: str = ""):
+def settings_page(request: Request, pw: str = "", g: str = "", adm: str = ""):
     if (r := require_login(request)):
         return r
     with get_db() as db:
@@ -699,7 +699,8 @@ def settings_page(request: Request, pw: str = "", g: str = ""):
                   first_month=first_month, page="settings", mk=this_month(), pw=pw, g=g,
                   me=u, is_owner=bool(u and u["is_owner"]),
                   users_list=users.all_users() if (u and u["is_owner"]) else [],
-                  signup_open=users.signup_open())
+                  signup_open=users.signup_open(), adm=adm,
+                  owner_email=users.owner_email(), max_users=users.max_users(), user_count=users.count())
 
 
 @app.post("/settings/category")
@@ -807,11 +808,27 @@ def settings_account_delete(request: Request):
 
 @app.post("/settings/signup")
 def settings_signup(request: Request, allow: str = Form("")):
-    """Buka/tutup pendaftaran pengguna baru lewat Google."""
+    """Buka/tutup pendaftaran pengguna baru."""
     if (r := require_owner(request)):
         return r
     set_app_setting("allow_signup", "1" if allow else "0")
     return RedirectResponse("/settings#users", status_code=303)
+
+
+@app.post("/settings/admin")
+def settings_admin(request: Request, owner_email: str = Form(""), max_users: str = Form("")):
+    """Email pemegang akun superadmin + batas jumlah akun."""
+    if (r := require_owner(request)):
+        return r
+    email = (owner_email or "").strip().lower()
+    if email and not users.valid_email(email):
+        return RedirectResponse("/settings?adm=email#users", status_code=303)
+    set_app_setting("owner_email", email)
+    try:
+        set_app_setting("max_users", str(max(1, int(max_users))))
+    except (TypeError, ValueError):
+        pass
+    return RedirectResponse("/settings?adm=ok#users", status_code=303)
 
 
 @app.post("/settings/users/{uid}/active")

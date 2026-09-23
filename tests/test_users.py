@@ -284,3 +284,51 @@ class TestDaftarEmailPassword(unittest.TestCase):
         u = self.users.create("sso@mail.com", email_verified=True)
         self.assertIsNone(u["password_hash"])
         self.assertEqual(u["email_verified"], 1)
+
+
+class TestSuperadmin(unittest.TestCase):
+    """Hanya satu email yang boleh memegang buku utama; sisanya pengguna biasa."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        from app import db, users
+        self._orig = db.DB_PATH
+        db.DB_PATH = str(Path(self.tmp.name) / "monetary.db")
+        db._ready.clear(); db._system_ready.clear()
+        db.init_book(db.DB_PATH); db.init_system()
+        self.db, self.users = db, users
+        db.set_app_setting("owner_email", "bos@gmail.com")
+
+    def tearDown(self):
+        self.db.set_book("")
+        self.db.DB_PATH = self._orig
+        self.db._ready.clear(); self.db._system_ready.clear()
+        self.tmp.cleanup()
+
+    def test_email_superadmin_memegang_buku_utama(self):
+        u = self.users.claim_owner("bos@gmail.com", "Bos")
+        self.assertTrue(u["is_owner"])
+        self.assertEqual(Path(self.users.path_for(u)).name, "monetary.db")
+
+    def test_email_lain_di_daftar_izin_bukan_superadmin(self):
+        lain = self.users.claim_owner("pasangan@gmail.com", "Pasangan")
+        self.assertFalse(lain["is_owner"])
+        self.assertEqual(Path(self.users.path_for(lain)).name, "monetary.db")   # buku sama
+        self.assertEqual(self.users.owner()["email"], "owner")                  # kursi pemilik tetap kosong
+
+    def test_superadmin_tetap_dia_meski_orang_lain_masuk_duluan(self):
+        self.users.claim_owner("pasangan@gmail.com")
+        u = self.users.claim_owner("bos@gmail.com")
+        self.assertTrue(u["is_owner"])
+
+    def test_batas_jumlah_akun_menutup_pendaftaran(self):
+        self.db.set_app_setting("max_users", "2")
+        self.assertTrue(self.users.signup_open())          # baru pemilik
+        self.users.create("a@mail.com")
+        self.assertFalse(self.users.signup_open())         # sudah 2 akun
+        self.db.set_app_setting("max_users", "10")
+        self.assertTrue(self.users.signup_open())
+
+    def test_sakelar_pendaftaran_tetap_berlaku(self):
+        self.db.set_app_setting("allow_signup", "0")
+        self.assertFalse(self.users.signup_open())

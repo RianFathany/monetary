@@ -523,4 +523,17 @@ EN = {
         "This account signs in with Google. Adding a password gives you a fallback door.",
     "Password baru minimal 8 karakter dan harus sama dengan konfirmasi.":
         "The new password needs at least 8 characters and must match the confirmation.",
+    # --- superadmin ---
+    "superadmin": "superadmin",
+    "Akun superadmin": "Superadmin account",
+    "Email superadmin": "Superadmin email",
+    "Hanya email ini yang memegang buku utama beserta seluruh setelan aplikasi. Email lain — termasuk yang ada di daftar izin — masuk sebagai pengguna biasa.":
+        "Only this email holds the main book and every app-level setting. Any other email — including those on the allowlist — signs in as a regular user.",
+    "Batas jumlah akun": "Account limit",
+    "Pendaftaran otomatis berhenti setelah batas ini tercapai.": "Sign-ups stop automatically once this limit is reached.",
+    "Pengaturan admin disimpan.": "Admin settings saved.",
+    "Izinkan pendaftaran baru": "Allow new sign-ups",
+    "Kalau dimatikan, hanya akun yang sudah ada yang bisa masuk.": "When off, only existing accounts can sign in.",
+    "Setiap orang yang mendaftar mendapat bukunya sendiri — data keuangan Anda tidak ikut terlihat. Mereka hanya bisa mengurus bukunya sendiri: tidak bisa melihat daftar pengguna, mengubah konfigurasi Google, atau menyentuh setelan aplikasi.":
+        "Everyone who signs up gets their own book — your finances stay out of sight. They can only manage their own book: no user list, no Google settings, nothing app-level.",
 }

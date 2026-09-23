@@ -44,16 +44,39 @@ def all_users():
 
 
 def signup_open() -> bool:
-    return get_app_setting("allow_signup", "1") != "0"
+    return get_app_setting("allow_signup", "1") != "0" and count() < max_users()
+
+
+def max_users() -> int:
+    """Batas jumlah akun. Menjaga volume server, dan menahan pendaftaran beruntun."""
+    try:
+        return max(1, int(get_app_setting("max_users", "50")))
+    except ValueError:
+        return 50
+
+
+def owner_email() -> str:
+    """Email yang memegang akun superadmin. Hanya email ini yang boleh menjadi
+    pemilik; email lain di daftar izin sekadar ikut membaca buku pemilik."""
+    return (get_app_setting("owner_email", "") or "").strip().lower()
+
+
+def is_owner_email(email: str) -> bool:
+    oe = owner_email()
+    return bool(oe) and (email or "").strip().lower() == oe
 
 
 def claim_owner(email: str, name: str = ""):
-    """Email di daftar izin dipakai untuk buku pemilik. Yang pertama masuk
-    menempel ke baris pemilik; berikutnya dibuatkan baris sendiri, tapi tetap
-    menunjuk file buku yang sama."""
+    """Email yang berhak memakai buku pemilik.
+
+    Baris pemilik (superadmin) hanya boleh ditempel oleh `owner_email`. Email lain
+    di daftar izin tetap masuk ke buku yang sama, tapi sebagai pengguna biasa —
+    mereka tidak bisa mengelola pengguna, konfigurasi Google, atau password aplikasi.
+    """
     o = owner()
+    take_over = is_owner_email(email) or not owner_email()
     with system_db() as db:
-        if o and (not o["email"] or o["email"] == "owner"):
+        if take_over and o and (not o["email"] or o["email"] == "owner"):
             db.execute("UPDATE users SET email=?, name=COALESCE(NULLIF(?,''), name) WHERE id=?",
                        (email.lower(), name, o["id"]))
             uid = o["id"]
