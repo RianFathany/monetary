@@ -1249,7 +1249,7 @@ def assets_delete(request: Request, aid: int, month_key: str = Form(...)):
 def import_page(request: Request):
     if (r := require_login(request)):
         return r
-    return render(request, "import.html", baris=None, galat="", nama="")
+    return render(request, "import.html", baris=None, galat="", nama="", page="impor")
 
 
 @app.post("/impor", response_class=HTMLResponse)
@@ -1267,11 +1267,11 @@ async def import_read(request: Request, berkas: UploadFile = File(None), passwor
         blob = await berkas.read(statement.MAKS_BYTE + 1) if berkas else b""
         baris = statement.ekstrak(nama, blob, password)
     except statement.Gagal as e:
-        return render(request, "import.html", baris=None, galat=str(e), nama=nama)
+        return render(request, "import.html", baris=None, galat=str(e), nama=nama, page="impor")
     finally:
         if berkas:
             await berkas.close()
-    return render(request, "import.html", baris=baris, galat="", nama=nama)
+    return render(request, "import.html", baris=baris, galat="", nama=nama, page="impor")
 
 
 @app.get("/review", response_class=HTMLResponse)

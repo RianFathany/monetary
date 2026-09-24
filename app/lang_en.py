@@ -619,6 +619,7 @@ EN = {
     "belum diatur": "not set up",
     "Cadangkan sekarang": "Back up now",
     "Impor dari bank": "Import from bank",
+    "Impor": "Import",
     "baca e-statement PDF, XLSX, atau CSV": "read a PDF, XLSX or CSV statement",
     "rekening koran & tagihan kartu": "statements & card bills",
     "Unggah e-statement PDF, XLSX, atau CSV. Untuk sekarang aplikasi hanya menampilkan apa yang berhasil dibacanya — belum ada yang disimpan. Berkas dan passwordnya tidak pernah ditulis ke server.":
