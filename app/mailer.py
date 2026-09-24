@@ -3,15 +3,16 @@
 Dipakai untuk dua hal saja: memverifikasi alamat email saat mendaftar, dan
 mengirim tautan setel ulang password. Tidak ada surel pemasaran.
 
-API key dan alamat pengirim disimpan di system.db (setelan aplikasi), sejalan
-dengan konfigurasi Google — jadi bisa diatur dari halaman Setelan tanpa deploy.
+API key dan alamat pengirim hanya dibaca dari environment, sejalan dengan
+konfigurasi Google. Nilai lama di system.db masih dipakai sebagai cadangan supaya
+pemasangan yang sudah jalan tidak mati mendadak.
 """
 import json
 import os
 import urllib.error
 import urllib.request
 
-from .db import get_app_setting, set_app_setting
+from .db import get_app_setting
 
 API = "https://api.resend.com/emails"
 
@@ -34,13 +35,6 @@ def from_env() -> bool:
     """Benar kalau surel hidup karena environment, bukan karena diketik di Setelan."""
     return bool((os.environ.get("RESEND_API_KEY") or "").strip()
                 and not (get_app_setting("resend_key") or "").strip())
-
-
-def save_config(api_key: str, sender: str, name: str) -> None:
-    if api_key.strip():                       # kosong = biarkan yang lama
-        set_app_setting("resend_key", api_key.strip())
-    set_app_setting("mail_from", sender.strip())
-    set_app_setting("mail_name", name.strip()[:60])
 
 
 def is_enabled() -> bool:

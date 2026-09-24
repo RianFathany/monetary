@@ -604,6 +604,10 @@ EN = {
     "arsip": "archives",
     "belum diatur": "not set up",
     "Cadangkan sekarang": "Back up now",
+    "Diatur lewat environment server, tidak ada formnya di sini: system.db ikut terbungkus ke dalam arsip, jadi kunci yang diketik lewat halaman ini akan ikut tersimpan di setiap cadangan yang ditulisnya sendiri.":
+        "Configured through the server environment, with no form here: system.db goes into the archive too, so a key typed on this page would end up stored inside every backup it writes.",
+    "Wajib: BACKUP_ENDPOINT, BACKUP_BUCKET, BACKUP_KEY, BACKUP_SECRET. Opsional: BACKUP_REGION, BACKUP_PREFIX, BACKUP_KEEP, BACKUP_EVERY_HOURS.":
+        "Required: BACKUP_ENDPOINT, BACKUP_BUCKET, BACKUP_KEY, BACKUP_SECRET. Optional: BACKUP_REGION, BACKUP_PREFIX, BACKUP_KEEP, BACKUP_EVERY_HOURS.",
     "Pengaturan penyimpanan": "Storage settings",
     "Isi dengan Cloudflare R2, Backblaze B2, atau penyimpanan lain yang berbicara S3. Seluruh buku pengguna + daftar akun dikirim sebagai satu arsip .tar.gz terenkripsi di sisi penyedia.":
         "Point this at Cloudflare R2, Backblaze B2, or anything else that speaks S3. Every user book plus the account list goes up as one .tar.gz archive, encrypted at rest by the provider.",

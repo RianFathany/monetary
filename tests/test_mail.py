@@ -43,13 +43,6 @@ class TestTautanSurel(unittest.TestCase):
         ok, err = self.mailer.send("a@b.com", "x", "y", ["z"])
         self.assertFalse(ok)
 
-    def test_konfigurasi_surel_disimpan(self):
-        self.mailer.save_config("re_kunci", "kirim@contoh.com", "Muara")
-        self.assertTrue(self.mailer.is_enabled())
-        self.mailer.save_config("", "kirim2@contoh.com", "Muara")   # kosong = kunci lama dipakai
-        self.assertEqual(self.mailer.config()["api_key"], "re_kunci")
-        self.assertEqual(self.mailer.config()["sender"], "kirim2@contoh.com")
-
     def test_isi_surel_memuat_tautan(self):
         html = self.mailer.render("Judul", ["baris"], ("Klik", "https://contoh/x?token=abc"))
         self.assertIn("https://contoh/x?token=abc", html)

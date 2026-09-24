@@ -4,9 +4,9 @@ Aplikasi ini tetap satu buku. Google hanya dipakai untuk membuktikan bahwa
 pemilik email tertentu yang sedang masuk; daftar email yang boleh masuk
 disimpan sendiri, jadi orang lain yang punya akun Google tidak bisa ikut masuk.
 
-Client ID, Client Secret, dan daftar email disimpan di tabel settings —
-sejalan dengan password — supaya tidak perlu mengutak-atik .env di server.
-Tanpa dependensi baru: cukup urllib bawaan Python.
+Client ID, Client Secret, dan daftar email hanya dibaca dari environment; nilai
+lama di tabel settings masih dipakai sebagai cadangan supaya pemasangan yang sudah
+jalan tidak mati mendadak. Tanpa dependensi baru: cukup urllib bawaan Python.
 """
 import base64
 import hashlib
@@ -17,7 +17,7 @@ import time
 import urllib.parse
 import urllib.request
 
-from .db import get_app_setting, set_app_setting
+from .db import get_app_setting
 
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -36,7 +36,7 @@ def _pick(key: str, env: str) -> str:
 
 def config(db=None) -> dict:
     """Konfigurasi Google berlaku untuk seluruh aplikasi, jadi diambil dari
-    system.db, dengan environment sebagai bawaan."""
+    environment, dengan nilai lama di system.db sebagai cadangan."""
     return dict(
         client_id=_pick("google_client_id", "GOOGLE_CLIENT_ID"),
         client_secret=_pick("google_client_secret", "GOOGLE_CLIENT_SECRET"),
@@ -49,13 +49,6 @@ def from_env() -> bool:
     di Setelan — dipakai halaman Setelan untuk menjelaskan keadaannya."""
     return bool((os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
                 and not (get_app_setting("google_client_id") or "").strip())
-
-
-def save_config(db, client_id: str, client_secret: str, allowed: str) -> None:
-    set_app_setting("google_client_id", client_id.strip())
-    if client_secret.strip():                     # kosong = biarkan yang lama
-        set_app_setting("google_client_secret", client_secret.strip())
-    set_app_setting("google_allowed", ", ".join(emails(allowed)))
 
 
 def emails(raw: str) -> list:

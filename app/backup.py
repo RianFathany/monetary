@@ -11,6 +11,12 @@ menyalin file mentah yang bisa tertangkap setengah jalan).
 Penjadwalan sengaja "malas": dicek sekali per permintaan, dan kalau sudah lewat
 tenggat, dijalankan di thread terpisah. Mesin Fly berhenti saat idle, jadi cron
 di dalam proses tidak bisa diandalkan; cara ini menumpang lalu lintas biasa.
+
+Konfigurasinya hanya lewat environment, sejalan dengan Resend dan Google. Selain
+karena kunci penyimpanan adalah urusan penyebaran, ada alasan khusus di sini:
+`system.db` ikut masuk ke dalam arsip, jadi kunci yang diketik lewat Setelan akan
+terbungkus di dalam setiap cadangan yang ditulisnya sendiri. Yang tetap tinggal di
+database cuma catatan hasil cadangan terakhir.
 """
 import io
 import os
@@ -23,39 +29,42 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import s3
-from .db import DB_PATH, all_books, get_app_setting, set_app_setting, system_path
+from .db import all_books, get_app_setting, set_app_setting, system_path
 
 _running = threading.Lock()
 
 
+def _pick(key: str, env: str, default: str = "") -> str:
+    """Environment yang berlaku. Nilai di database hanya sisa dari versi lama,
+    saat cadangan masih bisa diatur lewat halaman Setelan."""
+    return ((os.environ.get(env) or "").strip() or (get_app_setting(key) or "").strip() or default)
+
+
+def _number(key: str, env: str, default: int, lo: int, hi: int) -> int:
+    """Angka yang salah ketik di environment tidak boleh mematikan cadangan."""
+    try:
+        return min(hi, max(lo, int(_pick(key, env, str(default)))))
+    except (TypeError, ValueError):
+        return default
+
+
 def config() -> dict:
     return dict(
-        endpoint=(get_app_setting("backup_endpoint") or "").strip(),
-        bucket=(get_app_setting("backup_bucket") or "").strip(),
-        access_key=(get_app_setting("backup_key") or "").strip(),
-        secret_key=(get_app_setting("backup_secret") or "").strip(),
-        region=(get_app_setting("backup_region") or "auto").strip(),
-        prefix=(get_app_setting("backup_prefix") or "monetary/").strip(),
-        keep=int(get_app_setting("backup_keep", "14") or 14),
-        every_hours=int(get_app_setting("backup_every_hours", "24") or 24),
+        endpoint=_pick("backup_endpoint", "BACKUP_ENDPOINT"),
+        bucket=_pick("backup_bucket", "BACKUP_BUCKET"),
+        access_key=_pick("backup_key", "BACKUP_KEY"),
+        secret_key=_pick("backup_secret", "BACKUP_SECRET"),
+        region=_pick("backup_region", "BACKUP_REGION", "auto"),
+        prefix=_pick("backup_prefix", "BACKUP_PREFIX", "monetary/"),
+        keep=_number("backup_keep", "BACKUP_KEEP", 14, 1, 365),
+        every_hours=_number("backup_every_hours", "BACKUP_EVERY_HOURS", 24, 1, 24 * 30),
     )
 
 
-def save_config(endpoint: str, bucket: str, access_key: str, secret_key: str, region: str,
-                prefix: str, keep: str, every_hours: str) -> None:
-    set_app_setting("backup_endpoint", endpoint.strip())
-    set_app_setting("backup_bucket", bucket.strip())
-    set_app_setting("backup_key", access_key.strip())
-    if secret_key.strip():                     # kosong = biarkan yang lama
-        set_app_setting("backup_secret", secret_key.strip())
-    set_app_setting("backup_region", (region or "auto").strip())
-    set_app_setting("backup_prefix", (prefix or "monetary/").strip())
-    for key, raw, lo, hi, default in (("backup_keep", keep, 1, 365, 14),
-                                      ("backup_every_hours", every_hours, 1, 24 * 30, 24)):
-        try:
-            set_app_setting(key, str(min(hi, max(lo, int(raw)))))
-        except (TypeError, ValueError):
-            set_app_setting(key, str(default))
+def from_env() -> bool:
+    """Benar kalau cadangan hidup karena environment, bukan sisa nilai lama."""
+    return bool((os.environ.get("BACKUP_ENDPOINT") or "").strip()
+                and not (get_app_setting("backup_endpoint") or "").strip())
 
 
 def is_enabled() -> bool:

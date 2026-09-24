@@ -144,8 +144,7 @@
 <section class="card" id="backup" style="margin-top:10px">
   <div class="sec"><h2>{{ _('Cadangan otomatis') }}</h2><small>{{ _('ke penyimpanan di luar server') }}</small></div>
 
-  {% if bk=='ok' %}<div class="note ok">{{ _('Pengaturan cadangan disimpan.') }}</div>
-  {% elif bk=='done' %}<div class="note ok">{{ _('Cadangan berhasil dikirim.') }}</div>
+  {% if bk=='done' %}<div class="note ok">{{ _('Cadangan berhasil dikirim.') }}</div>
   {% elif bk=='fail' %}<div class="note bad">{{ _('Cadangan gagal.') }} {{ backup_status.error }}</div>{% endif %}
 
   <div class="row static" style="padding:8px 0">
@@ -155,6 +154,7 @@
       <div class="meta">
         {% if backup_status.enabled %}
           {% if backup_status.size %}<span>{{ (backup_status.size / 1024) | round(0) | int }} KB · {{ backup_status.books }} {{ _('berkas') }}</span>{% endif %}
+          <span>{{ backup_cfg.bucket }}</span>
           <span>{{ _('setiap') }} {{ backup_cfg.every_hours }} {{ _('jam') }} · {{ _('simpan') }} {{ backup_cfg.keep }} {{ _('arsip') }}</span>
         {% else %}<span class="pill warn">{{ _('belum diatur') }}</span>{% endif %}
       </div>
@@ -165,30 +165,10 @@
   </div>
   {% if backup_status.error and not backup_status.ok %}<p class="hint" style="color:var(--bad)">{{ backup_status.error }}</p>{% endif %}
 
-  <details class="acc" {{ 'open' if bk or not backup_status.enabled }}>
-    <summary>{{ _('Pengaturan penyimpanan') }}</summary>
-    <p class="hint" style="margin:6px 0 2px">{{ _('Isi dengan Cloudflare R2, Backblaze B2, atau penyimpanan lain yang berbicara S3. Seluruh buku pengguna + daftar akun dikirim sebagai satu arsip .tar.gz terenkripsi di sisi penyedia.') }}</p>
-    <form method="post" action="/settings/backup" autocomplete="off">{{ csrf_field }}
-      <label>{{ _('Endpoint') }}</label>
-      <input name="endpoint" value="{{ backup_cfg.endpoint }}" placeholder="https://<account>.r2.cloudflarestorage.com">
-      <div class="f2">
-        <div><label>{{ _('Bucket') }}</label><input name="bucket" value="{{ backup_cfg.bucket }}" placeholder="monetary-backup"></div>
-        <div><label>{{ _('Region') }}</label><input name="region" value="{{ backup_cfg.region }}" placeholder="auto"></div>
-      </div>
-      <label>{{ _('Access key ID') }}</label>
-      <input name="access_key" value="{{ backup_cfg.access_key }}" autocomplete="off">
-      <label>{{ _('Secret access key') }}</label>
-      <input type="password" name="secret_key" placeholder="{{ _('tersimpan — isi hanya bila ingin mengganti') if backup_cfg.secret_key else '' }}">
-      <div class="f2">
-        <div><label>{{ _('Folder') }}</label><input name="prefix" value="{{ backup_cfg.prefix }}" placeholder="monetary/"></div>
-        <div><label>{{ _('Simpan berapa arsip') }}</label><input type="number" name="keep" min="1" max="365" value="{{ backup_cfg.keep }}"></div>
-      </div>
-      <label>{{ _('Setiap berapa jam') }}</label>
-      <input type="number" name="every_hours" min="1" max="720" value="{{ backup_cfg.every_hours }}">
-      <p class="hint">{{ _('Cadangan berjalan saat aplikasi dipakai — mesin server berhenti sendiri ketika menganggur, jadi tidak ada cron yang bisa diandalkan di dalamnya.') }}</p>
-      <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
-    </form>
-  </details>
+  {% if not backup_status.enabled %}
+  <p class="hint">{{ _('Diatur lewat environment server, tidak ada formnya di sini: system.db ikut terbungkus ke dalam arsip, jadi kunci yang diketik lewat halaman ini akan ikut tersimpan di setiap cadangan yang ditulisnya sendiri.') }}</p>
+  <p class="hint">{{ _('Wajib: BACKUP_ENDPOINT, BACKUP_BUCKET, BACKUP_KEY, BACKUP_SECRET. Opsional: BACKUP_REGION, BACKUP_PREFIX, BACKUP_KEEP, BACKUP_EVERY_HOURS.') }}</p>
+  {% endif %}
 </section>
 {% endif %}
 

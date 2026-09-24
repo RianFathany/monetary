@@ -229,8 +229,8 @@ menghapus akun. Pengguna non-pemilik bisa menghapus akunnya sendiri lewat
 ## Surel: verifikasi email & lupa password
 
 Pengiriman lewat **Resend** (HTTPS, tanpa dependensi baru). API key dan alamat pengirim
-diatur di **Setelan → Akun → Pengiriman surel** (superadmin), lengkap dengan tombol
-"Kirim surel uji". Tanpa konfigurasi ini aplikasi tetap jalan — hanya saja tautan
+diatur di environment (`RESEND_API_KEY`, `MAIL_SENDER`, `MAIL_NAME`); yang tersisa di
+**Setelan → Akun** tinggal tombol "Kirim surel uji". Tanpa konfigurasi ini aplikasi tetap jalan — hanya saja tautan
 verifikasi dan pemulihan password tidak terkirim, dan halaman `/forgot` mengatakannya
 terus terang.
 
@@ -250,9 +250,27 @@ masuk) dan semua sesi lama dicabut.
 ## Cadangan otomatis ke luar server
 
 Volume Fly hanya punya snapshot harian milik Fly sendiri. Sejak aplikasi dipakai orang
-lain, salinan di tempat kedua jadi wajib. Diatur di **Setelan → Cadangan otomatis**
-(superadmin): endpoint S3, bucket, kunci, folder, berapa arsip disimpan, dan tiap berapa
-jam.
+lain, salinan di tempat kedua jadi wajib.
+
+Diatur di environment — **hanya di sana**, tidak ada formnya di aplikasi:
+`fly secrets set BACKUP_ENDPOINT=… BACKUP_BUCKET=… BACKUP_KEY=… BACKUP_SECRET=…`
+Di laptop, tulis di `.env`. Halaman **Setelan → Cadangan otomatis** tinggal menampilkan
+hasil cadangan terakhir dan tombol **Cadangkan sekarang**.
+
+| Variabel | Wajib | Bawaan |
+|---|---|---|
+| `BACKUP_ENDPOINT` | ya | — (mis. `https://<account>.r2.cloudflarestorage.com`) |
+| `BACKUP_BUCKET` | ya | — |
+| `BACKUP_KEY` / `BACKUP_SECRET` | ya | — (R2: izin Object Read & Write) |
+| `BACKUP_REGION` | tidak | `auto` |
+| `BACKUP_PREFIX` | tidak | `monetary/` |
+| `BACKUP_KEEP` | tidak | `14` arsip |
+| `BACKUP_EVERY_HOURS` | tidak | `24` jam |
+
+Kenapa bukan lewat Setelan seperti dulu: `system.db` ikut masuk ke dalam arsip, jadi
+kunci yang tersimpan di sana akan terbungkus di dalam setiap cadangan yang ditulisnya
+sendiri. Nilai lama di database masih dibaca sebagai cadangan supaya pemasangan yang
+sudah jalan tidak mati mendadak, tapi environment yang menang.
 
 - Isi arsip: `system.db` + **semua** file buku, masing-masing lewat `VACUUM INTO` supaya
   salinannya konsisten meski ada yang sedang menulis — bukan menyalin file mentah.

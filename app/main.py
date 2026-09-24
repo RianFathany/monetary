@@ -550,17 +550,6 @@ def reset(request: Request, token: str = Form(""), new: str = Form(""), confirm:
     return resp
 
 
-@app.post("/settings/backup")
-def settings_backup(request: Request, endpoint: str = Form(""), bucket: str = Form(""),
-                    access_key: str = Form(""), secret_key: str = Form(""), region: str = Form("auto"),
-                    prefix: str = Form("monetary/"), keep: str = Form("14"),
-                    every_hours: str = Form("24")):
-    if (r := require_owner(request)):
-        return r
-    backup.save_config(endpoint, bucket, access_key, secret_key, region, prefix, keep, every_hours)
-    return RedirectResponse("/settings?bk=ok#backup", status_code=303)
-
-
 @app.post("/settings/backup/run")
 def settings_backup_run(request: Request):
     """Jalankan cadangan sekarang, tunggu hasilnya supaya pesannya jujur."""
