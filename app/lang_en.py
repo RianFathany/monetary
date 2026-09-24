@@ -696,4 +696,8 @@ EN = {
     "Diambil dari environment server. Isi di bawah ini hanya bila ingin menimpanya.":
         "Taken from the server environment. Only fill this in if you want to override it.",
     "Tampilkan API key": "Show API key",
+    "Diatur dari environment server — tidak bisa diubah dari sini.":
+        "Set from the server environment — not editable here.",
+    "Pengirim:": "Sender:",
+    "Client ID:": "Client ID:",
 }

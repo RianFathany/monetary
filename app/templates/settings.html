@@ -230,12 +230,13 @@
     {% elif mail=='fail' %}<div class="note bad">{{ _('Surel uji gagal terkirim. Periksa API key dan alamat pengirim.') }}</div>
     {% elif mail=='off' %}<div class="note bad">{{ _('Pengiriman surel belum diatur.') }}</div>{% endif %}
     <p class="hint" style="margin:6px 0 2px">{{ _('Dipakai untuk verifikasi email dan tautan setel ulang password. Tanpa ini, pengguna yang lupa password tidak punya jalan pulih.') }}</p>
+    {% if mailcfg.from_env %}
+    <div class="note ok">{{ _('Diatur dari environment server — tidak bisa diubah dari sini.') }}</div>
+    <p class="hint">{{ _('Pengirim:') }} <b>{{ mailcfg.name }} &lt;{{ mailcfg.sender }}&gt;</b></p>
+    <div class="actions"><form method="post" action="/settings/mail/test">{{ csrf_field }}<button type="submit">{{ _('Kirim surel uji') }}</button></form></div>
+    {% else %}
     <form method="post" action="/settings/mail" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Resend API key') }}</label>
-      {% if mailcfg.from_env %}
-      <div class="note ok">{{ _('Diambil dari environment server. Isi di bawah ini hanya bila ingin menimpanya.') }}</div>
-      <input type="text" name="api_key" placeholder="re_...">
-      {% else %}
       <div class="pw">
         <input type="password" name="api_key" value="{{ mailcfg.api_key }}" placeholder="re_..." spellcheck="false">
         <button type="button" class="eye" data-reveal aria-label="{{ _('Tampilkan API key') }}" title="{{ _('Tampilkan API key') }}">
@@ -243,7 +244,6 @@
           <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 4.2A10.9 10.9 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.2 3.2M1 1l22 22"/></svg>
         </button>
       </div>
-      {% endif %}
       <div class="f2">
         <div><label>{{ _('Alamat pengirim') }}</label><input name="sender" value="{{ mailcfg.sender }}" placeholder="monetary@rianfathany.com"></div>
         <div><label>{{ _('Nama pengirim') }}</label><input name="name" value="{{ mailcfg.name }}" placeholder="Muara"></div>
@@ -251,6 +251,7 @@
       <p class="hint">{{ _('Domain pengirim harus sudah diverifikasi di Resend (SPF & DKIM di Cloudflare).') }}</p>
       <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
     </form>
+    {% endif %}
     <form method="post" action="/settings/mail/test" style="margin-top:8px">{{ csrf_field }}
       <div class="actions"><button type="submit" style="width:100%">{{ _('Kirim surel uji') }}</button></div>
     </form>
@@ -259,9 +260,12 @@
   <details class="acc" {{ 'open' if g }}>
     <summary>{{ _('Masuk dengan Google') }}</summary>
     {% if g=='ok' %}<div class="note ok">{{ _('Pengaturan Google disimpan.') }}</div>{% endif %}
-    {% if google.from_env %}<div class="note ok">{{ _('Tombol Google aktif memakai kredensial dari environment server. Isi di bawah ini hanya bila ingin menimpanya.') }}</div>{% endif %}
     <p class="hint" style="margin:6px 0 2px">{{ _('Daftarkan URI berikut di Google Cloud Console → Credentials → OAuth client (Web application) → Authorized redirect URIs.') }}</p>
     <div class="gcfg"><code>{{ google.redirect_uri }}</code></div>
+    {% if google.from_env %}
+    <div class="note ok">{{ _('Diatur dari environment server — tidak bisa diubah dari sini.') }}</div>
+    <p class="hint">{{ _('Client ID:') }} <code>{{ google.client_id[:18] }}…</code></p>
+    {% else %}
     <form method="post" action="/settings/google" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Client ID') }}</label>
       <input name="client_id" value="{{ google.client_id }}" placeholder="1234567890-abc.apps.googleusercontent.com">
@@ -272,6 +276,7 @@
       <p class="hint">{{ _('Email di daftar ini masuk ke buku Anda (mis. pasangan). Email lain yang mendaftar mendapat buku kosong sendiri.') }}</p>
       <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
     </form>
+    {% endif %}
   </details>
 
   {% endif %}
@@ -279,8 +284,7 @@
     <summary>{{ _('Ganti password') if has_password else _('Atur password') }}</summary>
     {% if pw=='ok' %}<div class="note ok">{{ _('Password diperbarui.') }}</div>{% elif pw=='wrong' %}<div class="note bad">{{ _('Password saat ini salah.') }}</div>{% elif pw=='mismatch' %}<div class="note bad">{{ _('Password baru minimal 8 karakter dan harus sama dengan konfirmasi.') }}</div>{% endif %}
     <form method="post" action="/settings/password" autocomplete="off">{{ csrf_field }}
-      {% if has_password %}<label>{{ _('Password saat ini') }}</label><input type="password" name="current" autocomplete="current-password" required>
-      {% else %}<p class="hint">{{ _('Akun ini masuk lewat Google. Menambah password memberi Anda pintu cadangan.') }}</p>{% endif %}
+      {% if not has_password %}<p class="hint">{{ _('Akun ini masuk lewat Google. Menambah password memberi Anda pintu cadangan.') }}</p>{% endif %}
       <div class="f2">
         <div><label>{{ _('Password baru') }}</label><input type="password" name="new" autocomplete="new-password" minlength="8" required></div>
         <div><label>{{ _('Ulangi') }}</label><input type="password" name="confirm" autocomplete="new-password" minlength="6" required></div>

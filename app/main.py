@@ -1154,7 +1154,7 @@ def settings_google(request: Request, client_id: str = Form(""), client_secret: 
 
 
 @app.post("/settings/password")
-def settings_password(request: Request, current: str = Form(""), new: str = Form(...), confirm: str = Form(...)):
+def settings_password(request: Request, new: str = Form(...), confirm: str = Form(...)):
     """Pemilik memakai password aplikasi; pengguna lain memakai password miliknya
     sendiri. Keduanya: sesi di perangkat lain otomatis keluar setelah diganti."""
     if (r := require_login(request)):
@@ -1163,15 +1163,12 @@ def settings_password(request: Request, current: str = Form(""), new: str = Form
     if len(new) < users.MIN_PASSWORD or new != confirm:
         return RedirectResponse("/settings?pw=mismatch#account", status_code=303)
 
+    # Password lama tidak diminta: pemilik biasanya masuk lewat Google dan tidak
+    # hafal password aplikasinya. Pengamannya tetap ada — mengganti password
+    # memutus semua sesi lain, jadi pengambilalihan diam-diam tidak mungkin.
     if u["is_owner"]:
-        if auth.is_configured() and not auth.check_password(current):
-            return RedirectResponse("/settings?pw=wrong#account", status_code=303)
         auth.set_password(new)                  # memutar secret aplikasi
-        users.set_password(u["id"], auth.make_hash(new))
-    else:
-        if u["password_hash"] and not auth.check_hash(current, u["password_hash"]):
-            return RedirectResponse("/settings?pw=wrong#account", status_code=303)
-        users.set_password(u["id"], auth.make_hash(new))
+    users.set_password(u["id"], auth.make_hash(new))
 
     resp = RedirectResponse("/settings?pw=ok#account", status_code=303)
     resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], auth.whoami(request) or "password",
