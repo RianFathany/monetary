@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Panduan') }} · Muara{% endblock %}
+{% block content %}
+
+<div class="sec"><h2 style="font-size:18px">{{ _('Panduan') }}</h2>
+  <small>{{ _('tiap menu dan gunanya') }}</small>
+</div>
+
+<p class="hint" style="margin:0 0 10px">{{ _('Muara mencatat uang masuk dan keluar per bulan, lalu menjelaskan apa yang terjadi. Semua data tersimpan di bukumu sendiri dan tidak terlihat pengguna lain.') }}</p>
+
+<div class="ulist">
+  {% for m in menus %}
+  <details class="ucard gcard" style="--i:{{ loop.index0 }}">
+    <summary>
+      <span class="av" style="--h:{{ m.judul | hue }}">{{ m.judul[:2] }}</span>
+      <span class="main">
+        <span class="name">{{ m.judul }}</span>
+        <span class="em">{{ m.untuk }}</span>
+      </span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <div class="ubody">
+      <ul class="glist">
+        {% for b in m.isi %}<li>{{ b | safe }}</li>{% endfor %}
+      </ul>
+    </div>
+  </details>
+  {% endfor %}
+</div>
+
+{% endblock %}

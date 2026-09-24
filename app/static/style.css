@@ -911,3 +911,9 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
   .greet{gap:4px}
   .greet .hai b{font-size:16px}
 }
+
+/* --- panduan: kartu per menu, isinya daftar penjelasan --- */
+.gcard .em{white-space:normal;line-height:1.45}
+.glist{margin:0;padding:6px 0 2px 18px;border-top:1px solid var(--line2)}
+.glist li{font-size:12.5px;line-height:1.6;color:var(--fg2);margin:7px 0}
+.glist li b{color:var(--fg)}

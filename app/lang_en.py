@@ -632,6 +632,10 @@ EN = {
     "Lewat anggaran": "Over budget",
     "Aman dipakai": "Safe to spend",
     "Hai": "Hi",
+    "Panduan": "Guide",
+    "tiap menu dan gunanya": "what each menu is for",
+    "Muara mencatat uang masuk dan keluar per bulan, lalu menjelaskan apa yang terjadi. Semua data tersimpan di bukumu sendiri dan tidak terlihat pengguna lain.":
+        "Muara records money in and out month by month, then explains what happened. Everything is stored in your own book and is not visible to other users.",
     "Tampilan": "Display",
     "menu yang ditampilkan": "which menus to show",
     "Tampilkan menu Anggaran": "Show the Budget menu",

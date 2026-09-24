@@ -20,8 +20,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from . import (auth, backup, budget, csrf, documents, i18n, legal, mailer, money, oauth,
-               report, statement, suggest, users)
+from . import (auth, backup, budget, csrf, documents, guide, i18n, legal, mailer, money,
+               oauth, report, statement, suggest, users)
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, book_currency,
                  get_db, get_setting, set_book_currency,
@@ -1264,6 +1264,15 @@ def assets_delete(request: Request, aid: int, month_key: str = Form(...)):
 
 # ---------- perapihan kategori ----------
 
+
+
+@app.get("/panduan", response_class=HTMLResponse)
+def guide_page(request: Request):
+    """Apa saja menu di aplikasi ini dan untuk apa. Terbuka untuk semua yang
+    sudah masuk — bukan cuma pemilik."""
+    if (r := require_login(request)):
+        return r
+    return render(request, "guide.html", menus=guide.menus(), page="panduan")
 
 
 # ---------- anggaran ----------
