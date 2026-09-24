@@ -284,8 +284,56 @@ sudah jalan tidak mati mendadak, tapi environment yang menang.
   dijalankan di thread terpisah. Mesin Fly berhenti sendiri saat menganggur, jadi cron
   di dalam proses tidak bisa diandalkan. Tombol **Cadangkan sekarang** selalu tersedia.
 
-Memulihkan: unduh arsip, `tar xzf`, lalu taruh `monetary.db` (dan `data/books/*.db`,
-`system.db` bila perlu) ke volume — tidak ada format khusus, isinya file SQLite biasa.
+Memulihkan pakai `scripts/restore.py` — jangan mengandalkan ingatan soal langkah
+manual, karena saat kamu butuh memulihkan biasanya sedang ada yang kacau:
+
+```bash
+python scripts/restore.py --list                 # arsip apa saja yang ada
+python scripts/restore.py --latest --out pulih   # unduh yang terbaru, lalu periksa
+```
+
+Skrip itu mengunduh, membongkar, menjalankan `PRAGMA integrity_check` pada setiap
+berkas, dan menyebutkan jumlah barisnya. Ia menolak menulis ke direktori yang sudah
+berisi `.db` kecuali diberi `--force`, dan tidak pernah menyentuh volume sendiri —
+memindahkan hasilnya ke `data/` adalah langkah sadar yang kamu lakukan dengan aplikasi
+dalam keadaan berhenti. Sengaja hanya bergantung pada `app/s3.py` dan pustaka bawaan,
+tidak pada FastAPI maupun database aplikasi: alat pemulih tidak boleh ikut bergantung
+pada bagian yang sedang rusak.
+
+Uji pemulihan terakhir: 24 September 2026 — 345 transaksi, tiga buku, semua sehat.
+
+## Runbook
+
+**Di mana apa**
+
+| Urusan | Tempatnya |
+|---|---|
+| Kode | repo `RianFathany/monetary` |
+| Deploy | manual, `fly deploy` dari folder ini |
+| Rahasia & konfigurasi teknis | `fly secrets` di server, `.env` di laptop — tidak ada formnya di aplikasi |
+| Setelan lewat antarmuka | email superadmin, batas akun, izin pendaftaran, password, status cadangan |
+| Data hidup | volume Fly `monetary_data` |
+| Cadangan | R2 bucket `muara-backup`, prefix `monetary/`, 14 arsip terakhir |
+
+**Yang dilirik sesekali**
+
+- Setelan → Cadangan otomatis, baris "Terakhir". Kalau tanggalnya jauh tertinggal,
+  penyebabnya hampir selalu sama: penjadwalnya menumpang lalu lintas, jadi aplikasi
+  yang tidak disentuh siapa pun berhari-hari tidak mencadangkan diri.
+- Peringatan kuning "retensi: N arsip lama gagal dihapus" di halaman yang sama berarti
+  token R2 kehilangan izin hapus. Unggahannya tetap jalan, tapi arsip menumpuk.
+
+**Yang sering bikin bingung**
+
+- Laptop dan server punya `data/system.db` masing-masing. Kalau tampilan lokal beda
+  dengan produksi, hampir selalu karena ini.
+- Mesin Fly berhenti sendiri saat menganggur, jadi `fly ssh console` gagal kalau
+  mesinnya mati. Bangunkan dulu dengan `curl https://monetary-rianfathany.fly.dev/login`.
+- Tabel setelan aplikasi bernama `app_settings`, bukan `settings`. Yang bernama
+  `settings` adalah setelan per buku, ada di setiap file buku.
+- Penjaga skala nominal adalah penanda `settings.money_scale`, **bukan** nomor versi
+  skema. Versi pernah naik tanpa migrasinya jalan, dan seluruh saldo tampil 100x
+  lebih kecil.
 
 ## CSRF
 
@@ -341,6 +389,7 @@ app/legal.py       isi halaman /privacy dan /terms (dipakai consent screen Googl
 app/mailer.py      kirim surel lewat Resend (verifikasi email, setel ulang password)
 app/backup.py      arsip semua buku + jadwal + retensi
 app/s3.py          klien S3 seadanya (SigV4 ditulis sendiri, tanpa boto3)
+scripts/restore.py pulihkan + periksa arsip dari R2 (berdiri sendiri, tanpa FastAPI)
 app/csrf.py        middleware ASGI double-submit token
 app/oauth.py       masuk dengan Google (OAuth2 + PKCE), daftar email yang diizinkan
 app/i18n.py        dwibahasa: bahasa aktif per-permintaan, nama bulan, satuan angka
