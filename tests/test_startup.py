@@ -71,3 +71,29 @@ class Start(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PengalihanDomain(unittest.TestCase):
+    """Domain lama dialihkan permanen; tanpa setelan, tidak ada yang dialihkan."""
+
+    def muat(self, canonical="", legacy=""):
+        import importlib, os
+        from app import main
+        os.environ["CANONICAL_HOST"] = canonical
+        os.environ["REDIRECT_HOSTS"] = legacy
+        self.addCleanup(lambda: [os.environ.pop(k, None) for k in ("CANONICAL_HOST", "REDIRECT_HOSTS")])
+        return importlib.reload(main)
+
+    def test_tanpa_setelan_tidak_mengalihkan(self):
+        m = self.muat()
+        self.assertEqual(m.LEGACY_HOSTS, set())
+        self.assertEqual(m.CANONICAL_HOST, "")
+
+    def test_daftar_dibaca_dari_environment(self):
+        m = self.muat(canonical="muara.contoh.com", legacy="lama.contoh.com, Lain.Contoh.com")
+        self.assertEqual(m.CANONICAL_HOST, "muara.contoh.com")
+        self.assertEqual(m.LEGACY_HOSTS, {"lama.contoh.com", "lain.contoh.com"})
+
+    def test_host_utama_tidak_ikut_dialihkan(self):
+        m = self.muat(canonical="muara.contoh.com", legacy="lama.contoh.com")
+        self.assertNotIn(m.CANONICAL_HOST, m.LEGACY_HOSTS)

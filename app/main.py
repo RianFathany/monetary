@@ -4,6 +4,7 @@ Tiga tipe transaksi: pemasukan, pengeluaran, dan transfer antar kantong.
 Transfer tidak pernah dihitung sebagai pemasukan/pengeluaran — itu yang bikin
 angka bulanan jujur (menabung bukan belanja).
 """
+import os
 import re
 import secrets
 from urllib.parse import quote
@@ -115,6 +116,22 @@ templates.env.filters["short"] = short_rupiah
 templates.env.filters["plain"] = money.plain
 templates.env.filters["t"] = t
 templates.env.globals["_"] = t
+
+
+# Domain lama tetap dilayani supaya tautan yang sudah beredar tidak putus, tapi
+# dialihkan permanen ke domain utama agar tidak ada dua alamat dengan isi sama.
+# Daftarnya dari environment: kosong = tidak ada pengalihan, aman untuk laptop.
+LEGACY_HOSTS = {h.strip().lower() for h in os.environ.get("REDIRECT_HOSTS", "").split(",") if h.strip()}
+CANONICAL_HOST = os.environ.get("CANONICAL_HOST", "").strip().lower()
+
+
+@app.middleware("http")
+async def _canonical_host(request: Request, call_next):
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if CANONICAL_HOST and host in LEGACY_HOSTS:
+        url = request.url.replace(netloc=CANONICAL_HOST, scheme="https")
+        return RedirectResponse(str(url), status_code=301)
+    return await call_next(request)
 
 
 @app.middleware("http")

@@ -70,6 +70,13 @@ fly deploy
 fly certs add muara.rianfathany.com         # lalu tambah A + AAAA di Cloudflare (DNS only, bukan proxied)
 ```
 
+Domain lama tetap dilayani dan dialihkan permanen ke domain utama lewat
+`CANONICAL_HOST` dan `REDIRECT_HOSTS` di `fly.toml`. Kosongkan keduanya kalau
+tidak ada domain lama.
+
+```bash
+```
+
 Setelah deploy, jalankan import sekali: `fly ssh console -C "python scripts/import_xlsx.py /tmp/cashflow.xlsx --reset"` (upload file dulu dengan `fly ssh sftp shell`), atau cukup salin `data/monetary.db` lokal ke volume.
 
 ## Bahasa

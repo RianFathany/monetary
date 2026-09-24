@@ -6,6 +6,9 @@ primary_region = "sin"
 
 [env]
   MONETARY_DB = "/app/data/monetary.db"
+  # Domain lama tetap dilayani, tapi dialihkan permanen ke yang baru.
+  CANONICAL_HOST = "muara.rianfathany.com"
+  REDIRECT_HOSTS = "monetary.rianfathany.com"
 
 [http_service]
   internal_port = 8000
