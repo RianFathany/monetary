@@ -2,6 +2,11 @@
 {% block title %}{{ doc.kartu }} · Muara{% endblock %}
 {% block content %}
 
+<a class="btn backbtn" href="/dokumen">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  <span>{{ _('Semua dokumen') }}</span>
+</a>
+
 <div class="sec"><h2 style="font-size:18px">{{ doc.kartu }}</h2>
   <small>{{ doc.month_key }}{% if doc.filename %} · {{ doc.filename }}{% endif %}</small>
 </div>

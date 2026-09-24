@@ -625,6 +625,7 @@ EN = {
     "Kartu atau rekening": "Card or account",
     "mis. BNI, Mega, Kredivo": "e.g. BNI, Mega, Kredivo",
     "Masuk ke bulan": "Goes into month",
+    "Dibayar dari": "Paid from",
     "Catat sebagai pengeluaran": "Record as an expense",
     "Satu pengeluaran sebesar total di atas dibuat di bulan tujuan, berkategori Tagihan Kartu. Matikan kalau dokumen ini cuma untuk dilihat — rinciannya tetap tersimpan, tapi tidak menambah angka apa pun.":
         "One expense for the total above is created in the target month, under Card Bills. Turn this off if the document is only meant to be looked at — the detail is still stored, but nothing is added to your figures.",
@@ -648,6 +649,7 @@ EN = {
     "Dokumen ini tidak dicatat sebagai pengeluaran. Tidak ada angkanya yang masuk ke laporan bulanan.":
         "This document is not recorded as an expense. None of its figures reach the monthly report.",
     "Rincian": "Detail",
+    "Semua dokumen": "All documents",
     "Hapus dokumen": "Delete document",
     "Hapus dokumen ini?": "Delete this document?",
     "Dokumen dan pengeluaran ringkasnya dihapus bersamaan. Kalau transaksinya ditinggal, laporan bulananmu memuat tagihan yang tidak bisa ditelusuri lagi.":

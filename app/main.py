@@ -1276,8 +1276,9 @@ async def import_read(request: Request, berkas: UploadFile = File(None), passwor
     tx, sisa = statement.pecah(baris)
     with get_db() as db:
         kartu = documents.kartu_terpakai(db)
+        kantong = documents.kantong(db)
     return render(request, "import.html", baris=baris, galat="", nama=nama, page="impor",
-                  tx=tx, sisa=sisa, kartu_list=kartu, bulan=this_month(),
+                  tx=tx, sisa=sisa, kartu_list=kartu, kantong=kantong, bulan=this_month(),
                   data_json=json.dumps([{k: t[k] for k in ("tanggal", "keterangan", "nilai", "masuk")}
                                         for t in tx], ensure_ascii=False),
                   total_keluar=sum(t["nilai"] for t in tx if not t["masuk"]),
@@ -1286,7 +1287,8 @@ async def import_read(request: Request, berkas: UploadFile = File(None), passwor
 
 @app.post("/impor/simpan")
 def import_save(request: Request, kartu: str = Form(""), month_key: str = Form(""),
-                nama: str = Form(""), data: str = Form(""), catat: str = Form("")):
+                nama: str = Form(""), data: str = Form(""), catat: str = Form(""),
+                account_id: str = Form("")):
     """Simpan satu dokumen: pengeluaran ringkas di bulan tujuan + rinciannya."""
     if (r := require_login(request)):
         return r
@@ -1295,7 +1297,8 @@ def import_save(request: Request, kartu: str = Form(""), month_key: str = Form("
         month_key = this_month()
     with get_db() as db:
         try:
-            doc_id = documents.simpan(db, kartu, month_key, nama, baris, catat=bool(catat))
+            doc_id = documents.simpan(db, kartu, month_key, nama, baris, catat=bool(catat),
+                                      account_id=int(account_id) if account_id.isdigit() else None)
         except ValueError:
             return RedirectResponse("/impor?err=1", status_code=303)
     return RedirectResponse(f"/dokumen/{doc_id}?baru=1", status_code=303)

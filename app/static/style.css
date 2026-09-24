@@ -189,6 +189,9 @@ td.n,th.n{text-align:right}
 .ts-wrapper.single .ts-control:after{border-color:var(--muted) transparent transparent;right:14px}
 .ts-wrapper.single.dropdown-active .ts-control:after{border-color:transparent transparent var(--muted)}
 .ts-wrapper.focus .ts-control{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
+/* Bawaan Tom Select memutihkan kontrol saat diketik — kekhususannya lebih
+   tinggi dari aturan di atas, jadi di tema gelap kolomnya menyala putih. */
+.ts-wrapper.single.input-active .ts-control{background:var(--field);cursor:text}
 .ts-wrapper .ts-control input{font:inherit;font-size:16px;color:var(--fg)}
 .ts-wrapper .ts-control input::placeholder{color:var(--muted)}
 .ts-dropdown{font:inherit;font-size:15px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);color:var(--fg);box-shadow:var(--shadow-lift);margin-top:6px;overflow:hidden}
@@ -827,3 +830,16 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
 .chip{height:30px;padding:0 11px;font-size:12.5px;border-radius:999px;font-weight:500}
 .chip.on{background:var(--accent);color:#fff;border-color:transparent}
+
+/* --- baris daftar dokumen: metanya boleh turun baris, jangan dipepet --- */
+.row.doc{grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:12px 10px;align-items:center}
+.row.doc .meta{flex-wrap:wrap;row-gap:2px;margin-top:3px}
+.row.doc .meta span{white-space:nowrap}
+.row.doc .meta .file{min-width:0;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.row.doc .amt{align-self:center}
+
+/* --- tombol kembali di halaman yang dibuka dari daftar --- */
+.backbtn{gap:7px;padding:0 14px 0 10px;text-decoration:none;font-weight:500;margin:0 0 10px}
+.backbtn svg{width:16px;height:16px;flex:none;color:var(--muted);
+             transition:transform var(--fast) var(--ease),color var(--fast) var(--ease)}
+.backbtn:hover svg{transform:translateX(-2px);color:var(--accent)}

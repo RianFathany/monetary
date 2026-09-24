@@ -51,7 +51,15 @@ def kartu_terpakai(db) -> list:
     return keluar
 
 
-def simpan(db, kartu: str, month_key: str, filename: str, baris: list, catat: bool = True) -> int:
+def kantong(db) -> list:
+    """Kantong yang bisa dipakai membayar tagihan, kas dulu."""
+    return db.execute(
+        "SELECT id, name, type FROM accounts WHERE deleted_at IS NULL AND active=1 "
+        "ORDER BY CASE type WHEN 'cash' THEN 0 ELSE 1 END, sort, id").fetchall()
+
+
+def simpan(db, kartu: str, month_key: str, filename: str, baris: list, catat: bool = True,
+           account_id=None) -> int:
     """Simpan dokumen; kalau `catat`, sekalian buat pengeluaran ringkasnya.
 
     Tidak semua dokumen perlu masuk catatan. Rekening koran yang dibuka sekadar
@@ -70,10 +78,16 @@ def simpan(db, kartu: str, month_key: str, filename: str, baris: list, catat: bo
     if catat:
         if total <= 0:                               # pembayaran melebihi belanja: tidak ada tagihan
             raise ValueError("total tagihannya nol atau minus, tidak ada yang perlu dicatat")
+        # Tanpa account_id, pengeluarannya muncul di laporan tapi tidak
+        # mengurangi kantong mana pun — tagihan yang tidak pernah dibayar dari
+        # uang siapa-siapa. Kalau tidak dipilih, jatuh ke kantong kas pertama.
+        if not account_id:
+            kas = kantong(db)
+            account_id = kas[0]["id"] if kas else None
         cur = db.execute(
-            "INSERT INTO transactions(month_key, type, category_id, description, amount, "
-            "status, needs_review) VALUES (?, 'expense', ?, ?, ?, 'paid', 1)",
-            (month_key, kategori_id(db), kartu, total))
+            "INSERT INTO transactions(month_key, type, account_id, category_id, description, "
+            "amount, status, needs_review) VALUES (?, 'expense', ?, ?, ?, ?, 'paid', 1)",
+            (month_key, account_id, kategori_id(db), kartu, total))
         tx_id = cur.lastrowid
 
     cur = db.execute(

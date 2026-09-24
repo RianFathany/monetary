@@ -63,6 +63,42 @@ class TestSimpan(unittest.TestCase):
             documents.simpan(self.db, "  ", "2026-09", "x.pdf", baris(1000))
 
 
+class TestSaldoKantong(unittest.TestCase):
+    """Pengeluaran tanpa account_id muncul di laporan tapi tidak mengurangi
+    kantong mana pun — tagihan yang tidak dibayar dari uang siapa-siapa.
+    Persis bug yang lolos karena tidak ada tes yang melihat saldo."""
+
+    def setUp(self):
+        self.db = make_db()
+        self.addCleanup(self.db.close)
+
+    def saldo(self, nama):
+        return self.db.execute("SELECT balance FROM account_balances WHERE name=?", (nama,)).fetchone()["balance"]
+
+    def test_saldo_kas_berkurang(self):
+        awal = self.saldo("Kas")
+        documents.simpan(self.db, "BNI", "2026-09", "x.pdf", baris(135_000))
+        self.assertEqual(self.saldo("Kas"), awal - 135_000 * SCALE)
+
+    def test_bisa_dibayar_dari_kantong_lain(self):
+        lain = self.db.execute("SELECT id, name FROM accounts WHERE name='Dana Darurat'").fetchone()
+        awal_kas, awal_lain = self.saldo("Kas"), self.saldo("Dana Darurat")
+        documents.simpan(self.db, "BNI", "2026-09", "x.pdf", baris(50_000), account_id=lain["id"])
+        self.assertEqual(self.saldo("Kas"), awal_kas)
+        self.assertEqual(self.saldo("Dana Darurat"), awal_lain - 50_000 * SCALE)
+
+    def test_analisa_saja_tidak_menyentuh_saldo(self):
+        awal = self.saldo("Kas")
+        documents.simpan(self.db, "BCA", "2026-09", "x.pdf", baris(999_000), catat=False)
+        self.assertEqual(self.saldo("Kas"), awal)
+
+    def test_hapus_mengembalikan_saldo(self):
+        awal = self.saldo("Kas")
+        doc = documents.simpan(self.db, "BNI", "2026-09", "x.pdf", baris(70_000))
+        documents.hapus(self.db, doc)
+        self.assertEqual(self.saldo("Kas"), awal)
+
+
 class TestHapus(unittest.TestCase):
     def setUp(self):
         self.db = make_db()

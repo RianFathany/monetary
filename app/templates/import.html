@@ -65,6 +65,10 @@
     </div>
     {% endif %}
     <input name="kartu" id="kartu" required placeholder="{{ _('mis. BNI, Mega, Kredivo') }}" autocomplete="off">
+    <label style="margin-top:8px">{{ _('Dibayar dari') }}</label>
+    <select name="account_id">
+      {% for k in kantong %}<option value="{{ k.id }}">{{ k.name }}</option>{% endfor %}
+    </select>
     <label style="margin-top:8px">{{ _('Masuk ke bulan') }}</label>
     <input type="month" name="month_key" value="{{ bulan }}">
     <label class="check" style="margin-top:10px"><input type="checkbox" name="catat" value="1" checked>
