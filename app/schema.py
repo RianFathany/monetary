@@ -9,7 +9,7 @@ Kolom ledger_id ada sejak sekarang dan selalu 1. Multi-user nanti tinggal
 mengisinya, tanpa membongkar tabel lagi.
 """
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 MONEY_SCALE = 100        # nominal disimpan dalam satuan perseratus (app/money.py)
 
 SCHEMA = """
@@ -102,6 +102,16 @@ CREATE TABLE IF NOT EXISTS asset_snapshots (
 );
 
 -- Template rutin bulanan (KPR, tagihan kartu, gaji).
+CREATE TABLE IF NOT EXISTS budgets (
+    id          INTEGER PRIMARY KEY,
+    ledger_id   INTEGER NOT NULL DEFAULT 1 REFERENCES ledgers(id),
+    month_key   TEXT NOT NULL,                  -- 'YYYY-MM'
+    category_id INTEGER NOT NULL REFERENCES categories(id),
+    amount      INTEGER NOT NULL DEFAULT 0,     -- satuan perseratus, 0 = tanpa anggaran
+    UNIQUE(month_key, category_id)
+);
+CREATE INDEX IF NOT EXISTS idx_budgets_month ON budgets(month_key);
+
 CREATE TABLE IF NOT EXISTS documents (
     id            INTEGER PRIMARY KEY,
     ledger_id     INTEGER NOT NULL DEFAULT 1 REFERENCES ledgers(id),
@@ -237,6 +247,9 @@ MIGRATIONS: dict = {
     # Tidak ada perintah di sini: tabelnya lahir dari apply_schema, yang memakai
     # CREATE TABLE IF NOT EXISTS, jadi buku lama maupun baru sama-sama beres.
     4: [],
+    # v5 — anggaran per kategori per bulan. Tabelnya juga lahir dari
+    # apply_schema, jadi tidak ada perintah yang perlu dijalankan di sini.
+    5: [],
 }
 
 # Skala nominal dijaga penanda sendiri, bukan nomor versi skema. Nomor versi bisa

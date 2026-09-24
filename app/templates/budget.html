@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Anggaran') }} · Muara{% endblock %}
+{% block content %}
+
+<div class="sec"><h2 style="font-size:18px">{{ _('Anggaran') }}</h2>
+  <small>{{ _('rencana per kategori') }}</small>
+</div>
+
+{% if ok=='1' %}<div class="note ok">{{ _('Anggaran disimpan.') }}</div>
+{% elif ok=='2' %}<div class="note ok">{{ _('Anggaran bulan lalu disalin ke sini.') }}</div>{% endif %}
+
+<section class="card" style="margin-top:6px">
+  <form method="get" action="/anggaran" class="sform">
+    <label>{{ _('Bulan') }}</label>
+    <input type="month" name="m" value="{{ mk }}" onchange="this.form.submit()">
+  </form>
+
+  {% if ringkas.ada %}
+  <div class="grid2" style="margin-top:10px">
+    <div class="card stat" style="box-shadow:none;background:color-mix(in srgb,var(--fg) 5%,transparent)">
+      <div class="k">{{ _('Direncanakan') }}</div><div class="v num">{{ ringkas.rencana | rupiah }}</div></div>
+    <div class="card stat" style="box-shadow:none;background:color-mix(in srgb,var({{ '--bad' if ringkas.sisa < 0 else '--ok' }}) 8%,transparent)">
+      <div class="k">{{ _('Sisa jatah') if ringkas.sisa >= 0 else _('Lewat anggaran') }}</div>
+      <div class="v num">{{ (ringkas.sisa if ringkas.sisa >= 0 else -ringkas.sisa) | rupiah }}</div></div>
+  </div>
+  <div class="bud {{ 'lewat' if ringkas.persen > 100 }}" style="margin-top:8px">
+    <div class="bar"><i style="width:{{ [ringkas.persen, 100] | min }}%"></i></div>
+    <p class="hint" style="margin-top:6px">{{ ringkas.terpakai | rupiah }} {{ _('terpakai dari') }} {{ ringkas.rencana | rupiah }} · {{ ringkas.persen }}%
+      {% if ringkas.lewat %} · <b style="color:var(--bad)">{{ ringkas.lewat | length }} {{ _('kategori jebol') }}</b>{% endif %}</p>
+    {% if ringkas.di_luar %}<p class="hint">{{ _('Di luar kategori yang dianggarkan') }}: {{ ringkas.di_luar | rupiah }}</p>{% endif %}
+  </div>
+  {% else %}
+  <div class="empty" style="margin-top:10px"><b>{{ _('Belum ada anggaran bulan ini.') }}</b>
+    <span>{{ _('Isi jatah untuk kategori yang ingin kamu jaga. Yang dikosongkan tidak ikut dihitung.') }}</span></div>
+  {% endif %}
+
+  {% if sumber %}
+  <form method="post" action="/anggaran/salin" style="margin-top:8px">{{ csrf_field }}
+    <input type="hidden" name="month_key" value="{{ mk }}"><input type="hidden" name="dari" value="{{ sumber }}">
+    <div class="actions"><button type="submit" style="width:100%">{{ _('Salin dari') }} {{ sumber }}</button></div>
+  </form>
+  {% endif %}
+</section>
+
+<form method="post" action="/anggaran">{{ csrf_field }}
+<input type="hidden" name="month_key" value="{{ mk }}">
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Per kategori') }}</h2><small>{{ _('kosongkan untuk tidak menganggarkan') }}</small></div>
+  <div class="panel-wrap" style="padding:0">
+    {% for b in baris %}
+    <div class="row static bud {{ 'lewat' if b.lewat }}" style="--i:{{ loop.index0 }}">
+      <span class="av" style="--h:{{ b.name | hue }}">{{ b.name[:2] }}</span>
+      <div class="main">
+        <div class="name">{{ b.name }}{% if b.is_debt %} <span class="pill">{{ _('cicilan') }}</span>{% endif %}</div>
+        <div class="meta">
+          <span>{{ b.terpakai | rupiah }} {{ _('terpakai') }}</span>
+          {% if b.diatur %}<span>{{ _('sisa') }} {{ b.sisa | rupiah }}</span><span>{{ b.persen }}%</span>{% endif %}
+        </div>
+        {% if b.diatur %}<div class="bar"><i style="width:{{ [b.persen, 100] | min }}%"></i></div>{% endif %}
+      </div>
+      <input class="budin money num" name="b_{{ b.id }}" inputmode="numeric" value="{{ b.rencana | plain if b.rencana else '' }}"
+             placeholder="0" aria-label="{{ _('Anggaran') }} {{ b.name }}">
+    </div>
+    {% endfor %}
+  </div>
+  <div class="actions"><button class="primary" type="submit" style="width:100%">{{ _('Simpan anggaran') }}</button></div>
+</section>
+</form>
+
+{% endblock %}

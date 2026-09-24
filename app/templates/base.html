@@ -27,11 +27,11 @@
   <nav class="nav">
     <a href="/m/{{ mk if mk else today[:7] }}" class="{{ 'on' if page=='month' }}">{{ _('Bulan') }}</a>
     <a href="/accounts" class="{{ 'on' if page=='accounts' }}">{{ _('Kantong') }}</a>
+    <a href="/anggaran" class="{{ 'on' if page=='anggaran' }}">{{ _('Anggaran') }}</a>
     <a href="/report" class="{{ 'on' if page=='report' }}">{{ _('Laporan') }}</a>
     <a href="/overview" class="{{ 'on' if page=='overview' }}">{{ _('Ringkasan') }}</a>
     <a href="/assets" class="{{ 'on' if page=='assets' }}">{{ _('Aset') }}</a>
-    <a href="/impor" class="{{ 'on' if page=='impor' }}">{{ _('Impor') }}</a>
-    <a href="/dokumen" class="{{ 'on' if page=='dokumen' }}">{{ _('Dokumen') }}</a>
+    <a href="/dokumen" class="{{ 'on' if page in ('dokumen', 'impor') }}">{{ _('Dokumen') }}</a>
     <a href="/settings" class="{{ 'on' if page=='settings' }}">{{ _('Setelan') }}</a>
   </nav>
   <div class="tools">

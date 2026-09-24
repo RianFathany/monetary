@@ -6,7 +6,12 @@
   <small>{{ docs | length }} {{ _('dokumen tersimpan') }}</small>
 </div>
 
-<section class="card" style="margin-top:6px">
+<a class="btn primary impbtn" href="/impor">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+  <span>{{ _('Impor berkas baru') }}</span>
+</a>
+
+<section class="card" style="margin-top:10px">
   {% if docs %}
   <p class="hint" style="margin:0 0 8px">{{ _('Dokumen yang dicatat menyumbang satu pengeluaran di bulan tujuannya, sebesar totalnya. Yang bertanda analisa saja tidak menambah angka apa pun.') }}</p>
   <div class="panel-wrap" style="padding:0">
@@ -24,7 +29,6 @@
   </div>
   {% else %}
   <div class="empty"><b>{{ _('Belum ada dokumen.') }}</b><span>{{ _('Unggah rekening koran atau tagihan kartu lewat halaman Impor.') }}</span></div>
-  <div class="actions"><a class="btn primary" href="/impor" style="width:100%">{{ _('Ke halaman Impor') }}</a></div>
   {% endif %}
 </section>
 

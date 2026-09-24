@@ -140,8 +140,8 @@ class Migrasi(unittest.TestCase):
         self.assertEqual(saham, 50_000_000)
 
 
-class TestNaikKeV4(unittest.TestCase):
-    """Buku lama dapat tabel dokumen tanpa nominalnya dikalikan ulang.
+class TestNaikVersi(unittest.TestCase):
+    """Buku lama dapat tabel baru tanpa nominalnya dikalikan ulang.
 
     Ini persis jebakan yang pernah menggigit: nomor versi naik, migrasinya
     jalan, dan seluruh saldo ikut dikalikan untuk kedua kalinya. Penjaganya
@@ -165,9 +165,9 @@ class TestNaikKeV4(unittest.TestCase):
         c = self.buku_v3()
         schema.upgrade(c)
         tabel = {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        self.assertIn("documents", tabel)
-        self.assertIn("document_rows", tabel)
-        self.assertEqual(schema.book_version(c), 4)
+        for nama in ("documents", "document_rows", "budgets"):
+            self.assertIn(nama, tabel)
+        self.assertEqual(schema.book_version(c), schema.SCHEMA_VERSION)
 
     def test_nominal_tidak_dikalikan_dua_kali(self):
         from app import schema
@@ -199,7 +199,7 @@ class TestNaikKeV4(unittest.TestCase):
         from app import schema
         c = self.buku_v3()
         schema.upgrade(c)
-        self.assertEqual(schema.upgrade(c), 4)
+        self.assertEqual(schema.upgrade(c), schema.SCHEMA_VERSION)
 
 
 if __name__ == "__main__":

@@ -20,8 +20,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from . import (auth, backup, csrf, documents, i18n, legal, mailer, money, oauth, report,
-               statement, suggest, users)
+from . import (auth, backup, budget, csrf, documents, i18n, legal, mailer, money, oauth,
+               report, statement, suggest, users)
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, book_currency,
                  get_db, get_setting, set_book_currency,
@@ -1243,6 +1243,49 @@ def assets_delete(request: Request, aid: int, month_key: str = Form(...)):
 
 # ---------- perapihan kategori ----------
 
+
+
+# ---------- anggaran ----------
+
+@app.get("/anggaran", response_class=HTMLResponse)
+def budget_page(request: Request, m: str = "", ok: str = ""):
+    if (r := require_login(request)):
+        return r
+    mk = m if re.fullmatch(r"\d{4}-\d{2}", m or "") else this_month()
+    with get_db() as db:
+        return render(request, "budget.html", page="anggaran", mk=mk,
+                      baris=budget.untuk_bulan(db, mk), ringkas=budget.ringkas(db, mk),
+                      sumber=budget.bulan_terdekat(db, mk), ok=ok)
+
+
+@app.post("/anggaran")
+async def budget_save(request: Request, month_key: str = Form("")):
+    """Simpan seluruh anggaran satu bulan sekaligus.
+
+    Kolomnya dinamis (satu per kategori), jadi form dibaca apa adanya —
+    mendaftarkannya satu per satu sebagai parameter berarti mengubah kode tiap
+    kali pengguna menambah kategori.
+    """
+    if (r := require_login(request)):
+        return r
+    mk = month_key if re.fullmatch(r"\d{4}-\d{2}", month_key or "") else this_month()
+    form = await request.form()
+    nilai = {k[2:]: parse_amount(v) for k, v in form.items()
+             if k.startswith("b_") and k[2:].isdigit()}
+    with get_db() as db:
+        budget.simpan(db, mk, nilai)
+    return RedirectResponse(f"/anggaran?m={mk}&ok=1", status_code=303)
+
+
+@app.post("/anggaran/salin")
+def budget_copy(request: Request, month_key: str = Form(""), dari: str = Form("")):
+    if (r := require_login(request)):
+        return r
+    mk = month_key if re.fullmatch(r"\d{4}-\d{2}", month_key or "") else this_month()
+    if re.fullmatch(r"\d{4}-\d{2}", dari or ""):
+        with get_db() as db:
+            budget.salin(db, dari, mk)
+    return RedirectResponse(f"/anggaran?m={mk}&ok=2", status_code=303)
 
 
 # ---------- impor berkas dari bank ----------

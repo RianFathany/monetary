@@ -860,3 +860,27 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
   .card > .row.static > .btn{grid-column:2/-1;justify-self:start}
   .card > .row.static .name{display:block}
 }
+
+/* --- baris anggaran: batang progres di bawah teks, kolom isian di kanan ---
+   Lebarnya dipatok cukup untuk "100.000.000" — angka terpanjang yang masuk
+   akal untuk anggaran bulanan. Sebelumnya 116px dan digit depannya terpotong. */
+.row.bud{grid-template-columns:36px minmax(0,1fr) 152px;align-items:center}
+.bud .bar{height:5px;border-radius:3px;background:var(--bar);overflow:hidden;margin-top:6px}
+.bud .bar i{display:block;height:100%;border-radius:3px;background:var(--accent);
+            transition:width var(--slow) var(--ease)}
+.bud.lewat .bar i{background:var(--bad)}
+.bud.lewat .meta{color:var(--bad)}
+.budin{height:38px;font-size:15px;text-align:right;padding:0 10px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+/* Di layar sempit, kolom isian turun ke barisnya sendiri selebar penuh.
+   Menyandingkannya dengan nama kategori berarti dua-duanya kalah: namanya
+   terpotong elipsis, angkanya terpotong digit — dan digit yang hilang jauh
+   lebih berbahaya daripada nama yang disingkat. */
+@media (max-width:430px){
+  .row.bud{grid-template-columns:32px minmax(0,1fr);row-gap:8px;gap:10px;align-items:start}
+  .row.bud .av{width:32px;height:32px;border-radius:10px;font-size:11px}
+  .row.bud .budin{grid-column:2/-1;width:100%;height:40px;font-size:16px;text-align:left;padding:0 11px}
+}
+
+/* --- tombol impor di puncak halaman dokumen --- */
+.impbtn{display:flex;width:100%;gap:8px;height:44px;font-size:14px;text-decoration:none;margin-top:6px}
+.impbtn svg{width:17px;height:17px;flex:none}
