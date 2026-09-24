@@ -95,7 +95,7 @@
 
 {% if is_owner %}
 <section class="card" id="users" style="margin-top:10px">
-  <div class="sec"><h2>{{ _('Pengguna') }}</h2><small>{{ user_count }} / {{ max_users }} {{ _('akun') }}</small></div>
+  <div class="sec"><h2>{{ _('Pengguna') }}</h2><small>{{ user_count }} {{ _('akun') }}{% if max_users %} / {{ max_users }}{% else %} · {{ _('tanpa batas') }}{% endif %}</small></div>
   {% if adm=='ok' %}<div class="note ok">{{ _('Pengaturan admin disimpan.') }}</div>{% elif adm=='email' %}<div class="note bad">{{ _('Alamat email tidak valid.') }}</div>{% endif %}
   <p class="hint" style="margin:0 0 8px">{{ _('Setiap orang yang mendaftar mendapat bukunya sendiri — data keuangan Anda tidak ikut terlihat. Mereka hanya bisa mengurus bukunya sendiri: tidak bisa melihat daftar pengguna, mengubah konfigurasi Google, atau menyentuh setelan aplikasi.') }}</p>
   <div class="panel-wrap" style="padding:0">
@@ -132,8 +132,8 @@
       <input name="owner_email" value="{{ owner_email }}" placeholder="nama@gmail.com">
       <p class="hint">{{ _('Hanya email ini yang memegang buku utama beserta seluruh setelan aplikasi. Email lain — termasuk yang ada di daftar izin — masuk sebagai pengguna biasa.') }}</p>
       <label>{{ _('Batas jumlah akun') }}</label>
-      <input name="max_users" type="number" min="1" max="1000" value="{{ max_users }}">
-      <p class="hint">{{ _('Pendaftaran otomatis berhenti setelah batas ini tercapai.') }}</p>
+      <input name="max_users" type="number" min="0" max="100000" value="{{ max_users }}">
+      <p class="hint">{{ _('Pendaftaran otomatis berhenti setelah batas ini tercapai. Isi 0 untuk tanpa batas.') }}</p>
       <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
     </form>
   </details>
@@ -232,7 +232,18 @@
     <p class="hint" style="margin:6px 0 2px">{{ _('Dipakai untuk verifikasi email dan tautan setel ulang password. Tanpa ini, pengguna yang lupa password tidak punya jalan pulih.') }}</p>
     <form method="post" action="/settings/mail" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Resend API key') }}</label>
-      <input type="password" name="api_key" placeholder="{{ _('tersimpan — isi hanya bila ingin mengganti') if mailcfg.has_key else 're_...' }}">
+      {% if mailcfg.from_env %}
+      <div class="note ok">{{ _('Diambil dari environment server. Isi di bawah ini hanya bila ingin menimpanya.') }}</div>
+      <input type="text" name="api_key" placeholder="re_...">
+      {% else %}
+      <div class="pw">
+        <input type="password" name="api_key" value="{{ mailcfg.api_key }}" placeholder="re_..." spellcheck="false">
+        <button type="button" class="eye" data-reveal aria-label="{{ _('Tampilkan API key') }}" title="{{ _('Tampilkan API key') }}">
+          <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 4.2A10.9 10.9 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.2 3.2M1 1l22 22"/></svg>
+        </button>
+      </div>
+      {% endif %}
       <div class="f2">
         <div><label>{{ _('Alamat pengirim') }}</label><input name="sender" value="{{ mailcfg.sender }}" placeholder="monetary@rianfathany.com"></div>
         <div><label>{{ _('Nama pengirim') }}</label><input name="name" value="{{ mailcfg.name }}" placeholder="Muara"></div>

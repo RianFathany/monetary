@@ -44,13 +44,15 @@ def all_users():
 
 
 def signup_open() -> bool:
-    return get_app_setting("allow_signup", "1") != "0" and count() < max_users()
+    batas = max_users()
+    return get_app_setting("allow_signup", "1") != "0" and (batas == 0 or count() < batas)
 
 
 def max_users() -> int:
-    """Batas jumlah akun. Menjaga volume server, dan menahan pendaftaran beruntun."""
+    """Batas jumlah akun; 0 berarti tanpa batas. Gunanya menjaga volume server
+    dan menahan pendaftaran beruntun, jadi angka berhingga lebih aman."""
     try:
-        return max(1, int(get_app_setting("max_users", "50")))
+        return max(0, int(get_app_setting("max_users", "50")))
     except ValueError:
         return 50
 

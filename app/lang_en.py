@@ -689,4 +689,11 @@ EN = {
     "Simpan mata uang": "Save currency",
     "Tombol Google aktif memakai kredensial dari environment server. Isi di bawah ini hanya bila ingin menimpanya.":
         "The Google button is running on credentials from the server environment. Only fill these in if you want to override them.",
+    # Batas pengguna & kunci surel
+    "tanpa batas": "no limit",
+    "Pendaftaran otomatis berhenti setelah batas ini tercapai. Isi 0 untuk tanpa batas.":
+        "Sign-ups stop automatically once this limit is reached. Enter 0 for no limit.",
+    "Diambil dari environment server. Isi di bawah ini hanya bila ingin menimpanya.":
+        "Taken from the server environment. Only fill this in if you want to override it.",
+    "Tampilkan API key": "Show API key",
 }

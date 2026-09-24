@@ -567,3 +567,17 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
     input.addEventListener('blur', () => setTimeout(close, 120));
   });
 })();
+
+
+// Tombol mata pada kolom rahasia (API key, dsb). Halaman masuk punya skripnya
+// sendiri karena berdiri tanpa app.js.
+(function () {
+  document.addEventListener('click', function (e) {
+    const b = e.target.closest('[data-reveal]'); if (!b) return;
+    const wrap = b.parentNode, input = wrap.querySelector('input');
+    if (!input) return;
+    const buka = input.type === 'password';
+    input.type = buka ? 'text' : 'password';
+    wrap.classList.toggle('show', buka);
+  });
+})();

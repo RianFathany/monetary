@@ -974,7 +974,9 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", ma
     u = me(request)
     return render(request, "settings.html", mail=mail, verify=verify, verified=bool(verified),
                   bk=bk, backup_cfg=backup.config(), backup_status=backup.status(),
-                  mailcfg=dict(sender=mc["sender"], name=mc["name"], has_key=bool(mc["api_key"])),
+                  mailcfg=dict(sender=mc["sender"], name=mc["name"], has_key=bool(mc["api_key"]),
+                               from_env=mailer.from_env(),
+                               api_key="" if mailer.from_env() else mc["api_key"]),
                   review_count=review_count, has_password=bool(u and (u["password_hash"] or u["is_owner"])),
                   google=google, recurring=rec, cats=cats, used=used, accounts=accs,
                   first_month=first_month, page="settings", mk=this_month(), pw=pw, g=g,
@@ -1126,7 +1128,7 @@ def settings_admin(request: Request, owner_email: str = Form(""), max_users: str
         return RedirectResponse("/settings?adm=email#users", status_code=303)
     set_app_setting("owner_email", email)
     try:
-        set_app_setting("max_users", str(max(1, int(max_users))))
+        set_app_setting("max_users", str(max(0, int(max_users))))
     except (TypeError, ValueError):
         pass
     return RedirectResponse("/settings?adm=ok#users", status_code=303)

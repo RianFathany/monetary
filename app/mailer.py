@@ -7,6 +7,7 @@ API key dan alamat pengirim disimpan di system.db (setelan aplikasi), sejalan
 dengan konfigurasi Google — jadi bisa diatur dari halaman Setelan tanpa deploy.
 """
 import json
+import os
 import urllib.error
 import urllib.request
 
@@ -15,12 +16,23 @@ from .db import get_app_setting, set_app_setting
 API = "https://api.resend.com/emails"
 
 
+def _pick(key: str, env: str, default: str = "") -> str:
+    """Setelan yang diketik pemilik menang; kalau kosong, pakai environment."""
+    return ((get_app_setting(key) or "").strip() or (os.environ.get(env) or "").strip() or default)
+
+
 def config() -> dict:
     return dict(
-        api_key=(get_app_setting("resend_key") or "").strip(),
-        sender=(get_app_setting("mail_from") or "").strip(),
-        name=(get_app_setting("mail_name") or "Muara").strip(),
+        api_key=_pick("resend_key", "RESEND_API_KEY"),
+        sender=_pick("mail_from", "MAIL_SENDER"),
+        name=_pick("mail_name", "MAIL_NAME", "Muara"),
     )
+
+
+def from_env() -> bool:
+    """Benar kalau surel hidup karena environment, bukan karena diketik di Setelan."""
+    return bool((os.environ.get("RESEND_API_KEY") or "").strip()
+                and not (get_app_setting("resend_key") or "").strip())
 
 
 def save_config(api_key: str, sender: str, name: str) -> None:
@@ -49,7 +61,10 @@ def send(to: str, subject: str, heading: str, lines: list, button: tuple = None)
     }
     req = urllib.request.Request(
         API, data=json.dumps(payload).encode(),
-        headers={"Authorization": f"Bearer {c['api_key']}", "Content-Type": "application/json"})
+        headers={"Authorization": f"Bearer {c['api_key']}", "Content-Type": "application/json",
+                 # Tanpa User-Agent yang wajar, Cloudflare di depan API Resend
+                 # membalas "403 error code: 1010" dan surel tidak pernah terkirim.
+                 "User-Agent": "Muara/1.0 (+https://muara.rianfathany.com)"})
     try:
         with urllib.request.urlopen(req, timeout=15) as r:      # noqa: S310 (URL tetap)
             return 200 <= r.status < 300, ""

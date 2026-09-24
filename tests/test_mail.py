@@ -1,5 +1,6 @@
 """Verifikasi email & setel ulang password: tautan, masa berlaku, sekali pakai."""
 import tempfile
+import os
 import unittest
 from pathlib import Path
 
@@ -72,3 +73,39 @@ class TestTautanSurel(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SumberKonfigurasi(unittest.TestCase):
+    """Environment jadi bawaan, sama seperti kredensial Google."""
+
+    def muat(self, simpanan=None, **env):
+        import importlib, os
+        from app import mailer
+        for k in ("RESEND_API_KEY", "MAIL_SENDER", "MAIL_NAME"):
+            os.environ.pop(k, None)
+        os.environ.update(env)
+
+        def bersihkan():
+            for k in ("RESEND_API_KEY", "MAIL_SENDER", "MAIL_NAME"):
+                os.environ.pop(k, None)
+            importlib.reload(mailer)          # kembalikan get_app_setting yang asli
+        self.addCleanup(bersihkan)
+        importlib.reload(mailer)
+        simpanan = simpanan or {}
+        mailer.get_app_setting = lambda key, default="": simpanan.get(key, default)
+        return mailer
+
+    def test_environment_menyalakan_pengiriman(self):
+        m = self.muat(RESEND_API_KEY="re_abc", MAIL_SENDER="muara@contoh.com")
+        self.assertTrue(m.is_enabled())
+        self.assertTrue(m.from_env())
+        self.assertEqual(m.config()["name"], "Muara")
+
+    def test_setelan_menang_atas_environment(self):
+        m = self.muat({"resend_key": "re_setelan"}, RESEND_API_KEY="re_env", MAIL_SENDER="muara@contoh.com")
+        self.assertEqual(m.config()["api_key"], "re_setelan")
+        self.assertFalse(m.from_env())
+
+    def test_tanpa_alamat_pengirim_belum_aktif(self):
+        m = self.muat(RESEND_API_KEY="re_abc")
+        self.assertFalse(m.is_enabled())
