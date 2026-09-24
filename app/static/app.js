@@ -445,7 +445,17 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
 (function(){
   const dlg = document.getElementById('lock'); if (!dlg) return;
   const form = document.getElementById('lock-form'), err = document.getElementById('lock-err');
-  let left = Number(window.SESSION_LEFT || 0), timer = null, pending = null, checking = false;
+  let left = Number(window.SESSION_LEFT || 0), timer = null, pending = null, pendingBtn = null, checking = false;
+
+  // Kirim ulang form berikut tombol yang menekannya. Tanpa tombol itu, nilai
+  // name/value miliknya hilang — dan form yang membedakan pilihan lewat tombol
+  // (sakelar bahasa: satu form, dua tombol name="lang") jadi mengirim kosong
+  // lalu jatuh ke nilai bawaan. Terlihat seperti tombolnya tidak berfungsi.
+  function kirim(f, btn){
+    f.dataset.checked = '1';
+    if (f.requestSubmit) f.requestSubmit(btn && btn.form === f ? btn : undefined);
+    else f.submit();
+  }
 
   function open(){
     if (dlg.open) return;
@@ -474,9 +484,10 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   document.addEventListener('submit', async e => {
     const f = e.target;
     if (f === form || f.dataset.checked || !f.method || f.method.toLowerCase() !== 'post') return;
+    const btn = e.submitter;                     // dibaca sebelum preventDefault
     e.preventDefault(); e.stopImmediatePropagation();
-    if (await check(false)) { f.dataset.checked = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); return; }
-    pending = f;
+    if (await check(false)) { kirim(f, btn); return; }
+    pending = f; pendingBtn = btn;
   }, true);
 
   form.addEventListener('submit', async e => {
@@ -487,7 +498,7 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
     if (r.ok) {
       const d = await r.json(); left = d.left; arm();
       pw.value = ''; err.hidden = true; dlg.close();
-      if (pending) { const f = pending; pending = null; f.dataset.checked = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); }
+      if (pending) { const f = pending, btn = pendingBtn; pending = pendingBtn = null; kirim(f, btn); }
       return;
     }
     const d = await r.json().catch(() => ({}));
