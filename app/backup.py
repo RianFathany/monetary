@@ -123,13 +123,22 @@ def object_key(cfg: dict, when=None) -> str:
     return f"{prefix}/{name}" if prefix else name
 
 
-def prune(cfg: dict) -> int:
-    """Sisakan `keep` arsip terbaru."""
+def prune(cfg: dict) -> tuple:
+    """Sisakan `keep` arsip terbaru. Kembalikan (terhapus, gagal).
+
+    Kegagalan dihitung, bukan diabaikan: kalau token kehilangan izin hapus,
+    arsip menumpuk lewat batas tanpa ada yang tahu — dan itu justru baru
+    ketahuan saat tagihan atau kuota penyimpanan yang memberitahu."""
     keys = sorted(k for k in s3.list_keys(cfg, cfg["prefix"].strip("/")) if k.endswith(".tar.gz"))
     extra = keys[:-cfg["keep"]] if len(keys) > cfg["keep"] else []
+    hapus = gagal = 0
     for key in extra:
-        s3.delete(cfg, key)
-    return len(extra)
+        status, _ = s3.delete(cfg, key)
+        if 200 <= status < 300:
+            hapus += 1
+        else:
+            gagal += 1
+    return hapus, gagal
 
 
 def run() -> tuple:
@@ -148,9 +157,11 @@ def run() -> tuple:
         set_app_setting("backup_last_size", str(len(blob)))
         set_app_setting("backup_last_books", str(count))
         err = "" if ok else f"{status_code} {body[:200].decode(errors='replace')}"
-        set_app_setting("backup_last_error", err)
         if ok:
-            prune(cfg)
+            _, gagal = prune(cfg)
+            if gagal:                                   # unggahan berhasil, retensinya yang macet
+                err = f"retensi: {gagal} arsip lama gagal dihapus"
+        set_app_setting("backup_last_error", err)
         return ok, err
     finally:
         _running.release()

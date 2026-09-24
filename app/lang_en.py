@@ -438,6 +438,9 @@ EN = {
     "buku sendiri": "own book",
     "terakhir": "last",
     "Nonaktifkan": "Deactivate",
+    "Nonaktifkan akun ini?": "Deactivate this account?",
+    "Sesinya berakhir saat itu juga dan dia tidak bisa masuk lagi. Bukunya tetap utuh dan bisa diaktifkan kembali kapan saja.":
+        "Their session ends immediately and they can no longer sign in. Their book stays intact and can be reactivated at any time.",
     "Aktifkan": "Activate",
     "Izinkan pendaftaran baru lewat Google": "Allow new sign-ups with Google",
     "Kalau dimatikan, hanya email yang sudah terdaftar yang bisa masuk.":
@@ -524,6 +527,17 @@ EN = {
         "The new password needs at least 8 characters and must match the confirmation.",
     # --- superadmin ---
     "superadmin": "superadmin",
+    "Pemilik": "Owner",
+    "belum terverifikasi": "unverified",
+    "masuk dengan password": "signs in with a password",
+    "Cara masuk": "Sign-in method",
+    "Google + password": "Google + password",
+    "Password": "Password",
+    "Bergabung": "Joined",
+    "Terakhir masuk": "Last sign-in",
+    "Berkas buku": "Book file",
+    "Akun pemilik memegang buku utama dan seluruh setelan aplikasi, jadi tidak bisa dinonaktifkan dari sini.":
+        "The owner account holds the main book and every app setting, so it cannot be deactivated from here.",
     "Akun superadmin": "Superadmin account",
     "Email superadmin": "Superadmin email",
     "Hanya email ini yang memegang buku utama beserta seluruh setelan aplikasi. Email lain — termasuk yang ada di daftar izin — masuk sebagai pengguna biasa.":

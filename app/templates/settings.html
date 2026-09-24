@@ -98,26 +98,59 @@
   <div class="sec"><h2>{{ _('Pengguna') }}</h2><small>{{ user_count }} {{ _('akun') }}{% if max_users %} / {{ max_users }}{% else %} · {{ _('tanpa batas') }}{% endif %}</small></div>
   {% if adm=='ok' %}<div class="note ok">{{ _('Pengaturan admin disimpan.') }}</div>{% elif adm=='email' %}<div class="note bad">{{ _('Alamat email tidak valid.') }}</div>{% endif %}
   <p class="hint" style="margin:0 0 8px">{{ _('Setiap orang yang mendaftar mendapat bukunya sendiri — data keuangan Anda tidak ikut terlihat. Mereka hanya bisa mengurus bukunya sendiri: tidak bisa melihat daftar pengguna, mengubah konfigurasi Google, atau menyentuh setelan aplikasi.') }}</p>
-  <div class="panel-wrap" style="padding:0">
+  <div class="ulist">
     {% for u in users_list %}
-    <div class="row static" style="--i:{{ loop.index0 }}">
-      <span class="av {{ 'in' if u.is_owner }}" style="--h:{{ u.email | hue }}">{{ (u.name or u.email)[:2] }}</span>
-      <div class="main">
-        <div class="name">{{ u.name or u.email }}</div>
-        <div class="meta">
-          {% if u.is_owner %}<span class="pill ok">{{ _('superadmin') }}</span>{% endif %}
-          {% if not u.active %}<span class="pill warn">{{ _('nonaktif') }}</span>{% endif %}
-          <span>{{ u.email }}</span>
-          {% if u.last_login_at %}<span>{{ _('terakhir') }} {{ u.last_login_at | stamp }}</span>{% endif %}
+    <details class="ucard" style="--i:{{ loop.index0 }}">
+      <summary>
+        <span class="av {{ 'in' if u.is_owner }}" style="--h:{{ u.email | hue }}">{{ (u.name or u.email)[:2] }}</span>
+        <span class="main">
+          <span class="name">{{ u.name or (_('Pemilik') if u.email == 'owner' else u.email) }}</span>
+          {% if u.name or u.email == 'owner' %}
+          <span class="em">{{ u.email if u.email != 'owner' else _('masuk dengan password') }}</span>
+          {% endif %}
+          {% if u.is_owner or not u.active or (u.email != 'owner' and not u.email_verified) %}
+          <span class="tags">
+            {% if u.is_owner %}<span class="pill ok">{{ _('superadmin') }}</span>{% endif %}
+            {% if not u.active %}<span class="pill warn">{{ _('nonaktif') }}</span>{% endif %}
+            {% if u.email != 'owner' and not u.email_verified %}<span class="pill">{{ _('belum terverifikasi') }}</span>{% endif %}
+          </span>
+          {% endif %}
+        </span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </summary>
+      <div class="ubody">
+        <dl class="ufacts">
+          <div><dt>{{ _('Cara masuk') }}</dt><dd>
+            {%- if u.password_hash and u.email_verified %}{{ _('Google + password') }}
+            {%- elif u.email_verified %}Google
+            {%- else %}{{ _('Password') }}{% endif -%}
+          </dd></div>
+          <div><dt>{{ _('Bergabung') }}</dt><dd>{{ u.created_at | stamp }}</dd></div>
+          <div><dt>{{ _('Terakhir masuk') }}</dt><dd>{{ u.last_login_at | stamp if u.last_login_at else _('belum pernah') }}</dd></div>
+          <div><dt>{{ _('Berkas buku') }}</dt><dd>{{ u.book }}</dd></div>
+        </dl>
+        <div class="uact">
+          {% if u.is_owner %}
+          <p class="hint">{{ _('Akun pemilik memegang buku utama dan seluruh setelan aplikasi, jadi tidak bisa dinonaktifkan dari sini.') }}</p>
+          {% else %}
+          {% if u.active %}
+          <form method="post" action="/settings/users/{{ u.id }}/active"
+                data-confirm="{{ _('Nonaktifkan akun ini?') }}"
+                data-confirm-what="{{ u.name or u.email }}"
+                data-confirm-sub="{{ u.email }}"
+                data-confirm-yes="{{ _('Nonaktifkan') }}"
+                data-confirm-note="{{ _('Sesinya berakhir saat itu juga dan dia tidak bisa masuk lagi. Bukunya tetap utuh dan bisa diaktifkan kembali kapan saja.') }}">{{ csrf_field }}
+            <button class="danger" type="submit">{{ _('Nonaktifkan') }}</button>
+          </form>
+          {% else %}
+          <form method="post" action="/settings/users/{{ u.id }}/active">{{ csrf_field }}
+            <input type="hidden" name="active" value="1"><button type="submit">{{ _('Aktifkan') }}</button>
+          </form>
+          {% endif %}
+          {% endif %}
         </div>
       </div>
-      {% if not u.is_owner %}
-      <form method="post" action="/settings/users/{{ u.id }}/active">{{ csrf_field }}
-        {% if u.active %}<button class="danger" type="submit">{{ _('Nonaktifkan') }}</button>
-        {% else %}<input type="hidden" name="active" value="1"><button type="submit">{{ _('Aktifkan') }}</button>{% endif %}
-      </form>
-      {% endif %}
-    </div>
+    </details>
     {% endfor %}
   </div>
   <form method="post" action="/settings/signup" style="margin-top:10px">{{ csrf_field }}
@@ -163,7 +196,7 @@
     <form method="post" action="/settings/backup/run">{{ csrf_field }}<button type="submit">{{ _('Cadangkan sekarang') }}</button></form>
     {% endif %}
   </div>
-  {% if backup_status.error and not backup_status.ok %}<p class="hint" style="color:var(--bad)">{{ backup_status.error }}</p>{% endif %}
+  {% if backup_status.error %}<p class="hint" style="color:var(--{{ 'warn' if backup_status.ok else 'bad' }})">{{ backup_status.error }}</p>{% endif %}
 
   {% if not backup_status.enabled %}
   <p class="hint">{{ _('Diatur lewat environment server, tidak ada formnya di sini: system.db ikut terbungkus ke dalam arsip, jadi kunci yang diketik lewat halaman ini akan ikut tersimpan di setiap cadangan yang ditulisnya sendiri.') }}</p>

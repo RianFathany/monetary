@@ -164,9 +164,10 @@ class EmberPalsu:
     """Penyimpanan S3 di dalam memori. Yang dipalsukan cuma lapis jaringannya —
     penandatanganan, penyusunan URL, dan pembacaan daftar objek tetap yang asli."""
 
-    def __init__(self, status=200):
+    def __init__(self, status=200, delete_status=204):
         self.objects = {}
         self.status = status
+        self.delete_status = delete_status
         self.calls = []
 
     def request(self, method, url, cfg, payload=b"", extra=None, timeout=60):
@@ -182,8 +183,10 @@ class EmberPalsu:
                 self.objects[key] = payload
             return self.status, b"" if self.status == 200 else b"<Error>AccessDenied</Error>"
         if method == "DELETE":
+            if not 200 <= self.delete_status < 300:
+                return self.delete_status, b"<Error>AccessDenied</Error>"
             self.objects.pop(key, None)
-            return 204, b""
+            return self.delete_status, b""
         return 400, b""
 
 
@@ -254,6 +257,30 @@ class TestUnggahDanRetensi(unittest.TestCase):
         self.assertEqual(len(self.ember.objects), 1)
         self.assertNotIn("DELETE", self.ember.calls)
         self.assertFalse(self.backup.status()["ok"])
+
+    def test_retensi_gagal_dilaporkan_bukan_didiamkan(self):
+        """Kalau token kehilangan izin hapus, arsip menumpuk lewat batas. Dulu itu
+        tidak terlihat di mana pun; sekarang tercatat di status cadangan."""
+        self.db.set_app_setting("backup_keep", "2")
+        self.ember.delete_status = 403
+        for i in range(5):
+            self.ember.objects[f"monetary/monetary-202601{i:02d}-0300.tar.gz"] = b"lama"
+        ok, err = self.backup.run()
+        self.assertTrue(ok)                              # unggahannya sendiri berhasil
+        self.assertIn("retensi", err)
+        self.assertEqual(len(self.ember.objects), 6)     # tidak ada yang terhapus
+        st = self.backup.status()
+        self.assertTrue(st["ok"])
+        self.assertIn("retensi", st["error"])
+
+    def test_retensi_lancar_tidak_meninggalkan_pesan(self):
+        self.db.set_app_setting("backup_keep", "2")
+        for i in range(5):
+            self.ember.objects[f"monetary/monetary-202601{i:02d}-0300.tar.gz"] = b"lama"
+        ok, err = self.backup.run()
+        self.assertTrue(ok)
+        self.assertEqual(err, "")
+        self.assertEqual(len(self.ember.objects), 2)
 
     def test_tidak_menumpuk_kalau_masih_jalan(self):
         self.backup._running.acquire()

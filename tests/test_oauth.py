@@ -56,14 +56,23 @@ class TestIzinMasuk(unittest.TestCase):
     """Daftar izin memetakan email ke buku pemilik; email lain bukan berarti ditolak,
     tapi didaftarkan dengan bukunya sendiri (lihat tests/test_users.py)."""
 
+    ENV = ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_ALLOWED")
+
     def setUp(self):
+        # `.env` ikut terbaca saat start, dan environment menang atas database.
+        # Tanpa dibersihkan, tes ini lulus atau jatuh tergantung isi .env laptop
+        # yang menjalankannya — bukan tergantung kodenya.
+        import os
+        self._env = {k: os.environ.pop(k) for k in self.ENV if k in os.environ}
         self._real = oauth.get_app_setting
         oauth.get_app_setting = lambda key, default="": {
             "google_client_id": "cid", "google_client_secret": "sec",
             "google_allowed": "boleh@gmail.com"}.get(key, default)
 
     def tearDown(self):
+        import os
         oauth.get_app_setting = self._real
+        os.environ.update(self._env)
 
     def test_email_terverifikasi(self):
         self.assertEqual(oauth.verified_email(dict(email="Boleh@gmail.com", email_verified=True)),
