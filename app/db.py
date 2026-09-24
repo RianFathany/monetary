@@ -284,9 +284,15 @@ def init_db() -> None:
             )
         apply_schema(db)
         first_run = db.execute("SELECT COUNT(*) c FROM categories").fetchone()["c"] == 0
-        seed_defaults(db, accounts=first_run)
-        db.execute("INSERT INTO settings(key,value) VALUES ('schema_version',?) "
-                   "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(SCHEMA_VERSION),))
+        if first_run:
+            seed_defaults(db, accounts=True)
+        # Buku pemilik dinaikkan lewat jalur yang sama dengan buku pengguna lain.
+        # Sebelumnya nomor versi ditulis langsung di sini tanpa menjalankan
+        # MIGRATIONS — selama migrasinya kebetulan kosong tidak ketahuan, tapi
+        # migrasi pertama yang berisi SQL akan dilewati diam-diam hanya untuk
+        # buku ini. Itu keluarga bug yang sama dengan money_scale dulu: nomor
+        # versi naik tanpa pekerjaannya dikerjakan.
+        upgrade(db)
         db.execute("ANALYZE")                      # statistik untuk perencana query
     init_system()
 

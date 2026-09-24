@@ -202,5 +202,67 @@ class TestNaikVersi(unittest.TestCase):
         self.assertEqual(schema.upgrade(c), schema.SCHEMA_VERSION)
 
 
+class TestBukuPemilikIkutMigrasi(unittest.TestCase):
+    """init_db() dulu menulis nomor versi tanpa menjalankan MIGRATIONS.
+
+    Selama migrasinya kebetulan kosong tidak ada yang tahu. Migrasi pertama
+    yang berisi SQL sungguhan akan dilewati diam-diam — hanya untuk buku
+    pemilik, sementara buku pengguna lain menjalankannya. Dua buku dengan
+    nomor versi sama tapi isi berbeda adalah bentuk kerusakan yang paling
+    sulit dilacak.
+    """
+
+    def setUp(self):
+        import tempfile
+        from pathlib import Path as P
+        from app import db, schema
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.db, self.schema = db, schema
+        self._path = db.DB_PATH
+        db.DB_PATH = str(P(self.tmp.name) / "monetary.db")
+        db._ready.clear(); db._system_ready.clear()
+
+        def pulihkan():
+            db.set_book("")
+            db.DB_PATH = self._path
+            db._ready.clear(); db._system_ready.clear()
+        self.addCleanup(pulihkan)
+
+    def test_migrasi_berisi_sql_ikut_dijalankan(self):
+        from app import schema
+        versi = schema.SCHEMA_VERSION
+
+        self.db.init_db()                                  # buku baru, versi terbaru
+        with self.db.get_db() as conn:                     # mundurkan seolah buku lama
+            conn.execute("INSERT INTO settings(key,value) VALUES ('schema_version',?) "
+                         "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(versi - 1),))
+        self.db._ready.clear(); self.db._system_ready.clear()
+
+        asli = dict(schema.MIGRATIONS)
+        schema.MIGRATIONS[versi] = ["ALTER TABLE transactions ADD COLUMN penanda_uji TEXT"]
+        self.addCleanup(lambda: (schema.MIGRATIONS.clear(), schema.MIGRATIONS.update(asli)))
+
+        self.db.init_db()                                  # migrasinya harus ikut jalan
+        with self.db.get_db() as conn:
+            kolom = {r[1] for r in conn.execute("PRAGMA table_info(transactions)")}
+            self.assertEqual(schema.book_version(conn), versi)
+        self.assertIn("penanda_uji", kolom)
+
+    def test_buku_baru_dapat_kantong_bawaan(self):
+        self.db.init_db()
+        with self.db.get_db() as conn:
+            n = conn.execute("SELECT COUNT(*) c FROM accounts").fetchone()["c"]
+        self.assertGreater(n, 0)
+
+    def test_versi_dan_penanda_skala_terpasang(self):
+        from app.money import SCALE
+        self.db.init_db()
+        with self.db.get_db() as conn:
+            self.assertEqual(self.schema.book_version(conn), self.schema.SCHEMA_VERSION)
+            r = conn.execute("SELECT value FROM settings WHERE key='money_scale'").fetchone()
+        self.assertEqual(r["value"], str(SCALE))
+
+
 if __name__ == "__main__":
     unittest.main()
