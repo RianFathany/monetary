@@ -630,6 +630,7 @@ EN = {
     "Direncanakan": "Planned",
     "Sisa jatah": "Left to spend",
     "Lewat anggaran": "Over budget",
+    "setelah ini": "after this",
     "terpakai dari": "spent of",
     "kategori jebol": "categories over",
     "Di luar kategori yang dianggarkan": "Outside budgeted categories",

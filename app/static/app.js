@@ -626,3 +626,36 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   chips.forEach(c => c.addEventListener('click', () => { isian.value = c.dataset.kartu; tandai(); }));
   isian.addEventListener('input', tandai);
 })();
+
+// ===== Sisa jatah saat mencatat pengeluaran =====
+// Anggaran yang cuma terlihat di halamannya sendiri jarang mengubah keputusan.
+// Yang mengubah keputusan adalah melihat sisa jatah sedetik sebelum menyimpan,
+// termasuk sisa setelah angka yang sedang diketik ini ikut dihitung.
+(function(){
+  const pilih = document.querySelector('select[data-budget]'); if (!pilih) return;
+  const hint = pilih.parentElement.querySelector('.budhint');
+  const form = pilih.closest('form');
+  const nominal = form && form.querySelector('input.money');
+  const peta = window.BUDGET || {};
+
+  const rp = n => 'Rp ' + Math.round(Math.abs(n) / 100).toLocaleString('id-ID');
+
+  function tampil(){
+    const b = peta[pilih.value];
+    if (!b) { hint.hidden = true; return; }
+    const [rencana, terpakai] = b;
+    const diketik = nominal ? Number(String(nominal.value).replace(/[^\d]/g, '') || 0) * 100 : 0;
+    const sisa = rencana - terpakai;
+    const sesudah = sisa - diketik;
+    let teks = (sisa >= 0 ? (T.budLeft || 'Sisa jatah') : (T.budOver || 'Lewat anggaran')) + ' ' + rp(sisa);
+    if (diketik) teks += ' · ' + (T.budAfter || 'setelah ini') + ' ' + (sesudah < 0 ? '−' : '') + rp(sesudah);
+    hint.textContent = teks;
+    hint.classList.toggle('bad', sesudah < 0);
+    hint.hidden = false;
+  }
+  pilih.addEventListener('change', tampil);
+  if (nominal) nominal.addEventListener('input', tampil);
+  const sheet = pilih.closest('dialog');
+  if (sheet) sheet.addEventListener('close', () => { hint.hidden = true; });
+  tampil();
+})();

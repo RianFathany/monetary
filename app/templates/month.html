@@ -3,6 +3,7 @@
 {% block title %}{{ mk | month_label }} · Muara{% endblock %}
 {% macro accopt(list, sel) %}{% for a in list %}<option value="{{ a.id }}" {{ 'selected' if a.id==sel }}>{{ a.name }}</option>{% endfor %}{% endmacro %}
 {% block content %}
+<script>window.BUDGET = {{ budget_json | safe }};</script>
 
 <!-- Strip bulan -->
 <nav class="mstrip" id="mstrip" aria-label="{{ _('Pilih bulan') }}">
@@ -173,7 +174,8 @@
   <form method="post" action="/m/{{ mk }}/tx">{{ csrf_field }}<input type="hidden" name="type" value="expense">
     <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
     <label>{{ _('Kategori') }}</label>
-    <select name="category_id">{% for c in cats_exp %}<option value="{{ c.id }}" {{ 'selected' if c.name=='Lainnya' }}>{{ c.name }}</option>{% endfor %}</select>
+    <select name="category_id" data-budget>{% for c in cats_exp %}<option value="{{ c.id }}" {{ 'selected' if c.name=='Lainnya' }}>{{ c.name }}</option>{% endfor %}</select>
+    <p class="budhint" hidden></p>
     <label>{{ _('Deskripsi') }}</label><input name="description" data-suggest="expense" placeholder="{{ _('mis. bensin, arisan, makan siang') }}" autocomplete="off">
     <div class="f2">
       <div><label>{{ _('Dari kantong') }}</label><select name="account_id">{{ accopt(accounts, cash_id) }}</select></div>

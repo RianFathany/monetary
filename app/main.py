@@ -746,11 +746,15 @@ def month_page(request: Request, mk: str):
                             "AND month_key=?", (mk,)).fetchone()["c"]
         bill = bills(db, mk)
         cash_id = default_account(db, "cash")
+        # Dihitung di dalam blok: render() jalan setelah koneksinya ditutup.
+        budget_json = json.dumps({b["id"]: [b["rencana"], b["terpakai"]]
+                                  for b in budget.untuk_bulan(db, mk) if b["diatur"]})
     strip = sorted(set(months) | {mk, shift_month(mk, 1), shift_month(months[-1], 1)})
     return render(
         request, "month.html", s=s, bill=bill, **lists, cats_exp=cats_exp, cats_inc=cats_inc, accounts=accs, bal=bal,
         prev=shift_month(mk, -1), next=shift_month(mk, 1), months=months, strip=strip, has_recurring=has_recurring,
         is_empty=not (lists["expenses"] or lists["incomes"] or lists["transfers"]), page="month",
+        budget_json=budget_json,
         trend=trend, trend_max=trend_max, review=review, cash_id=cash_id,
     )
 

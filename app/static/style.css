@@ -884,3 +884,7 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
 /* --- tombol impor di puncak halaman dokumen --- */
 .impbtn{display:flex;width:100%;gap:8px;height:44px;font-size:14px;text-decoration:none;margin-top:6px}
 .impbtn svg{width:17px;height:17px;flex:none}
+
+/* --- petunjuk sisa jatah di form pencatatan --- */
+.budhint{font-size:12px;color:var(--muted);margin:5px 0 0;font-weight:500}
+.budhint.bad{color:var(--bad)}
