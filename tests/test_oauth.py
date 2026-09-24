@@ -1,6 +1,7 @@
 """Masuk dengan Google: daftar izin, pemeriksaan token, dan state."""
 import base64
 import json
+import os
 import time
 import unittest
 
@@ -127,3 +128,54 @@ class TestPembatasLogin(unittest.TestCase):
         for _ in range(self.auth.FAIL_MAX):
             self.auth.note_failure(r1)
         self.assertEqual(self.auth.locked_for(r2), 0)
+
+
+class SumberKredensial(unittest.TestCase):
+    """Environment jadi bawaan supaya tombol Google muncul sendiri di server baru."""
+
+    def setUp(self):
+        from app import db as dbmod, oauth
+        self.oauth, self.dbmod = oauth, dbmod
+        self.simpanan = {}
+        self.env_awal = {k: os.environ.get(k) for k in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET")}
+        self.addCleanup(self.pulihkan)
+        dbmod.get_app_setting = lambda key, default="": self.simpanan.get(key, default)
+
+    def pulihkan(self):
+        import importlib
+        from app import db as dbmod
+        importlib.reload(dbmod)
+        for k, v in self.env_awal.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    def pakai(self, **env):
+        for k in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"):
+            os.environ.pop(k, None)
+        os.environ.update(env)
+        import importlib
+        from app import oauth
+        importlib.reload(oauth)
+        oauth.get_app_setting = lambda key, default="": self.simpanan.get(key, default)
+        return oauth
+
+    def test_environment_menyalakan_tombol(self):
+        o = self.pakai(GOOGLE_CLIENT_ID="abc.apps.googleusercontent.com", GOOGLE_CLIENT_SECRET="GOCSPX-rahasia")
+        self.assertTrue(o.is_enabled())
+        self.assertTrue(o.from_env())
+
+    def test_setelan_menang_atas_environment(self):
+        self.simpanan["google_client_id"] = "dari-setelan"
+        o = self.pakai(GOOGLE_CLIENT_ID="dari-env", GOOGLE_CLIENT_SECRET="GOCSPX-rahasia")
+        self.assertEqual(o.config()["client_id"], "dari-setelan")
+        self.assertFalse(o.from_env())
+
+    def test_tanpa_keduanya_tombol_mati(self):
+        o = self.pakai()
+        self.assertFalse(o.is_enabled())
+
+    def test_id_saja_tanpa_secret_belum_cukup(self):
+        o = self.pakai(GOOGLE_CLIENT_ID="abc.apps.googleusercontent.com")
+        self.assertFalse(o.is_enabled())

@@ -687,4 +687,6 @@ EN = {
     "nominalnya tidak dikonversi, yang berubah cuma cara menampilkannya.":
         "amounts are not converted — only the way they are shown changes.",
     "Simpan mata uang": "Save currency",
+    "Tombol Google aktif memakai kredensial dari environment server. Isi di bawah ini hanya bila ingin menimpanya.":
+        "The Google button is running on credentials from the server environment. Only fill these in if you want to override them.",
 }

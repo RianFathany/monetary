@@ -248,6 +248,7 @@
   <details class="acc" {{ 'open' if g }}>
     <summary>{{ _('Masuk dengan Google') }}</summary>
     {% if g=='ok' %}<div class="note ok">{{ _('Pengaturan Google disimpan.') }}</div>{% endif %}
+    {% if google.from_env %}<div class="note ok">{{ _('Tombol Google aktif memakai kredensial dari environment server. Isi di bawah ini hanya bila ingin menimpanya.') }}</div>{% endif %}
     <p class="hint" style="margin:6px 0 2px">{{ _('Daftarkan URI berikut di Google Cloud Console → Credentials → OAuth client (Web application) → Authorized redirect URIs.') }}</p>
     <div class="gcfg"><code>{{ google.redirect_uri }}</code></div>
     <form method="post" action="/settings/google" autocomplete="off">{{ csrf_field }}

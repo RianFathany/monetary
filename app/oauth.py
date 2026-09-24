@@ -11,6 +11,7 @@ Tanpa dependensi baru: cukup urllib bawaan Python.
 import base64
 import hashlib
 import json
+import os
 import secrets
 import time
 import urllib.parse
@@ -27,13 +28,28 @@ STATE_MAX_AGE = 600           # 10 menit; cukup untuk satu kali login
 
 # ---------- konfigurasi ----------
 
+def _pick(key: str, env: str) -> str:
+    """Setelan yang diketik pemilik menang; kalau kosong, pakai bawaan dari
+    environment. Begitu aplikasi dipasang dengan GOOGLE_CLIENT_ID/SECRET,
+    tombol Google langsung ada tanpa perlu menempel apa pun dulu."""
+    return ((get_app_setting(key) or "").strip() or (os.environ.get(env) or "").strip())
+
+
 def config(db=None) -> dict:
-    """Konfigurasi Google berlaku untuk seluruh aplikasi, jadi diambil dari system.db."""
+    """Konfigurasi Google berlaku untuk seluruh aplikasi, jadi diambil dari
+    system.db, dengan environment sebagai bawaan."""
     return dict(
-        client_id=(get_app_setting("google_client_id") or "").strip(),
-        client_secret=(get_app_setting("google_client_secret") or "").strip(),
-        allowed=emails(get_app_setting("google_allowed") or ""),
+        client_id=_pick("google_client_id", "GOOGLE_CLIENT_ID"),
+        client_secret=_pick("google_client_secret", "GOOGLE_CLIENT_SECRET"),
+        allowed=emails(_pick("google_allowed", "GOOGLE_ALLOWED")),
     )
+
+
+def from_env() -> bool:
+    """Benar kalau tombol Google hidup karena environment, bukan karena diketik
+    di Setelan — dipakai halaman Setelan untuk menjelaskan keadaannya."""
+    return bool((os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
+                and not (get_app_setting("google_client_id") or "").strip())
 
 
 def save_config(db, client_id: str, client_secret: str, allowed: str) -> None:

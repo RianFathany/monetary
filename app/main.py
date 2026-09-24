@@ -953,7 +953,7 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", ma
         gc = oauth.config()
         mc = mailer.config()
         google = dict(client_id=gc["client_id"], allowed=gc["allowed"], has_secret=bool(gc["client_secret"]),
-                      redirect_uri=oauth.redirect_uri(request))
+                      from_env=oauth.from_env(), redirect_uri=oauth.redirect_uri(request))
     u = me(request)
     return render(request, "settings.html", mail=mail, verify=verify, verified=bool(verified),
                   bk=bk, backup_cfg=backup.config(), backup_status=backup.status(),
