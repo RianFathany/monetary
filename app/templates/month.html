@@ -16,6 +16,10 @@
   <div class="v big num {{ 'bad' if s.cash_balance < 0 }}" data-count="{{ s.cash_balance }}">{{ s.cash_balance | rupiah }}</div>
   {% set delta = s.cash_balance - s.cash_prev %}
   <div class="s"><span class="delta {{ 'up' if delta >= 0 else 'down' }}">{{ '▲' if delta >= 0 else '▼' }} {{ (delta if delta >= 0 else -delta) | short }}</span> {{ _('vs saldo awal') }} {{ s.cash_prev | short }}</div>
+  {% if bill.total %}
+  <div class="s aman"><b>{{ _('Aman dipakai') }}</b>
+    <span>{{ _('sudah dipotong') }} {{ bill.count }} {{ _('tagihan belum dibayar') }} {{ bill.total | short }}</span></div>
+  {% endif %}
 
   <div class="trend" aria-label="{{ _('Pemasukan dan pengeluaran 6 bulan terakhir') }}">
     {% for t in trend %}

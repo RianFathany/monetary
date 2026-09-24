@@ -888,3 +888,13 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
 /* --- petunjuk sisa jatah di form pencatatan --- */
 .budhint{font-size:12px;color:var(--muted);margin:5px 0 0;font-weight:500}
 .budhint.bad{color:var(--bad)}
+
+/* --- "aman dipakai" di kartu utama ---
+   Saldo kas di atasnya SUDAH memotong tagihan berstatus belum dibayar —
+   balance_upto menjumlahkan semua pengeluaran tanpa membedakan status. Jadi
+   yang kurang bukan angkanya, tapi keterangannya: tanpa baris ini orang
+   mengira masih ada tagihan yang belum diperhitungkan, lalu menahan uang dua
+   kali. Menampilkan angka kedua hasil pengurangan justru salah. */
+.hero .s.aman{margin-top:5px;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
+.hero .s.aman b{font-size:12.5px;font-weight:700;color:var(--ok);letter-spacing:.02em;text-transform:uppercase}
+.hero .s.aman b.bad{color:var(--bad)}
