@@ -85,6 +85,14 @@
   </form>
 </section>
 
+<section class="card" id="tampilan" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Tampilan') }}</h2><small>{{ _('menu yang ditampilkan') }}</small></div>
+  <form method="post" action="/settings/menu">{{ csrf_field }}
+    <label class="check"><input type="checkbox" name="show_budget" value="1" {{ 'checked' if show_budget }} onchange="this.form.submit()">
+      <span>{{ _('Tampilkan menu Anggaran') }}<small>{{ _('Kalau dimatikan, menunya hilang dari navigasi. Halamannya tetap bisa dibuka lewat alamat /anggaran, dan anggaran yang sudah diisi tidak terhapus.') }}</small></span></label>
+  </form>
+</section>
+
 <section class="card" style="margin-top:10px">
   <div class="sec"><h2>{{ _('Backup & ekspor') }}</h2><small>{{ _('data Anda, milik Anda') }}</small></div>
   <div class="grid2" style="margin-top:4px">

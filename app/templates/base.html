@@ -27,7 +27,7 @@
   <nav class="nav">
     <a href="/m/{{ mk if mk else today[:7] }}" class="{{ 'on' if page=='month' }}">{{ _('Bulan') }}</a>
     <a href="/accounts" class="{{ 'on' if page=='accounts' }}">{{ _('Kantong') }}</a>
-    <a href="/anggaran" class="{{ 'on' if page=='anggaran' }}">{{ _('Anggaran') }}</a>
+    {% if show_budget %}<a href="/anggaran" class="{{ 'on' if page=='anggaran' }}">{{ _('Anggaran') }}</a>{% endif %}
     <a href="/report" class="{{ 'on' if page=='report' }}">{{ _('Laporan') }}</a>
     <a href="/overview" class="{{ 'on' if page=='overview' }}">{{ _('Ringkasan') }}</a>
     <a href="/assets" class="{{ 'on' if page=='assets' }}">{{ _('Aset') }}</a>
@@ -46,6 +46,7 @@
   </div>
 </div></header>
 {% endblock %}
+{% if me %}{% include "_greet.html" %}{% endif %}
 <main class="wrap">{% block content %}{% endblock %}</main>
 {% block fab %}{% endblock %}
 <div class="toast" id="toast"></div>
@@ -101,6 +102,14 @@ window.I18N = {
   months: {{ months_short | tojson }},
   monthsLong: {{ months_long | tojson }},
   days: {{ days_short | tojson }},
+  wx: {{ {
+    0: _("cerah"), 1: _("cerah berawan"), 2: _("berawan sebagian"), 3: _("mendung"), 45: _("berkabut"), 48: _("berkabut"),
+    51: _("gerimis"), 53: _("gerimis"), 55: _("gerimis"), 56: _("gerimis"), 57: _("gerimis"),
+    61: _("hujan ringan"), 63: _("hujan"), 65: _("hujan lebat"), 66: _("hujan"), 67: _("hujan"),
+    71: _("salju"), 73: _("salju"), 75: _("salju"), 80: _("hujan lokal"), 81: _("hujan lokal"), 82: _("hujan deras"),
+    95: _("badai petir"), 96: _("badai petir"), 99: _("badai petir")
+  } | tojson }},
+  greet: {{ [_('Selamat pagi'), _('Selamat siang'), _('Selamat sore'), _('Selamat malam')] | tojson }},
   budLeft: {{ _('Sisa jatah') | tojson }},
   budOver: {{ _('Lewat anggaran') | tojson }},
   budAfter: {{ _('setelah ini') | tojson }},

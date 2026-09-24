@@ -183,6 +183,10 @@ async def _book_and_language(request: Request, call_next):
                 with get_db() as db:
                     i18n.set_lang(get_setting(db, "lang", "id") or "id")
                     money.set_currency(book_currency(db))
+                    # Dibaca sekali di sini: render() dipanggil dari rute yang
+                    # koneksinya sudah tertutup.
+                    request.state.show_budget = get_setting(db, "show_budget", "1") != "0"
+                request.state.me = u
             else:                              # tamu: cookie pilihannya, lalu bahasa peramban
                 i18n.set_lang(i18n.guest_lang(request.cookies.get(i18n.COOKIE, ""),
                                               request.headers.get("accept-language", "")))
@@ -263,6 +267,8 @@ def render(request: Request, name: str, **ctx):
     ctx.setdefault("session_left", auth.session_left(request))
     ctx.setdefault("csrf_token", csrf_for(request))
     ctx.setdefault("csrf_field", Markup(f'<input type="hidden" name="{csrf.FIELD}" value="{ctx["csrf_token"]}">'))
+    ctx.setdefault("me", getattr(request.state, "me", None))
+    ctx.setdefault("show_budget", getattr(request.state, "show_budget", True))
     ctx.setdefault("lang", i18n.get_lang())
     ctx.setdefault("langs", i18n.LANGS)
     ctx.setdefault("currency", money.get_currency())
@@ -1118,6 +1124,17 @@ def settings_account_delete(request: Request):
     resp = RedirectResponse("/login?bye=1", status_code=303)
     resp.delete_cookie(auth.COOKIE)
     return resp
+
+
+@app.post("/settings/menu")
+def settings_menu(request: Request, show_budget: str = Form("")):
+    """Sembunyikan menu yang tidak dipakai. Halamannya tetap ada di alamatnya —
+    menyembunyikan pintu bukan alasan untuk membuang ruangannya."""
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        set_setting(db, "show_budget", "1" if show_budget else "0")
+    return RedirectResponse("/settings#tampilan", status_code=303)
 
 
 @app.post("/settings/signup")

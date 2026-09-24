@@ -659,3 +659,65 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   if (sheet) sheet.addEventListener('close', () => { hint.hidden = true; });
   tampil();
 })();
+
+// ===== Jam, cuaca, lokasi =====
+// Dipakai halaman masuk maupun panel salam di dalam aplikasi. Dulu tertanam
+// di _door.html, jadi tidak bisa dipakai ulang di halaman lain.
+// Jam, cuaca, dan lokasi. Mulai dari Jakarta (tanpa izin), lalu bila pengguna mengizinkan lokasi,
+// cuaca diambil di posisi sebenarnya dan nama kota dicari lewat reverse-geocode.
+(function () {
+  var live = document.getElementById("live");
+  if (!live) return;                       // halaman tanpa panel ini
+  var clock = document.getElementById("clock"), place = document.getElementById("place"),
+      wt = document.getElementById("wx-t"), ww = document.getElementById("wx-w");
+  var loc = { lat: -6.2, lon: 106.8167, name: "Jakarta", tz: "Asia/Jakarta" };
+  var fmt = null;
+  function makeFmt() {
+    var locale = document.documentElement.lang === "en" ? "en-GB" : "id-ID";
+    try { fmt = new Intl.DateTimeFormat(locale, { timeZone: loc.tz, hour: "2-digit", minute: "2-digit", hour12: false }); }
+    catch (e) { fmt = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", hour12: false }); }
+  }
+  function tick() { clock.textContent = fmt.format(new Date()).replace(".", ":"); live.hidden = false; }
+  makeFmt(); tick(); setInterval(tick, 15000);
+
+  var words = T.wx || {};
+  function weather() {
+    if (!window.fetch) return;
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + loc.lat + "&longitude=" + loc.lon + "&current=temperature_2m,weather_code&timezone=auto")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.current) return;
+        wt.textContent = Math.round(d.current.temperature_2m) + "°C";
+        ww.textContent = words[d.current.weather_code] || "";
+        if (d.timezone && d.timezone !== loc.tz) { loc.tz = d.timezone; makeFmt(); tick(); }
+        window.dispatchEvent(new CustomEvent("monetary-weather", { detail: { code: d.current.weather_code } }));
+      }).catch(function () {});
+  }
+  weather(); setInterval(weather, 30 * 60 * 1000);
+
+  function reverseGeocode() {
+    fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + loc.lat + "&longitude=" + loc.lon + "&localityLanguage=" + document.documentElement.lang)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var name = d.city || d.locality || d.principalSubdivision || d.countryName;
+        if (name) { loc.name = name; place.textContent = name; }
+      }).catch(function () {});
+  }
+  if (!navigator.geolocation || !window.isSecureContext) return;   // geolocation hanya jalan di https / localhost
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    loc.lat = +pos.coords.latitude.toFixed(3); loc.lon = +pos.coords.longitude.toFixed(3);
+    place.textContent = "…";
+    weather(); reverseGeocode();
+  }, function () {}, { timeout: 8000, maximumAge: 10 * 60 * 1000 });
+})();
+
+// ===== Sapaan menurut jam setempat =====
+// Jamnya milik peramban, bukan server: server berjalan di UTC dan akan bilang
+// "selamat malam" saat pemiliknya sedang sarapan.
+(function(){
+  const el = document.getElementById('greet-hi'); if (!el) return;
+  const j = new Date().getHours();
+  const i = j < 11 ? 0 : j < 15 ? 1 : j < 18 ? 2 : 3;
+  el.textContent = (T.greet && T.greet[i]) || el.textContent;
+})();

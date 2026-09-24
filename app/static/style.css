@@ -898,3 +898,16 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
 .hero .s.aman{margin-top:5px;display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
 .hero .s.aman b{font-size:12.5px;font-weight:700;color:var(--ok);letter-spacing:.02em;text-transform:uppercase}
 .hero .s.aman b.bad{color:var(--bad)}
+
+/* --- panel salam di bawah header --- */
+.greetwrap{padding-top:10px;padding-bottom:0}
+.greet{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 12px}
+.greet .hai{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;min-width:0}
+.greet .hai b{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.greet .hai span{font-size:13px;color:var(--muted);min-width:0;overflow:hidden;
+                 text-overflow:ellipsis;white-space:nowrap}
+.greet .live{margin:0}
+@media (max-width:430px){
+  .greet{gap:4px}
+  .greet .hai b{font-size:16px}
+}
