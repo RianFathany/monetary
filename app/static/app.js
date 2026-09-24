@@ -592,3 +592,25 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
     wrap.classList.toggle('show', buka);
   });
 })();
+
+// ===== Pemilih berkas =====
+// Tombol "Choose File" bawaan peramban tidak bisa didandani sama sekali. Jadi
+// yang terlihat adalah kartunya, dan input aslinya dibentang tembus pandang di
+// atasnya — sekalian membuat seluruh kartu bisa dijatuhi berkas.
+(function(){
+  const drop = document.querySelector('.drop'); if (!drop) return;
+  const input = drop.querySelector('input[type=file]');
+  const nama = drop.querySelector('.dmain b'), sub = drop.querySelector('.dmain span');
+  const semula = [nama.textContent, sub.textContent];
+
+  const ukuran = n => n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + ' KB'
+                                      : (n / (1024 * 1024)).toFixed(1) + ' MB';
+  input.addEventListener('change', () => {
+    const f = input.files && input.files[0];
+    drop.classList.toggle('on', !!f);
+    nama.textContent = f ? f.name : semula[0];
+    sub.textContent = f ? ukuran(f.size) : semula[1];
+  });
+  ['dragenter', 'dragover'].forEach(e => drop.addEventListener(e, () => drop.classList.add('over')));
+  ['dragleave', 'drop'].forEach(e => drop.addEventListener(e, () => drop.classList.remove('over')));
+})();
