@@ -230,10 +230,31 @@
     {% elif mail=='fail' %}<div class="note bad">{{ _('Surel uji gagal terkirim. Periksa API key dan alamat pengirim.') }}</div>
     {% elif mail=='off' %}<div class="note bad">{{ _('Pengiriman surel belum diatur.') }}</div>{% endif %}
     <p class="hint" style="margin:6px 0 2px">{{ _('Dipakai untuk verifikasi email dan tautan setel ulang password. Tanpa ini, pengguna yang lupa password tidak punya jalan pulih.') }}</p>
-    {% if mailcfg.from_env %}
-    <div class="note ok">{{ _('Diatur dari environment server — tidak bisa diubah dari sini.') }}</div>
-    <p class="hint">{{ _('Pengirim:') }} <b>{{ mailcfg.name }} &lt;{{ mailcfg.sender }}&gt;</b></p>
-    <div class="actions"><form method="post" action="/settings/mail/test">{{ csrf_field }}<button type="submit">{{ _('Kirim surel uji') }}</button></form></div>
+    {% if mailcfg.has_key and mailcfg.sender %}
+    <p class="hint">{{ _('Aktif — pengirim') }} <b>{{ mailcfg.name }} &lt;{{ mailcfg.sender }}&gt;</b>{% if mailcfg.from_env %} · {{ _('dari environment server') }}{% endif %}</p>
+    <div class="actions" style="margin-top:8px">
+      <form method="post" action="/settings/mail/test">{{ csrf_field }}<button type="submit">{{ _('Kirim surel uji') }}</button></form>
+    </div>
+    {% if not mailcfg.from_env %}
+    <details class="acc"><summary>{{ _('Ubah') }}</summary>
+    <form method="post" action="/settings/mail" autocomplete="off">{{ csrf_field }}
+      <label>{{ _('Resend API key') }}</label>
+      <div class="pw">
+        <input type="password" name="api_key" value="{{ mailcfg.api_key }}" placeholder="re_..." spellcheck="false">
+        <button type="button" class="eye" data-reveal aria-label="{{ _('Tampilkan API key') }}" title="{{ _('Tampilkan API key') }}">
+          <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.1-5.9M9.9 4.2A10.9 10.9 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.2 3.2M1 1l22 22"/></svg>
+        </button>
+      </div>
+      <div class="f2">
+        <div><label>{{ _('Alamat pengirim') }}</label><input name="sender" value="{{ mailcfg.sender }}" placeholder="monetary@rianfathany.com"></div>
+        <div><label>{{ _('Nama pengirim') }}</label><input name="name" value="{{ mailcfg.name }}" placeholder="Muara"></div>
+      </div>
+      <p class="hint">{{ _('Domain pengirim harus sudah diverifikasi di Resend (SPF & DKIM di Cloudflare).') }}</p>
+      <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
+    </form>
+    </details>
+    {% endif %}
     {% else %}
     <form method="post" action="/settings/mail" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Resend API key') }}</label>
@@ -262,9 +283,25 @@
     {% if g=='ok' %}<div class="note ok">{{ _('Pengaturan Google disimpan.') }}</div>{% endif %}
     <p class="hint" style="margin:6px 0 2px">{{ _('Daftarkan URI berikut di Google Cloud Console → Credentials → OAuth client (Web application) → Authorized redirect URIs.') }}</p>
     <div class="gcfg"><code>{{ google.redirect_uri }}</code></div>
-    {% if google.from_env %}
-    <div class="note ok">{{ _('Diatur dari environment server — tidak bisa diubah dari sini.') }}</div>
-    <p class="hint">{{ _('Client ID:') }} <code>{{ google.client_id[:18] }}…</code></p>
+    {% if google.client_id %}
+    <p class="hint">{{ _('Aktif — Client ID') }} <code>{{ google.client_id[:20] }}…</code>{% if google.from_env %} · {{ _('dari environment server') }}{% endif %}</p>
+    {% if google.allowed %}<p class="hint">{{ _('Email yang ikut membaca buku Anda:') }} {{ google.allowed | join(', ') }}</p>{% endif %}
+    {% if not google.from_env %}
+    <details class="acc"><summary>{{ _('Ubah') }}</summary>
+    <p class="hint" style="margin:6px 0 2px">{{ _('URI callback:') }}</p>
+    <div class="gcfg"><code>{{ google.redirect_uri }}</code></div>
+    <form method="post" action="/settings/google" autocomplete="off">{{ csrf_field }}
+      <label>{{ _('Client ID') }}</label>
+      <input name="client_id" value="{{ google.client_id }}" placeholder="1234567890-abc.apps.googleusercontent.com">
+      <label>{{ _('Client Secret') }}</label>
+      <input type="password" name="client_secret" placeholder="{{ _('tersimpan — isi hanya bila ingin mengganti') if google.has_secret else _('GOCSPX-…') }}">
+      <label>{{ _('Email yang boleh masuk') }}</label>
+      <input name="allowed" value="{{ google.allowed | join(', ') }}" placeholder="nama@gmail.com, pasangan@gmail.com">
+      <p class="hint">{{ _('Email di daftar ini masuk ke buku Anda (mis. pasangan). Email lain yang mendaftar mendapat buku kosong sendiri.') }}</p>
+      <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
+    </form>
+    </details>
+    {% endif %}
     {% else %}
     <form method="post" action="/settings/google" autocomplete="off">{{ csrf_field }}
       <label>{{ _('Client ID') }}</label>
