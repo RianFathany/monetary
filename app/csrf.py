@@ -34,6 +34,32 @@ def token_from(scope) -> str:
     return ""
 
 
+def field_multipart(body: bytes, ctype: str) -> str:
+    """Ambil token dari body multipart tanpa mengurai seluruhnya.
+
+    Unggahan berkas wajib multipart, dan tokennya ikut di dalamnya. Mengurai
+    penuh berarti menyalin isi berkas di memori demi satu nilai pendek — mahal
+    di mesin 256 MB. Yang dicari cuma potongan bernama `_csrf`, dan template
+    selalu menaruhnya paling depan.
+
+    Kalau yang terbaca ternyata bukan tokennya, hasilnya penolakan — bukan
+    kelolosan. Menebak nilai yang cocok tetap mustahil tanpa membaca cookie.
+    """
+    i = ctype.find("boundary=")
+    if i < 0:
+        return ""
+    batas = b"--" + ctype[i + 9:].split(";")[0].strip().strip('"').encode("latin-1")
+    awal = body.find(f'name="{FIELD}"'.encode())
+    if awal < 0:
+        return ""
+    kepala = body.find(b"\r\n\r\n", awal)
+    if kepala < 0:
+        return ""
+    akhir = body.find(batas, kepala)
+    potong = body[kepala + 4:akhir if akhir > 0 else len(body)]
+    return potong.rstrip(b"\r\n").decode("utf-8", "replace").strip()
+
+
 class CSRFMiddleware:
     def __init__(self, app):
         self.app = app
@@ -61,6 +87,8 @@ class CSRFMiddleware:
         if ctype.startswith("application/x-www-form-urlencoded"):
             form = urllib.parse.parse_qs(body.decode("utf-8", "replace"))
             sent = (form.get(FIELD) or [""])[0]
+        elif ctype.startswith("multipart/form-data"):
+            sent = field_multipart(body, ctype)
 
         if not cookie or not sent or not hmac.compare_digest(cookie, sent):
             await self._deny(send)

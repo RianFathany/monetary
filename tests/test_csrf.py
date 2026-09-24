@@ -87,5 +87,41 @@ class TestCSRF(unittest.TestCase):
         self.assertEqual(csrf.token_from(scope), "nilai")
 
 
+class TestMultipart(unittest.TestCase):
+    """Unggahan berkas memakai multipart. Sebelum ini middleware hanya mengurai
+    form biasa, jadi setiap unggahan ditolak 403 meski tokennya benar."""
+
+    BATAS = "----WebKitFormBoundaryAbC123"
+    CTYPE = f"multipart/form-data; boundary={BATAS}"
+
+    def body(self, token, isi_berkas=b"%PDF-1.4 palsu"):
+        b = self.BATAS.encode()
+        return (b"--" + b + b"\r\n"
+                b'Content-Disposition: form-data; name="_csrf"\r\n\r\n'
+                + token.encode() + b"\r\n"
+                b"--" + b + b"\r\n"
+                b'Content-Disposition: form-data; name="berkas"; filename="m.pdf"\r\n'
+                b"Content-Type: application/pdf\r\n\r\n"
+                + isi_berkas + b"\r\n"
+                b"--" + b + b"--\r\n")
+
+    def test_token_terbaca_dari_multipart(self):
+        self.assertEqual(csrf.field_multipart(self.body("abc123"), self.CTYPE), "abc123")
+
+    def test_isi_berkas_tidak_ikut_terbawa(self):
+        besar = b"x" * 50000
+        self.assertEqual(csrf.field_multipart(self.body("tok", besar), self.CTYPE), "tok")
+
+    def test_tanpa_kolom_token_kosong(self):
+        b = self.BATAS.encode()
+        body = (b"--" + b + b"\r\n"
+                b'Content-Disposition: form-data; name="berkas"; filename="m.pdf"\r\n\r\n'
+                b"isi\r\n--" + b + b"--\r\n")
+        self.assertEqual(csrf.field_multipart(body, self.CTYPE), "")
+
+    def test_tanpa_boundary_kosong(self):
+        self.assertEqual(csrf.field_multipart(self.body("abc"), "multipart/form-data"), "")
+
+
 if __name__ == "__main__":
     unittest.main()
