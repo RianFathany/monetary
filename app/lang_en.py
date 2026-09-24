@@ -621,6 +621,16 @@ EN = {
     "Impor dari bank": "Import from bank",
     "Impor": "Import",
     "Pilih berkas": "Choose a file",
+    "Transaksi terbaca": "Transactions read",
+    "saldo": "balance",
+    "Uang keluar": "Money out",
+    "Uang masuk": "Money in",
+    "baris": "lines",
+    "Belum terbaca": "Not read yet",
+    "Belum ada yang disimpan. Kalau angka atau arahnya meleset, kirim tangkapan layar ini — aturannya masih umum, belum disetel untuk bank tertentu.":
+        "Nothing has been saved. If an amount or direction looks wrong, send a screenshot of this — the rules are still generic, not tuned to any one bank.",
+    "Baris ini tidak punya tanggal dan nominal sekaligus, jadi dilewati — biasanya judul, saldo awal, atau catatan kaki. Ditampilkan supaya yang terlewat tidak hilang diam-diam.":
+        "These lines have no date and amount together, so they were skipped — usually headings, opening balance, or footnotes. Shown here so nothing disappears quietly.",
     "PDF, XLSX, atau CSV · maksimal 8 MB": "PDF, XLSX or CSV · 8 MB max",
     "baca e-statement PDF, XLSX, atau CSV": "read a PDF, XLSX or CSV statement",
     "rekening koran & tagihan kartu": "statements & card bills",

@@ -31,12 +31,38 @@
   </form>
 </section>
 
-{% if baris %}
+{% if tx %}
 <section class="card" style="margin-top:10px">
-  <div class="sec"><h2>{{ nama }}</h2><small>{{ baris | length }} {{ _('baris terbaca') }}</small></div>
-  <p class="hint" style="margin:0 0 8px">{{ _('Ini teks mentahnya. Langkah berikutnya memecah baris ini jadi tanggal, deskripsi, dan nominal — aturannya dibuat per bank, karena tiap bank menyusun kolomnya sendiri.') }}</p>
+  <div class="sec"><h2>{{ _('Transaksi terbaca') }}</h2><small>{{ tx | length }} {{ _('baris') }} · {{ nama }}</small></div>
+  <div class="grid2" style="margin:2px 0 8px">
+    <div class="card stat" style="box-shadow:none;background:color-mix(in srgb,var(--bad) 8%,transparent)">
+      <div class="k">{{ _('Uang keluar') }}</div><div class="v num">{{ total_keluar | rupiah }}</div></div>
+    <div class="card stat" style="box-shadow:none;background:color-mix(in srgb,var(--ok) 8%,transparent)">
+      <div class="k">{{ _('Uang masuk') }}</div><div class="v num">{{ total_masuk | rupiah }}</div></div>
+  </div>
+  <div class="panel-wrap" style="padding:0">
+    {% for t in tx %}
+    <div class="row static" style="--i:{{ loop.index0 }}">
+      <span class="av {{ 'in' if t.masuk else 'out' }}">{{ '↓' if t.masuk else '↑' }}</span>
+      <div class="main">
+        <div class="name">{{ t.keterangan }}</div>
+        <div class="meta"><span>{{ t.tanggal }}</span>
+          {% if t.saldo %}<span>{{ _('saldo') }} {{ t.saldo | rupiah }}</span>{% endif %}</div>
+      </div>
+      <div class="amt num {{ 'in' if t.masuk }}">{{ t.nilai | rupiah }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="hint">{{ _('Belum ada yang disimpan. Kalau angka atau arahnya meleset, kirim tangkapan layar ini — aturannya masih umum, belum disetel untuk bank tertentu.') }}</p>
+</section>
+{% endif %}
+
+{% if sisa %}
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Belum terbaca') }}</h2><small>{{ sisa | length }} {{ _('baris') }}</small></div>
+  <p class="hint" style="margin:0 0 8px">{{ _('Baris ini tidak punya tanggal dan nominal sekaligus, jadi dilewati — biasanya judul, saldo awal, atau catatan kaki. Ditampilkan supaya yang terlewat tidak hilang diam-diam.') }}</p>
   <div class="lines">
-    {% for b in baris %}<div class="line"><span class="no">{{ loop.index }}</span>{{ b }}</div>{% endfor %}
+    {% for b in sisa %}<div class="line"><span class="no">{{ loop.index }}</span>{{ b }}</div>{% endfor %}
   </div>
 </section>
 {% endif %}
