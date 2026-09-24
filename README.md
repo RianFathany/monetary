@@ -59,7 +59,7 @@ perlu ditinjau, dan **pemeriksaan**: sisa kas & saldo dana darurat hasil konvers
 persis dengan hitungan lama. Transaksi hasil tebakan ditandai `needs_review` dan muncul
 sebagai label "cek" di aplikasi.
 
-## Deploy ke Fly.io (monetary.rianfathany.com)
+## Deploy ke Fly.io (muara.rianfathany.com)
 
 ```bash
 brew install flyctl && fly auth login
@@ -67,7 +67,7 @@ cd monetary
 fly launch --copy-config --no-deploy        # pakai fly.toml yang ada, region sin
 fly volumes create monetary_data --size 1 --region sin
 fly deploy
-fly certs add monetary.rianfathany.com      # lalu tambah CNAME di Cloudflare (DNS only, bukan proxied, saat validasi)
+fly certs add muara.rianfathany.com         # lalu tambah A + AAAA di Cloudflare (DNS only, bukan proxied)
 ```
 
 Setelah deploy, jalankan import sekali: `fly ssh console -C "python scripts/import_xlsx.py /tmp/cashflow.xlsx --reset"` (upload file dulu dengan `fly ssh sftp shell`), atau cukup salin `data/monetary.db` lokal ke volume.
@@ -107,12 +107,19 @@ Sekali saja di [console.cloud.google.com](https://console.cloud.google.com):
    yang akan dipakai masuk. Mode Testing hanya melayani email di daftar ini (maks. 100).
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID** →
    Application type **Web application**.
-5. **Authorized redirect URIs → Add URI**, isi dua-duanya:
-   - `https://monetary.rianfathany.com/auth/google/callback`
+5. **Authorized redirect URIs → Add URI**, isi keduanya:
+   - `https://muara.rianfathany.com/auth/google/callback`
    - `http://127.0.0.1:8765/auth/google/callback` (untuk uji di laptop)
 6. Create → salin **Client ID** dan **Client secret**.
-7. Buka Muara → Setelan → Akun → Masuk dengan Google → tempel keduanya, isi email yang
-   boleh masuk (pisahkan dengan koma), Simpan.
+7. Pasang kredensialnya, pilih salah satu:
+   - **Lewat environment** (dianjurkan untuk server): `fly secrets set GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=…`
+     Tombol "Masuk dengan Google" langsung muncul begitu mesin restart, tanpa perlu
+     masuk dulu. Ini penting untuk server yang baru lahir: volumenya kosong, jadi tidak
+     ada siapa pun yang bisa masuk lewat Google untuk mengisi setelannya.
+   - **Lewat Setelan**: buka Muara → Setelan → Akun → Masuk dengan Google → tempel
+     keduanya, Simpan. Nilai di sini menimpa environment.
+8. Isi email yang boleh masuk di Setelan (pisahkan dengan koma). Daftar ini menentukan
+   siapa yang mewarisi buku pemilik; email lain yang mendaftar dapat buku kosong sendiri.
 
 Yang dipakai hanya scope `openid email profile`; aplikasi tidak meminta akses apa pun ke
 data Google lain. Email harus berstatus terverifikasi di Google dan ada di daftar izin.
@@ -204,9 +211,9 @@ Yang diminta consent screen sudah tersedia di aplikasi:
 
 | Kolom di Google | Isi |
 |---|---|
-| Application home page | `https://monetary.rianfathany.com` |
-| Privacy policy URL | `https://monetary.rianfathany.com/privacy` |
-| Terms of service URL | `https://monetary.rianfathany.com/terms` |
+| Application home page | `https://muara.rianfathany.com` |
+| Privacy policy URL | `https://muara.rianfathany.com/privacy` |
+| Terms of service URL | `https://muara.rianfathany.com/terms` |
 | Authorized domain | `rianfathany.com` |
 
 Kedua halaman itu dirender dari `app/legal.py` (dwibahasa, tanpa perlu login) dan

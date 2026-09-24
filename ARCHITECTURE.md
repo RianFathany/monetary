@@ -141,31 +141,54 @@ Turunannya:
 - **Kekayaan bersih** = total aset + kas (− `credit` bila nanti dipakai)
 - **Ditabung bulan ini** = transfer masuk ke `savings`/`investment` − transfer keluar
 
+### Satuan simpan
+
+Setiap kolom nominal berisi **bilangan bulat satuan perseratus**, berapa pun mata
+uangnya: Rp 44.800.000 tersimpan sebagai 4480000000, $12.50 sebagai 1250. Skalanya
+tetap supaya berganti mata uang tidak pernah butuh migrasi data — yang berubah hanya
+`app/money.py` saat menampilkannya. Konsekuensinya, ambang berupa nominal harus ditulis
+dikali `money.SCALE` (lihat `SPIKE_MIN` di `report.py`), dan apa pun yang keluar dari
+aplikasi sebagai angka mentah — ekspor Excel — melewati `money.major()`.
+
+Perkalian ke satuan ini dijalankan sekali per buku oleh `schema._scale_money()`, dijaga
+penanda `settings.money_scale`, **bukan** nomor versi skema. Nomor versi pernah terlanjur
+naik tanpa migrasinya ikut jalan, dan akibatnya seluruh saldo tampil seratus kali lebih
+kecil; penanda tersendiri membuat keadaan itu sembuh sendiri saat buku dibuka lagi.
+
 ---
 
 ## 4. Peta modul
 
 | Berkas | Baris | Isi |
 |---|---:|---|
-| `app/schema.py` | 198 | DDL skema v2, view `account_balances`, kategori & kantong bawaan |
-| `app/db.py` | 146 | koneksi SQLite, `balance_upto`, adopsi database siap-pakai saat start |
-| `app/main.py` | 845 | 34 route, query domain (`month_summary`, `asset_view`), render |
-| `app/report.py` | 233 | `build_metrics` (angka) + `render_rules` (narasi) + penyimpanan |
-| `app/suggest.py` | 68 | aturan kata kunci → kategori, dipakai layar perapihan |
-| `app/auth.py` | 78 | password tunggal PBKDF2, cookie bertanda tangan 30 hari |
-| `app/templates/` | ~950 | 9 halaman Jinja, mewarisi `base.html` |
-| `app/static/` | ~900 | `style.css` (glass macOS, light/dark), `app.js` (sheet, swipe, picker) |
+| `app/schema.py` | 282 | DDL skema v3, view `account_balances`, kategori & kantong bawaan |
+| `app/db.py` | 395 | koneksi SQLite, `balance_upto`, adopsi database siap-pakai saat start |
+| `app/main.py` | 1410 | 61 route, query domain (`month_summary`, `asset_view`), render |
+| `app/report.py` | 237 | `build_metrics` (angka) + `render_rules` (narasi) + penyimpanan |
+| `app/money.py` | 213 | mata uang ISO 4217, bentuk angka, baca input, satuan simpan |
+| `app/suggest.py` | 68 | aturan kata kunci → kategori, dipakai layar Rapikan |
+| `app/auth.py` | 178 | password PBKDF2, cookie bertanda tangan 30 hari, pembatas percobaan |
+| `app/users.py` | 167 | satu berkas buku per pengguna, pendaftaran, pemilik vs tamu |
+| `app/oauth.py` | 153 | masuk lewat Google, kredensial dari Setelan atau environment |
+| `app/csrf.py` | 90 | middleware ASGI double-submit cookie, semua POST tanpa kecuali |
+| `app/i18n.py` | 84 | bahasa aktif per permintaan; `lang_en.py` (692) kamusnya |
+| `app/legal.py` | 68 | teks Kebijakan Privasi & Persyaratan Layanan, dwibahasa |
+| `app/mailer.py` | 80 | verifikasi email & setel ulang password lewat Resend |
+| `app/backup.py` | 180 | cadangan harian menumpang lalu lintas; `s3.py` (102) unggah ke R2 |
+| `app/templates/` | ~1740 | 18 berkas Jinja, mewarisi `base.html` |
+| `app/static/` | ~1340 | `style.css` (glass macOS, light/dark), `app.js` (sheet, swipe, picker) |
 | `scripts/migrate_v2.py` | 337 | konversi bentuk lama → skema v2, punya mode pratinjau |
 | `scripts/import_xlsx.py` | 208 | spreadsheet → database bentuk lama |
 
 ### Halaman
 
 ```
+/            Depan      halaman publik: video, alur sungai, tangkapan layar (tamu saja)
 /m/{bulan}   Bulan      hero sisa kas, tren 6 bulan, tab Keluar/Masuk/Transfer
 /accounts    Kantong    kekayaan bersih, komposisi, saldo tiap kantong
 /assets      Aset       tren 12 bulan, komposisi, nilai pasar vs modal
 /report      Laporan    ringkasan, 4 indikator kesehatan, sorotan, saran
-/review      Perapihan  bulk-edit kategori dengan saran, per bulan
+/review      Rapikan    bulk-edit kategori dengan saran, per bulan
 /overview    Ringkasan  dashboard per bulan + pencarian
 /settings    Setelan    master kategori, template rutin, backup, akun
 ```
@@ -268,7 +291,8 @@ GitHub  RianFathany/monetary          (push tidak memicu deploy)
 Fly.io  monetary-rianfathany, region sin
         Dockerfile → uvicorn, 1 mesin, auto_stop/auto_start
         volume monetary_data 1 GB  →  /app/data/monetary.db
-        monetary.rianfathany.com (sertifikat Fly)
+        muara.rianfathany.com (sertifikat Fly)
+        monetary.rianfathany.com — domain lama, masih dilayani
 ```
 
 Mesin berhenti sendiri saat tidak dipakai, jadi kunjungan pertama setelah lama
