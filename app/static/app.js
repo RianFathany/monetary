@@ -721,3 +721,29 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   const i = j < 11 ? 0 : j < 15 ? 1 : j < 18 ? 2 : 3;
   el.textContent = (T.greet && T.greet[i]) || el.textContent;
 })();
+
+// ===== Panduan: peragaan dijalankan saat kartunya dibuka =====
+// Animasi yang berjalan di kartu tertutup cuma memakan baterai dan mengganggu
+// pembacaan kartu lain. Kelasnya dipasang saat dibuka, dilepas saat ditutup,
+// dan bisa diulang dengan mengetuk peragaannya.
+(function(){
+  const kartu = document.querySelectorAll('.gcard'); if (!kartu.length) return;
+  const nyalakan = d => {
+    const demo = d.querySelector('.demo'); if (!demo) return;
+    demo.classList.remove('go');
+    if (d.open) requestAnimationFrame(() => requestAnimationFrame(() => demo.classList.add('go')));
+  };
+  kartu.forEach(d => {
+    d.addEventListener('toggle', () => nyalakan(d));
+    const demo = d.querySelector('.demo');
+    if (demo) demo.addEventListener('click', e => { e.preventDefault(); nyalakan(d); });
+    if (d.open) nyalakan(d);
+  });
+
+  const tombol = document.getElementById('gall');
+  if (tombol) tombol.addEventListener('click', () => {
+    const buka = [...kartu].some(d => !d.open);
+    kartu.forEach(d => { d.open = buka; });
+    tombol.textContent = buka ? (T.closeAll || 'Tutup semua') : (T.openAll || 'Buka semua');
+  });
+})();

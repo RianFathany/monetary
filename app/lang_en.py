@@ -633,6 +633,13 @@ EN = {
     "Aman dipakai": "Safe to spend",
     "Hai": "Hi",
     "Panduan": "Guide",
+    "Buka semua": "Expand all",
+    "Tutup semua": "Collapse all",
+    "Buka menunya": "Open this menu",
+    "masuk": "in",
+    "keluar": "out",
+    "aman": "safe",
+    "jebol": "over",
     "tiap menu dan gunanya": "what each menu is for",
     "Muara mencatat uang masuk dan keluar per bulan, lalu menjelaskan apa yang terjadi. Semua data tersimpan di bukumu sendiri dan tidak terlihat pengguna lain.":
         "Muara records money in and out month by month, then explains what happened. Everything is stored in your own book and is not visible to other users.",

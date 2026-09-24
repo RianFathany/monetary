@@ -114,5 +114,14 @@ MENU_EN = [
 ]
 
 
+# Alamat menunya, dipisah dari teks supaya tidak perlu ditulis dua kali dan
+# tidak bisa berbeda antar bahasa.
+TAUTAN = {
+    "bulan": "/", "kantong": "/accounts", "anggaran": "/anggaran", "laporan": "/report",
+    "ringkasan": "/overview", "aset": "/assets", "dokumen": "/dokumen", "setelan": "/settings",
+}
+
+
 def menus() -> list:
-    return MENU_EN if get_lang() == "en" else MENU_ID
+    daftar = MENU_EN if get_lang() == "en" else MENU_ID
+    return [dict(m, tautan=TAUTAN.get(m["slug"], "/")) for m in daftar]

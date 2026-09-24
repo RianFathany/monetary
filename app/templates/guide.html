@@ -6,11 +6,13 @@
   <small>{{ _('tiap menu dan gunanya') }}</small>
 </div>
 
-<p class="hint" style="margin:0 0 10px">{{ _('Muara mencatat uang masuk dan keluar per bulan, lalu menjelaskan apa yang terjadi. Semua data tersimpan di bukumu sendiri dan tidak terlihat pengguna lain.') }}</p>
+<p class="hint" style="margin:0 0 8px">{{ _('Muara mencatat uang masuk dan keluar per bulan, lalu menjelaskan apa yang terjadi. Semua data tersimpan di bukumu sendiri dan tidak terlihat pengguna lain.') }}</p>
+
+<div class="actions" style="margin:0 0 10px"><button type="button" id="gall">{{ _('Buka semua') }}</button></div>
 
 <div class="ulist">
   {% for m in menus %}
-  <details class="ucard gcard" style="--i:{{ loop.index0 }}">
+  <details class="ucard gcard" data-demo="{{ m.slug }}" style="--i:{{ loop.index0 }}">
     <summary>
       <span class="av" style="--h:{{ m.judul | hue }}">{{ m.judul[:2] }}</span>
       <span class="main">
@@ -20,9 +22,37 @@
       <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
     </summary>
     <div class="ubody">
+
+      {# Peragaan kecil: menjelaskan lebih cepat daripada kalimat, dan hanya
+         bergerak saat kartunya dibuka supaya tidak jadi latar yang gelisah. #}
+      <div class="demo d-{{ m.slug }}" aria-hidden="true">
+        {% if m.slug == 'bulan' %}
+          <div class="flow"><span class="in" style="--w:62%"></span><span class="out" style="--w:38%"></span></div>
+          <div class="dlbl"><b>{{ _('masuk') }}</b><b class="r">{{ _('keluar') }}</b></div>
+        {% elif m.slug == 'kantong' %}
+          <div class="pockets"><span>Kas</span><span>Tabungan</span><span>Kartu</span></div>
+        {% elif m.slug == 'anggaran' %}
+          <div class="bar"><i style="--w:72%"></i></div>
+          <div class="bar over"><i style="--w:100%"></i></div>
+          <div class="dlbl"><b>{{ _('aman') }}</b><b class="r bad">{{ _('jebol') }}</b></div>
+        {% elif m.slug == 'laporan' %}
+          <svg class="spark" viewBox="0 0 120 34" preserveAspectRatio="none"><polyline points="2,26 22,20 42,24 62,12 82,16 102,5 118,9"/></svg>
+        {% elif m.slug == 'ringkasan' %}
+          <div class="pockets"><span>2026</span><span>{{ _('Keluar') }}</span><span>Transport</span></div>
+        {% elif m.slug == 'aset' %}
+          <div class="steps"><i style="--h:30%"></i><i style="--h:45%"></i><i style="--h:42%"></i><i style="--h:66%"></i><i style="--h:82%"></i></div>
+        {% elif m.slug == 'dokumen' %}
+          <div class="pipe"><span class="pf">PDF</span><span class="arr">→</span><span class="pr"></span><span class="pr"></span><span class="pr"></span><span class="arr">→</span><span class="pb">1</span></div>
+        {% else %}
+          <div class="sw3"><i></i><i></i><i></i></div>
+        {% endif %}
+      </div>
+
       <ul class="glist">
         {% for b in m.isi %}<li>{{ b | safe }}</li>{% endfor %}
       </ul>
+      <a class="btn gopen" href="{{ m.tautan }}">{{ _('Buka menunya') }}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
   </details>
   {% endfor %}
