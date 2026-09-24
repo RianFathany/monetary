@@ -1021,3 +1021,6 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
   .demo .pockets span,.demo .pipe > *{opacity:1}
   .demo .spark polyline{stroke-dashoffset:0}
 }
+
+/* Ikon panduan di header: menyala saat halamannya sedang dibuka. */
+.tools .ibtn.on{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
