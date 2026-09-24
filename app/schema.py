@@ -9,7 +9,7 @@ Kolom ledger_id ada sejak sekarang dan selalu 1. Multi-user nanti tinggal
 mengisinya, tanpa membongkar tabel lagi.
 """
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 MONEY_SCALE = 100        # nominal disimpan dalam satuan perseratus (app/money.py)
 
 SCHEMA = """
@@ -102,6 +102,30 @@ CREATE TABLE IF NOT EXISTS asset_snapshots (
 );
 
 -- Template rutin bulanan (KPR, tagihan kartu, gaji).
+CREATE TABLE IF NOT EXISTS documents (
+    id            INTEGER PRIMARY KEY,
+    ledger_id     INTEGER NOT NULL DEFAULT 1 REFERENCES ledgers(id),
+    kartu         TEXT NOT NULL,              -- nama kartu/penerbit, mis. "BNI"
+    month_key     TEXT NOT NULL,              -- bulan tujuan tagihannya
+    filename      TEXT,
+    total         INTEGER NOT NULL DEFAULT 0, -- satuan perseratus, sama seperti transactions
+    rows_count    INTEGER NOT NULL DEFAULT 0,
+    tx_id         INTEGER REFERENCES transactions(id),   -- pengeluaran ringkas yang dibuatnya
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS document_rows (
+    id            INTEGER PRIMARY KEY,
+    document_id   INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    tanggal       TEXT,
+    keterangan    TEXT,
+    amount        INTEGER NOT NULL DEFAULT 0, -- satuan perseratus
+    masuk         INTEGER NOT NULL DEFAULT 0,
+    category_id   INTEGER REFERENCES categories(id),
+    sort          INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_docrows_doc ON document_rows(document_id, sort);
+CREATE INDEX IF NOT EXISTS idx_documents_month ON documents(month_key);
+
 CREATE TABLE IF NOT EXISTS recurring (
     id            INTEGER PRIMARY KEY,
     ledger_id     INTEGER NOT NULL DEFAULT 1 REFERENCES ledgers(id),
@@ -209,6 +233,10 @@ MIGRATIONS: dict = {
     # v3 — nominal pindah ke satuan perseratus; lihat _scale_money() di bawah.
     # Laporan tersimpan dibuang karena angkanya sudah tidak sepadan lagi.
     3: ["DELETE FROM reports"],
+    # v4 — dokumen impor (rekening koran & tagihan kartu) beserta rinciannya.
+    # Tidak ada perintah di sini: tabelnya lahir dari apply_schema, yang memakai
+    # CREATE TABLE IF NOT EXISTS, jadi buku lama maupun baru sama-sama beres.
+    4: [],
 }
 
 # Skala nominal dijaga penanda sendiri, bukan nomor versi skema. Nomor versi bisa

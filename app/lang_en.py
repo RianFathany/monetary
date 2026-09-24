@@ -622,6 +622,38 @@ EN = {
     "Impor": "Import",
     "Pilih berkas": "Choose a file",
     "Transaksi terbaca": "Transactions read",
+    "Kartu atau rekening": "Card or account",
+    "mis. BNI, Mega, Kredivo": "e.g. BNI, Mega, Kredivo",
+    "Masuk ke bulan": "Goes into month",
+    "Catat sebagai pengeluaran": "Record as an expense",
+    "Satu pengeluaran sebesar total di atas dibuat di bulan tujuan, berkategori Tagihan Kartu. Matikan kalau dokumen ini cuma untuk dilihat — rinciannya tetap tersimpan, tapi tidak menambah angka apa pun.":
+        "One expense for the total above is created in the target month, under Card Bills. Turn this off if the document is only meant to be looked at — the detail is still stored, but nothing is added to your figures.",
+    "Simpan sebagai dokumen": "Save as a document",
+    "Kalau angka atau arahnya meleset, jangan disimpan dulu — aturannya masih umum, belum disetel untuk bank tertentu.":
+        "If an amount or direction looks wrong, do not save yet — the rules are still generic, not tuned to any one bank.",
+    "Dokumen": "Documents",
+    "dokumen tersimpan": "documents stored",
+    "Dokumen yang dicatat menyumbang satu pengeluaran di bulan tujuannya, sebesar totalnya. Yang bertanda analisa saja tidak menambah angka apa pun.":
+        "A recorded document contributes one expense in its target month, for its total. Ones marked analysis only add nothing to your figures.",
+    "analisa saja": "analysis only",
+    "Belum ada dokumen.": "No documents yet.",
+    "Unggah rekening koran atau tagihan kartu lewat halaman Impor.": "Upload a statement or card bill from the Import page.",
+    "Ke halaman Impor": "Go to Import",
+    "Dokumen tersimpan. Satu pengeluaran dibuat di bulan tujuannya, ditandai perlu dicek.":
+        "Document saved. One expense was created in its target month, flagged for review.",
+    "Total tagihan": "Bill total",
+    "Jumlah baris": "Line count",
+    "Yang masuk ke laporan bulanan cuma total di atas. Rincian di bawah ini untuk ditelusuri, bukan untuk dihitung ulang.":
+        "Only the total above reaches the monthly report. The detail below is there to trace, not to count again.",
+    "Dokumen ini tidak dicatat sebagai pengeluaran. Tidak ada angkanya yang masuk ke laporan bulanan.":
+        "This document is not recorded as an expense. None of its figures reach the monthly report.",
+    "Rincian": "Detail",
+    "Hapus dokumen": "Delete document",
+    "Hapus dokumen ini?": "Delete this document?",
+    "Dokumen dan pengeluaran ringkasnya dihapus bersamaan. Kalau transaksinya ditinggal, laporan bulananmu memuat tagihan yang tidak bisa ditelusuri lagi.":
+        "The document and its summary expense are deleted together. Leaving the transaction behind would put a bill in your monthly report that can no longer be traced.",
+    "Kalau dokumen ini dicatat, pengeluarannya ikut terhapus dari bulan tujuannya.":
+        "If this document was recorded, its expense is deleted from the target month too.",
     "saldo": "balance",
     "Uang keluar": "Money out",
     "Uang masuk": "Money in",

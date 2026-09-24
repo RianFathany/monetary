@@ -614,3 +614,15 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
   ['dragenter', 'dragover'].forEach(e => drop.addEventListener(e, () => drop.classList.add('over')));
   ['dragleave', 'drop'].forEach(e => drop.addEventListener(e, () => drop.classList.remove('over')));
 })();
+
+// ===== Pilihan kartu di halaman impor =====
+// Namanya diambil dari riwayat sendiri, tapi tetap boleh diketik baru — chip
+// cuma jalan pintas, bukan kurungan.
+(function(){
+  const chips = document.querySelectorAll('.chip[data-kartu]'); if (!chips.length) return;
+  const isian = document.getElementById('kartu'); if (!isian) return;
+  const tandai = () => chips.forEach(c =>
+    c.classList.toggle('on', c.dataset.kartu.toLowerCase() === isian.value.trim().toLowerCase()));
+  chips.forEach(c => c.addEventListener('click', () => { isian.value = c.dataset.kartu; tandai(); }));
+  isian.addEventListener('input', tandai);
+})();

@@ -53,7 +53,24 @@
     </div>
     {% endfor %}
   </div>
-  <p class="hint">{{ _('Belum ada yang disimpan. Kalau angka atau arahnya meleset, kirim tangkapan layar ini — aturannya masih umum, belum disetel untuk bank tertentu.') }}</p>
+  <p class="hint">{{ _('Kalau angka atau arahnya meleset, jangan disimpan dulu — aturannya masih umum, belum disetel untuk bank tertentu.') }}</p>
+
+  <form method="post" action="/impor/simpan" style="margin-top:12px;border-top:1px solid var(--line2);padding-top:10px">{{ csrf_field }}
+    <input type="hidden" name="data" value="{{ data_json }}">
+    <input type="hidden" name="nama" value="{{ nama }}">
+    <label>{{ _('Kartu atau rekening') }}</label>
+    {% if kartu_list %}
+    <div class="chips">
+      {% for k in kartu_list %}<button type="button" class="chip" data-kartu="{{ k }}">{{ k }}</button>{% endfor %}
+    </div>
+    {% endif %}
+    <input name="kartu" id="kartu" required placeholder="{{ _('mis. BNI, Mega, Kredivo') }}" autocomplete="off">
+    <label style="margin-top:8px">{{ _('Masuk ke bulan') }}</label>
+    <input type="month" name="month_key" value="{{ bulan }}">
+    <label class="check" style="margin-top:10px"><input type="checkbox" name="catat" value="1" checked>
+      <span>{{ _('Catat sebagai pengeluaran') }}<small>{{ _('Satu pengeluaran sebesar total di atas dibuat di bulan tujuan, berkategori Tagihan Kartu. Matikan kalau dokumen ini cuma untuk dilihat — rinciannya tetap tersimpan, tapi tidak menambah angka apa pun.') }}</small></span></label>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan sebagai dokumen') }}</button></div>
+  </form>
 </section>
 {% endif %}
 

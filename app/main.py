@@ -4,6 +4,7 @@ Tiga tipe transaksi: pemasukan, pengeluaran, dan transfer antar kantong.
 Transfer tidak pernah dihitung sebagai pemasukan/pengeluaran — itu yang bikin
 angka bulanan jujur (menabung bukan belanja).
 """
+import json
 import os
 import re
 import secrets
@@ -19,7 +20,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from . import auth, backup, csrf, i18n, legal, mailer, money, oauth, report, statement, suggest, users
+from . import (auth, backup, csrf, documents, i18n, legal, mailer, money, oauth, report,
+               statement, suggest, users)
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, book_currency,
                  get_db, get_setting, set_book_currency,
@@ -1272,10 +1274,60 @@ async def import_read(request: Request, berkas: UploadFile = File(None), passwor
         if berkas:
             await berkas.close()
     tx, sisa = statement.pecah(baris)
+    with get_db() as db:
+        kartu = documents.kartu_terpakai(db)
     return render(request, "import.html", baris=baris, galat="", nama=nama, page="impor",
-                  tx=tx, sisa=sisa,
+                  tx=tx, sisa=sisa, kartu_list=kartu, bulan=this_month(),
+                  data_json=json.dumps([{k: t[k] for k in ("tanggal", "keterangan", "nilai", "masuk")}
+                                        for t in tx], ensure_ascii=False),
                   total_keluar=sum(t["nilai"] for t in tx if not t["masuk"]),
                   total_masuk=sum(t["nilai"] for t in tx if t["masuk"]))
+
+
+@app.post("/impor/simpan")
+def import_save(request: Request, kartu: str = Form(""), month_key: str = Form(""),
+                nama: str = Form(""), data: str = Form(""), catat: str = Form("")):
+    """Simpan satu dokumen: pengeluaran ringkas di bulan tujuan + rinciannya."""
+    if (r := require_login(request)):
+        return r
+    baris = documents.dari_json(data)
+    if not re.fullmatch(r"\d{4}-\d{2}", month_key or ""):
+        month_key = this_month()
+    with get_db() as db:
+        try:
+            doc_id = documents.simpan(db, kartu, month_key, nama, baris, catat=bool(catat))
+        except ValueError:
+            return RedirectResponse("/impor?err=1", status_code=303)
+    return RedirectResponse(f"/dokumen/{doc_id}?baru=1", status_code=303)
+
+
+@app.get("/dokumen", response_class=HTMLResponse)
+def documents_page(request: Request):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        return render(request, "documents.html", docs=documents.daftar(db), page="dokumen")
+
+
+@app.get("/dokumen/{doc_id}", response_class=HTMLResponse)
+def document_page(request: Request, doc_id: int, baru: str = ""):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        doc, baris = documents.ambil(db, doc_id)
+        if not doc:
+            return RedirectResponse("/dokumen", status_code=303)
+        return render(request, "document.html", doc=doc, baris=baris, baru=bool(baru),
+                      page="dokumen", suggest=suggest)
+
+
+@app.post("/dokumen/{doc_id}/delete")
+def document_delete(request: Request, doc_id: int):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        documents.hapus(db, doc_id)
+    return RedirectResponse("/dokumen", status_code=303)
 
 
 @app.get("/review", response_class=HTMLResponse)

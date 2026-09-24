@@ -140,5 +140,67 @@ class Migrasi(unittest.TestCase):
         self.assertEqual(saham, 50_000_000)
 
 
+class TestNaikKeV4(unittest.TestCase):
+    """Buku lama dapat tabel dokumen tanpa nominalnya dikalikan ulang.
+
+    Ini persis jebakan yang pernah menggigit: nomor versi naik, migrasinya
+    jalan, dan seluruh saldo ikut dikalikan untuk kedua kalinya. Penjaganya
+    penanda money_scale, bukan nomor versi — tes ini yang memastikannya.
+    """
+
+    def buku_v3(self):
+        import sqlite3
+        from app import schema
+        c = sqlite3.connect(":memory:")
+        schema.apply_schema(c)
+        schema.seed_defaults(c)
+        from app.money import SCALE
+        for k, v in (("schema_version", "3"), ("money_scale", str(SCALE))):
+            c.execute("INSERT INTO settings(key,value) VALUES (?,?) "
+                      "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (k, v))
+        return c
+
+    def test_tabel_dokumen_lahir(self):
+        from app import schema
+        c = self.buku_v3()
+        schema.upgrade(c)
+        tabel = {r[0] for r in c.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        self.assertIn("documents", tabel)
+        self.assertIn("document_rows", tabel)
+        self.assertEqual(schema.book_version(c), 4)
+
+    def test_nominal_tidak_dikalikan_dua_kali(self):
+        from app import schema
+        from app.money import SCALE
+        c = self.buku_v3()
+        c.execute("INSERT INTO accounts(name,type,opening_balance,sort) VALUES ('Kas','cash',?,10)",
+                  (1_000_000 * SCALE,))
+        schema.upgrade(c)
+        saldo = c.execute("SELECT opening_balance FROM accounts WHERE name='Kas'").fetchone()[0]
+        self.assertEqual(saldo, 1_000_000 * SCALE)
+
+    def test_tanpa_penanda_skala_nominal_justru_dikalikan(self):
+        """Sisi lain dari penjaga yang sama: buku tanpa penanda memang harus
+        dikalikan, karena artinya dia belum pernah dinaikkan ke satuan
+        perseratus. Yang berbahaya bukan mengalikan, tapi mengalikan dua kali."""
+        import sqlite3
+        from app import schema
+        from app.money import SCALE
+        c = sqlite3.connect(":memory:")
+        schema.apply_schema(c)
+        schema.seed_defaults(c)
+        c.execute("DELETE FROM settings WHERE key='money_scale'")
+        c.execute("INSERT INTO accounts(name,type,opening_balance,sort) VALUES ('Kas','cash',5000,10)")
+        schema.upgrade(c)
+        self.assertEqual(c.execute("SELECT opening_balance FROM accounts WHERE name='Kas'").fetchone()[0],
+                         5000 * SCALE)
+
+    def test_dijalankan_dua_kali_tetap_aman(self):
+        from app import schema
+        c = self.buku_v3()
+        schema.upgrade(c)
+        self.assertEqual(schema.upgrade(c), 4)
+
+
 if __name__ == "__main__":
     unittest.main()

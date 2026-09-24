@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Dokumen') }} · Muara{% endblock %}
+{% block content %}
+
+<div class="sec"><h2 style="font-size:18px">{{ _('Dokumen') }}</h2>
+  <small>{{ docs | length }} {{ _('dokumen tersimpan') }}</small>
+</div>
+
+<section class="card" style="margin-top:6px">
+  {% if docs %}
+  <p class="hint" style="margin:0 0 8px">{{ _('Dokumen yang dicatat menyumbang satu pengeluaran di bulan tujuannya, sebesar totalnya. Yang bertanda analisa saja tidak menambah angka apa pun.') }}</p>
+  <div class="panel-wrap" style="padding:0">
+    {% for d in docs %}
+    <a class="row" href="/dokumen/{{ d.id }}" style="--i:{{ loop.index0 }};text-decoration:none;color:inherit">
+      <div class="main">
+        <div class="name">{{ d.kartu }}</div>
+        <div class="meta"><span>{{ d.month_key }}</span><span>{{ d.n }} {{ _('baris') }}</span>
+          {% if not d.tx_id %}<span class="pill">{{ _('analisa saja') }}</span>{% endif %}
+          {% if d.filename %}<span>{{ d.filename }}</span>{% endif %}</div>
+      </div>
+      <div class="amt num">{{ d.total | rupiah }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><b>{{ _('Belum ada dokumen.') }}</b><span>{{ _('Unggah rekening koran atau tagihan kartu lewat halaman Impor.') }}</span></div>
+  <div class="actions"><a class="btn primary" href="/impor" style="width:100%">{{ _('Ke halaman Impor') }}</a></div>
+  {% endif %}
+</section>
+
+{% endblock %}

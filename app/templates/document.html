@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.kartu }} · Muara{% endblock %}
+{% block content %}
+
+<div class="sec"><h2 style="font-size:18px">{{ doc.kartu }}</h2>
+  <small>{{ doc.month_key }}{% if doc.filename %} · {{ doc.filename }}{% endif %}</small>
+</div>
+
+{% if baru %}<div class="note ok">{{ _('Dokumen tersimpan. Satu pengeluaran dibuat di bulan tujuannya, ditandai perlu dicek.') }}</div>{% endif %}
+
+<section class="card" style="margin-top:6px">
+  <div class="grid2" style="margin-bottom:6px">
+    <div class="card stat" style="box-shadow:none;background:color-mix(in srgb,var(--bad) 8%,transparent)">
+      <div class="k">{{ _('Total tagihan') }}</div><div class="v num">{{ doc.total | rupiah }}</div>
+      {% if not doc.tx_id %}<div class="s"><span class="pill">{{ _('analisa saja') }}</span></div>{% endif %}</div>
+    <div class="card stat" style="box-shadow:none">
+      <div class="k">{{ _('Jumlah baris') }}</div><div class="v num">{{ baris | length }}</div></div>
+  </div>
+  <p class="hint" style="margin:0">{% if doc.tx_id %}{{ _('Yang masuk ke laporan bulanan cuma total di atas. Rincian di bawah ini untuk ditelusuri, bukan untuk dihitung ulang.') }}{% else %}{{ _('Dokumen ini tidak dicatat sebagai pengeluaran. Tidak ada angkanya yang masuk ke laporan bulanan.') }}{% endif %}</p>
+</section>
+
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Rincian') }}</h2></div>
+  <div class="panel-wrap" style="padding:0">
+    {% for b in baris %}
+    <div class="row static" style="--i:{{ loop.index0 }}">
+      <span class="av {{ 'in' if b.masuk else 'out' }}">{{ '↓' if b.masuk else '↑' }}</span>
+      <div class="main">
+        <div class="name">{{ b.keterangan }}</div>
+        <div class="meta"><span>{{ b.tanggal }}</span></div>
+      </div>
+      <div class="amt num {{ 'in' if b.masuk }}">{{ b.amount | rupiah }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card" style="margin-top:10px">
+  <details class="acc">
+    <summary>{{ _('Hapus dokumen') }}</summary>
+    <p class="hint">{{ _('Dokumen dan pengeluaran ringkasnya dihapus bersamaan. Kalau transaksinya ditinggal, laporan bulananmu memuat tagihan yang tidak bisa ditelusuri lagi.') }}</p>
+    <form method="post" action="/dokumen/{{ doc.id }}/delete"
+          data-confirm="{{ _('Hapus dokumen ini?') }}"
+          data-confirm-what="{{ doc.kartu }}"
+          data-confirm-sub="{{ doc.month_key }}"
+          data-confirm-note="{{ _('Kalau dokumen ini dicatat, pengeluarannya ikut terhapus dari bulan tujuannya.') }}">{{ csrf_field }}
+      <div class="actions"><button class="danger" type="submit" style="width:100%">{{ _('Hapus dokumen') }}</button></div>
+    </form>
+  </details>
+</section>
+
+{% endblock %}
