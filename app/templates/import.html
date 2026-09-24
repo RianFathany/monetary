@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Impor dari bank') }} · Muara{% endblock %}
+{% block content %}
+
+<div class="sec"><h2 style="font-size:18px">{{ _('Impor dari bank') }}</h2>
+  <small>{{ _('rekening koran & tagihan kartu') }}</small>
+</div>
+
+<section class="card" style="margin-top:6px">
+  {% if galat %}<div class="note bad">{{ galat }}</div>{% endif %}
+
+  <p class="hint" style="margin:0 0 10px">{{ _('Unggah e-statement PDF, XLSX, atau CSV. Untuk sekarang aplikasi hanya menampilkan apa yang berhasil dibacanya — belum ada yang disimpan. Berkas dan passwordnya tidak pernah ditulis ke server.') }}</p>
+
+  <form method="post" action="/impor" enctype="multipart/form-data" autocomplete="off">{{ csrf_field }}
+    <label>{{ _('Berkas') }}</label>
+    <input type="file" name="berkas" accept=".pdf,.xlsx,.csv,.txt" required>
+    <label style="margin-top:8px">{{ _('Password PDF') }}</label>
+    <input type="password" name="password" autocomplete="off" spellcheck="false"
+           placeholder="{{ _('kosongkan kalau berkasnya tidak terkunci') }}">
+    <p class="hint">{{ _('E-statement dari bank biasanya terkunci — passwordnya ada di badan email pengirimnya.') }}</p>
+    <div class="actions"><button class="primary" type="submit">{{ _('Baca berkas') }}</button></div>
+  </form>
+</section>
+
+{% if baris %}
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>{{ nama }}</h2><small>{{ baris | length }} {{ _('baris terbaca') }}</small></div>
+  <p class="hint" style="margin:0 0 8px">{{ _('Ini teks mentahnya. Langkah berikutnya memecah baris ini jadi tanggal, deskripsi, dan nominal — aturannya dibuat per bank, karena tiap bank menyusun kolomnya sendiri.') }}</p>
+  <div class="lines">
+    {% for b in baris %}<div class="line"><span class="no">{{ loop.index }}</span>{{ b }}</div>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}

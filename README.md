@@ -384,6 +384,7 @@ Urutannya: yang paling sering dipakai dulu, lalu yang terbaru. Satu baris per de
 app/main.py        routes (bulan, transaksi, kantong, aset, laporan, ringkasan, setelan)
 app/report.py      laporan bulanan: build_metrics() hitung angka, render_rules() susun narasi
 app/suggest.py     tebakan kategori dari kata kunci deskripsi (dipakai layar perapihan)
+app/statement.py   baca berkas bank jadi baris teks (PDF terkunci, XLSX, CSV)
 app/users.py       pengguna + buku masing-masing (file database terpisah)
 app/legal.py       isi halaman /privacy dan /terms (dipakai consent screen Google)
 app/mailer.py      kirim surel lewat Resend (verifikasi email, setel ulang password)

@@ -12,14 +12,14 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, RedirectResponse,
                                StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from . import auth, backup, csrf, i18n, legal, mailer, money, oauth, report, suggest, users
+from . import auth, backup, csrf, i18n, legal, mailer, money, oauth, report, statement, suggest, users
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, book_currency,
                  get_db, get_setting, set_book_currency,
@@ -1241,6 +1241,37 @@ def assets_delete(request: Request, aid: int, month_key: str = Form(...)):
 
 # ---------- perapihan kategori ----------
 
+
+
+# ---------- impor berkas dari bank ----------
+
+@app.get("/impor", response_class=HTMLResponse)
+def import_page(request: Request):
+    if (r := require_login(request)):
+        return r
+    return render(request, "import.html", baris=None, galat="", nama="")
+
+
+@app.post("/impor", response_class=HTMLResponse)
+async def import_read(request: Request, berkas: UploadFile = File(None), password: str = Form("")):
+    """Baca berkas, tampilkan isinya. Belum menyimpan apa pun.
+
+    Berkas dan passwordnya hidup di dalam fungsi ini saja: tidak ditulis ke
+    volume, tidak dicatat di log, tidak dikembalikan ke halaman. Yang keluar
+    hanya teks hasil bacaannya.
+    """
+    if (r := require_login(request)):
+        return r
+    nama = (berkas.filename if berkas else "") or ""
+    try:
+        blob = await berkas.read(statement.MAKS_BYTE + 1) if berkas else b""
+        baris = statement.ekstrak(nama, blob, password)
+    except statement.Gagal as e:
+        return render(request, "import.html", baris=None, galat=str(e), nama=nama)
+    finally:
+        if berkas:
+            await berkas.close()
+    return render(request, "import.html", baris=baris, galat="", nama=nama)
 
 
 @app.get("/review", response_class=HTMLResponse)

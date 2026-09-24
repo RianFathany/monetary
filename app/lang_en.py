@@ -618,6 +618,20 @@ EN = {
     "arsip": "archives",
     "belum diatur": "not set up",
     "Cadangkan sekarang": "Back up now",
+    "Impor dari bank": "Import from bank",
+    "baca e-statement PDF, XLSX, atau CSV": "read a PDF, XLSX or CSV statement",
+    "rekening koran & tagihan kartu": "statements & card bills",
+    "Unggah e-statement PDF, XLSX, atau CSV. Untuk sekarang aplikasi hanya menampilkan apa yang berhasil dibacanya — belum ada yang disimpan. Berkas dan passwordnya tidak pernah ditulis ke server.":
+        "Upload a PDF, XLSX or CSV statement. For now the app only shows what it managed to read — nothing is saved yet. The file and its password are never written to the server.",
+    "Berkas": "File",
+    "Password PDF": "PDF password",
+    "kosongkan kalau berkasnya tidak terkunci": "leave empty if the file is not locked",
+    "E-statement dari bank biasanya terkunci — passwordnya ada di badan email pengirimnya.":
+        "Bank e-statements are usually locked — the password is in the body of the email that sent it.",
+    "Baca berkas": "Read file",
+    "baris terbaca": "lines read",
+    "Ini teks mentahnya. Langkah berikutnya memecah baris ini jadi tanggal, deskripsi, dan nominal — aturannya dibuat per bank, karena tiap bank menyusun kolomnya sendiri.":
+        "This is the raw text. The next step splits these lines into date, description and amount — the rules are written per bank, because every bank lays out its columns differently.",
     "Diatur lewat environment server, tidak ada formnya di sini: system.db ikut terbungkus ke dalam arsip, jadi kunci yang diketik lewat halaman ini akan ikut tersimpan di setiap cadangan yang ditulisnya sendiri.":
         "Configured through the server environment, with no form here: system.db goes into the archive too, so a key typed on this page would end up stored inside every backup it writes.",
     "Wajib: BACKUP_ENDPOINT, BACKUP_BUCKET, BACKUP_KEY, BACKUP_SECRET. Opsional: BACKUP_REGION, BACKUP_PREFIX, BACKUP_KEEP, BACKUP_EVERY_HOURS.":
