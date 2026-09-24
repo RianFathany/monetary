@@ -843,3 +843,20 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
 .backbtn svg{width:16px;height:16px;flex:none;color:var(--muted);
              transition:transform var(--fast) var(--ease),color var(--fast) var(--ease)}
 .backbtn:hover svg{transform:translateX(-2px);color:var(--accent)}
+
+/* --- baris di dalam kartu pada layar sempit ---
+   Potongan .meta sebelumnya berdesakan dalam satu baris flex tanpa izin turun.
+   Di layar HP ketiganya menyusut sampai teksnya patah di tengah kata — satu
+   kata per baris, tiga kolom sempit berdampingan. Turun baris utuh jauh lebih
+   terbaca daripada diperas. */
+.row .meta{flex-wrap:wrap;row-gap:2px}
+.row .meta > span{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+
+/* Tombol aksi di baris kartu ikut merebut lebar. Di layar sempit dia turun ke
+   barisnya sendiri, sejajar teks, bukan menghimpitnya dari kanan. */
+@media (max-width:430px){
+  .card > .row.static{grid-template-columns:36px minmax(0,1fr);row-gap:9px;align-items:start}
+  .card > .row.static > form,
+  .card > .row.static > .btn{grid-column:2/-1;justify-self:start}
+  .card > .row.static .name{display:block}
+}
