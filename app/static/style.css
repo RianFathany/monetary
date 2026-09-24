@@ -899,17 +899,27 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
 .hero .s.aman b{font-size:12.5px;font-weight:700;color:var(--ok);letter-spacing:.02em;text-transform:uppercase}
 .hero .s.aman b.bad{color:var(--bad)}
 
-/* --- panel salam di bawah header --- */
-.greetwrap{padding-top:10px;padding-bottom:0}
-.greet{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 12px}
-.greet .hai{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;min-width:0}
-.greet .hai b{font-size:17px;font-weight:700;letter-spacing:-.01em}
-.greet .hai span{font-size:13px;color:var(--muted);min-width:0;overflow:hidden;
+/* --- panel salam di bawah header ---
+   Namanya bukan .greet: kelas itu sudah dipakai halaman masuk untuk sapaan
+   raksasa berfont Bebas di atas video, dan panel ini ikut mewarisinya. Di
+   dalam aplikasi hanya jam yang pantas memakai Bebas; sisanya Jakarta Sans
+   seperti seluruh teks lain. */
+.hellowrap{padding-top:10px;padding-bottom:0}
+.hello{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 12px;
+       font-family:"Plus Jakarta Sans",system-ui,sans-serif}
+.hello .hai{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;min-width:0}
+.hello .hai b{font-size:17px;font-weight:700;letter-spacing:-.01em;text-transform:none}
+.hello .hai span{font-size:13px;color:var(--muted);min-width:0;overflow:hidden;
                  text-overflow:ellipsis;white-space:nowrap}
-.greet .live{margin:0}
+/* .live dirancang untuk kartu login: margin negatif dan garis atas. Di sini
+   dia cuma sebaris keterangan, jadi semua itu dilepas. */
+.hello .live{margin:0;padding:0;border-top:0;font-family:inherit;gap:6px;font-size:12px}
+.hello .live .clock{font-family:"Bebas Neue","Plus Jakarta Sans",sans-serif;font-size:22px;padding-top:0}
+.hello .live .wx{margin-left:6px;display:flex;align-items:baseline;gap:5px;text-align:left}
+.hello .live .wx b{display:inline;font-size:12.5px;font-weight:700}
 @media (max-width:430px){
-  .greet{gap:4px}
-  .greet .hai b{font-size:16px}
+  .hello{gap:4px}
+  .hello .hai b{font-size:16px}
 }
 
 /* --- panduan: kartu per menu, isinya daftar penjelasan --- */

@@ -1,8 +1,8 @@
 {# Panel salam di bawah header: sapaan, jam, cuaca, dan kota.
    Markup .live-nya sama persis dengan halaman masuk supaya skrip jam-cuaca di
    app.js melayani keduanya tanpa cabang. #}
-<div class="wrap greetwrap">
-  <div class="greet">
+<div class="wrap hellowrap">
+  <div class="hello">
     <div class="hai">
       <b id="greet-hi">{{ _('Hai') }}</b>
       <span>{{ (me.name or (me.email if me.email != 'owner' else _('Pemilik'))) }}</span>
