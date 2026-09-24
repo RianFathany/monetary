@@ -46,6 +46,7 @@ class TestPanduan(unittest.TestCase):
         blok = nav[nav.index('<nav class="nav">'):nav.index("</nav>")]
         alamat = set(re.findall(r'href="/(\w*)', blok))
         alamat.discard("m")                                  # /m/<bulan> = halaman Bulan
+        alamat.discard("panduan")                            # halaman ini sendiri
         peta = {"accounts": "kantong", "report": "laporan", "overview": "ringkasan",
                 "assets": "aset", "settings": "setelan", "dokumen": "dokumen",
                 "anggaran": "anggaran"}
