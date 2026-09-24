@@ -17,8 +17,9 @@ API = "https://api.resend.com/emails"
 
 
 def _pick(key: str, env: str, default: str = "") -> str:
-    """Setelan yang diketik pemilik menang; kalau kosong, pakai environment."""
-    return ((get_app_setting(key) or "").strip() or (os.environ.get(env) or "").strip() or default)
+    """Environment yang berlaku. Nilai di database hanya sisa dari versi lama,
+    saat konfigurasi ini masih bisa diketik lewat halaman Setelan."""
+    return ((os.environ.get(env) or "").strip() or (get_app_setting(key) or "").strip() or default)
 
 
 def config() -> dict:

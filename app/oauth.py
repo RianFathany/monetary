@@ -29,10 +29,9 @@ STATE_MAX_AGE = 600           # 10 menit; cukup untuk satu kali login
 # ---------- konfigurasi ----------
 
 def _pick(key: str, env: str) -> str:
-    """Setelan yang diketik pemilik menang; kalau kosong, pakai bawaan dari
-    environment. Begitu aplikasi dipasang dengan GOOGLE_CLIENT_ID/SECRET,
-    tombol Google langsung ada tanpa perlu menempel apa pun dulu."""
-    return ((get_app_setting(key) or "").strip() or (os.environ.get(env) or "").strip())
+    """Environment yang berlaku. Nilai di database hanya sisa dari versi lama,
+    saat kredensial ini masih bisa diketik lewat halaman Setelan."""
+    return ((os.environ.get(env) or "").strip() or (get_app_setting(key) or "").strip())
 
 
 def config(db=None) -> dict:

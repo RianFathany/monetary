@@ -570,14 +570,6 @@ def settings_backup_run(request: Request):
     return RedirectResponse(f"/settings?bk={'done' if ok else 'fail'}#backup", status_code=303)
 
 
-@app.post("/settings/mail")
-def settings_mail(request: Request, api_key: str = Form(""), sender: str = Form(""), name: str = Form("")):
-    if (r := require_owner(request)):
-        return r
-    mailer.save_config(api_key, sender, name)
-    return RedirectResponse("/settings?mail=ok#account", status_code=303)
-
-
 @app.post("/settings/mail/test")
 def settings_mail_test(request: Request):
     """Kirim surel uji ke alamat superadmin supaya konfigurasi terbukti jalan."""
@@ -988,18 +980,13 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", ma
         accs = accounts(db)
         first_month = get_setting(db, "first_month", "")
         review_count = db.execute(f"SELECT COUNT(*) c FROM transactions t WHERE {REVIEW_WHERE}").fetchone()["c"]
-        gc = oauth.config()
         mc = mailer.config()
-        google = dict(client_id=gc["client_id"], allowed=gc["allowed"], has_secret=bool(gc["client_secret"]),
-                      from_env=oauth.from_env(), redirect_uri=oauth.redirect_uri(request))
     u = me(request)
     return render(request, "settings.html", mail=mail, verify=verify, verified=bool(verified),
                   bk=bk, backup_cfg=backup.config(), backup_status=backup.status(),
-                  mailcfg=dict(sender=mc["sender"], name=mc["name"], has_key=bool(mc["api_key"]),
-                               from_env=mailer.from_env(),
-                               api_key="" if mailer.from_env() else mc["api_key"]),
+                  mail_aktif=mailer.is_enabled(),
                   review_count=review_count, has_password=bool(u and (u["password_hash"] or u["is_owner"])),
-                  google=google, recurring=rec, cats=cats, used=used, accounts=accs,
+                  recurring=rec, cats=cats, used=used, accounts=accs,
                   first_month=first_month, page="settings", mk=this_month(), pw=pw, g=g,
                   currencies=[(c, money.code_label(c)) for c in sorted(money.NAMES)],
                   me=u, is_owner=bool(u and u["is_owner"]),
@@ -1162,16 +1149,6 @@ def settings_user_active(request: Request, uid: int, active: str = Form("")):
         return r
     users.set_active(uid, bool(active))
     return RedirectResponse("/settings#users", status_code=303)
-
-
-@app.post("/settings/google")
-def settings_google(request: Request, client_id: str = Form(""), client_secret: str = Form(""),
-                    allowed: str = Form("")):
-    if (r := require_owner(request)):
-        return r
-    with get_db() as db:
-        oauth.save_config(db, client_id, client_secret, allowed)
-    return RedirectResponse("/settings?g=ok#account", status_code=303)
 
 
 @app.post("/settings/password")

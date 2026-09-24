@@ -166,11 +166,17 @@ class SumberKredensial(unittest.TestCase):
         self.assertTrue(o.is_enabled())
         self.assertTrue(o.from_env())
 
-    def test_setelan_menang_atas_environment(self):
-        self.simpanan["google_client_id"] = "dari-setelan"
+    def test_environment_menang_atas_nilai_lama_di_database(self):
+        """Kredensial ini tidak bisa lagi diketik lewat Setelan."""
+        self.simpanan["google_client_id"] = "dari-database"
         o = self.pakai(GOOGLE_CLIENT_ID="dari-env", GOOGLE_CLIENT_SECRET="GOCSPX-rahasia")
-        self.assertEqual(o.config()["client_id"], "dari-setelan")
-        self.assertFalse(o.from_env())
+        self.assertEqual(o.config()["client_id"], "dari-env")
+
+    def test_nilai_lama_dipakai_kalau_environment_kosong(self):
+        self.simpanan["google_client_id"] = "dari-database"
+        self.simpanan["google_client_secret"] = "GOCSPX-lama"
+        o = self.pakai()
+        self.assertTrue(o.is_enabled())
 
     def test_tanpa_keduanya_tombol_mati(self):
         o = self.pakai()

@@ -118,15 +118,12 @@ Sekali saja di [console.cloud.google.com](https://console.cloud.google.com):
    - `https://muara.rianfathany.com/auth/google/callback`
    - `http://127.0.0.1:8765/auth/google/callback` (untuk uji di laptop)
 6. Create → salin **Client ID** dan **Client secret**.
-7. Pasang kredensialnya, pilih salah satu:
-   - **Lewat environment** (dianjurkan untuk server): `fly secrets set GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=…`
-     Tombol "Masuk dengan Google" langsung muncul begitu mesin restart, tanpa perlu
-     masuk dulu. Ini penting untuk server yang baru lahir: volumenya kosong, jadi tidak
-     ada siapa pun yang bisa masuk lewat Google untuk mengisi setelannya.
-   - **Lewat Setelan**: buka Muara → Setelan → Akun → Masuk dengan Google → tempel
-     keduanya, Simpan. Nilai di sini menimpa environment.
-8. Isi email yang boleh masuk di Setelan (pisahkan dengan koma). Daftar ini menentukan
-   siapa yang mewarisi buku pemilik; email lain yang mendaftar dapat buku kosong sendiri.
+7. Pasang kredensialnya di environment — **hanya di sana**, tidak ada formnya di
+   aplikasi: `fly secrets set GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… GOOGLE_ALLOWED=…`
+   Di laptop, tulis di `.env`. Tombol "Masuk dengan Google" muncul sendiri begitu
+   keduanya terbaca.
+8. `GOOGLE_ALLOWED` berisi email yang mewarisi buku pemilik (pisahkan dengan koma).
+   Email lain yang mendaftar dapat buku kosong sendiri.
 
 Yang dipakai hanya scope `openid email profile`; aplikasi tidak meminta akses apa pun ke
 data Google lain. Email harus berstatus terverifikasi di Google dan ada di daftar izin.

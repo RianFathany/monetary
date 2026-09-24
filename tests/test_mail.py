@@ -101,10 +101,16 @@ class SumberKonfigurasi(unittest.TestCase):
         self.assertTrue(m.from_env())
         self.assertEqual(m.config()["name"], "Muara")
 
-    def test_setelan_menang_atas_environment(self):
-        m = self.muat({"resend_key": "re_setelan"}, RESEND_API_KEY="re_env", MAIL_SENDER="muara@contoh.com")
-        self.assertEqual(m.config()["api_key"], "re_setelan")
-        self.assertFalse(m.from_env())
+    def test_environment_menang_atas_nilai_lama_di_database(self):
+        """Konfigurasi ini tidak bisa lagi diketik lewat Setelan, jadi
+        environment yang berlaku dan nilai lama di database hanya cadangan."""
+        m = self.muat({"resend_key": "re_lama"}, RESEND_API_KEY="re_env", MAIL_SENDER="muara@contoh.com")
+        self.assertEqual(m.config()["api_key"], "re_env")
+
+    def test_nilai_lama_dipakai_kalau_environment_kosong(self):
+        m = self.muat({"resend_key": "re_lama", "mail_from": "a@b.c"})
+        self.assertEqual(m.config()["api_key"], "re_lama")
+        self.assertTrue(m.is_enabled())
 
     def test_tanpa_alamat_pengirim_belum_aktif(self):
         m = self.muat(RESEND_API_KEY="re_abc")
