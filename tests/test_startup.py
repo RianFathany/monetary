@@ -94,6 +94,33 @@ class PengalihanDomain(unittest.TestCase):
         self.assertEqual(m.CANONICAL_HOST, "muara.contoh.com")
         self.assertEqual(m.LEGACY_HOSTS, {"lama.contoh.com", "lain.contoh.com"})
 
+    def alihkan(self, m, method, host):
+        """Jalankan middleware pengalih untuk satu permintaan buatan."""
+        import asyncio
+        from starlette.requests import Request
+
+        scope = {"type": "http", "method": method, "path": "/lang", "scheme": "https",
+                 "server": (host, 443), "query_string": b"", "root_path": "",
+                 "headers": [(b"host", host.encode())]}
+
+        async def berikutnya(_):
+            raise AssertionError("tidak boleh sampai ke aplikasi")
+
+        return asyncio.run(m._canonical_host(Request(scope), berikutnya))
+
+    def test_post_dari_domain_lama_memakai_308(self):
+        """301 dan 302 diubah peramban jadi GET tanpa body, jadi setiap form yang
+        dikirim dari domain lama akan mendarat sebagai GET dan berakhir 405.
+        308 mempertahankan metode dan isinya."""
+        m = self.muat(canonical="muara.contoh.com", legacy="lama.contoh.com")
+        r = self.alihkan(m, "POST", "lama.contoh.com")
+        self.assertEqual(r.status_code, 308)
+        self.assertEqual(r.headers["location"], "https://muara.contoh.com/lang")
+
+    def test_get_dari_domain_lama_tetap_301(self):
+        m = self.muat(canonical="muara.contoh.com", legacy="lama.contoh.com")
+        self.assertEqual(self.alihkan(m, "GET", "lama.contoh.com").status_code, 301)
+
     def test_host_utama_tidak_ikut_dialihkan(self):
         m = self.muat(canonical="muara.contoh.com", legacy="lama.contoh.com")
         self.assertNotIn(m.CANONICAL_HOST, m.LEGACY_HOSTS)

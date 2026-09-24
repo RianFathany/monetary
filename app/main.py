@@ -148,10 +148,18 @@ CANONICAL_HOST = os.environ.get("CANONICAL_HOST", "").strip().lower()
 
 @app.middleware("http")
 async def _canonical_host(request: Request, call_next):
+    """Domain lama dialihkan permanen ke yang baru.
+
+    301 hanya untuk permintaan yang aman. Untuk POST dipakai 308, karena
+    peramban mengubah 301 dan 302 menjadi GET tanpa membawa body — jadi setiap
+    form yang dikirim dari domain lama akan mendarat sebagai GET ke rute yang
+    cuma menerima POST, dan berakhir 405. Yang patah bukan satu tombol, tapi
+    semua form: masuk, daftar, simpan transaksi, ganti bahasa."""
     host = (request.headers.get("host") or "").split(":")[0].lower()
     if CANONICAL_HOST and host in LEGACY_HOSTS:
         url = request.url.replace(netloc=CANONICAL_HOST, scheme="https")
-        return RedirectResponse(str(url), status_code=301)
+        kode = 301 if request.method in ("GET", "HEAD") else 308
+        return RedirectResponse(str(url), status_code=kode)
     return await call_next(request)
 
 
