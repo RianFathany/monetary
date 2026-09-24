@@ -223,6 +223,7 @@
   {% endif %}
   <p class="legal-links" style="margin-top:12px"><a href="/privacy">{{ _('Kebijakan Privasi') }}</a> · <a href="/terms">{{ _('Persyaratan Layanan') }}</a></p>
   {% if is_owner %}
+  {% if not mailcfg.from_env %}
   <details class="acc" {{ 'open' if mail }}>
     <summary>{{ _('Pengiriman surel') }}</summary>
     {% if mail=='ok' %}<div class="note ok">{{ _('Pengaturan surel disimpan.') }}</div>
@@ -277,7 +278,9 @@
       <div class="actions"><button type="submit" style="width:100%">{{ _('Kirim surel uji') }}</button></div>
     </form>
   </details>
+  {% endif %}
 
+  {% if not google.from_env %}
   <details class="acc" {{ 'open' if g }}>
     <summary>{{ _('Masuk dengan Google') }}</summary>
     {% if g=='ok' %}<div class="note ok">{{ _('Pengaturan Google disimpan.') }}</div>{% endif %}
@@ -315,6 +318,7 @@
     </form>
     {% endif %}
   </details>
+  {% endif %}
 
   {% endif %}
   <details class="acc" {{ 'open' if pw }}>

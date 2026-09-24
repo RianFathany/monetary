@@ -97,3 +97,42 @@ class PengalihanDomain(unittest.TestCase):
     def test_host_utama_tidak_ikut_dialihkan(self):
         m = self.muat(canonical="muara.contoh.com", legacy="lama.contoh.com")
         self.assertNotIn(m.CANONICAL_HOST, m.LEGACY_HOSTS)
+
+
+class BacaEnvFile(unittest.TestCase):
+    """`.env` dibaca saat start, tapi tidak pernah menimpa environment asli."""
+
+    def jalankan(self, isi, sudah_ada=None):
+        import os, tempfile
+        from pathlib import Path
+        from app import main
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        (Path(tmp.name) / ".env").write_text(isi)
+        asli = dict(os.environ)
+        self.addCleanup(lambda: (os.environ.clear(), os.environ.update(asli)))
+        for k, v in (sudah_ada or {}).items():
+            os.environ[k] = v
+        base_asli = main.BASE
+        main.BASE = Path(tmp.name) / "app"
+        self.addCleanup(lambda: setattr(main, "BASE", base_asli))
+        main._load_env_file()
+        return os.environ
+
+    def test_nilai_dibaca(self):
+        env = self.jalankan("RESEND_API_KEY=re_dari_berkas\nMAIL_SENDER=a@b.c\n")
+        self.assertEqual(env["RESEND_API_KEY"], "re_dari_berkas")
+        self.assertEqual(env["MAIL_SENDER"], "a@b.c")
+
+    def test_environment_asli_menang(self):
+        env = self.jalankan("RESEND_API_KEY=re_berkas\n", {"RESEND_API_KEY": "re_env"})
+        self.assertEqual(env["RESEND_API_KEY"], "re_env")
+
+    def test_komentar_dan_baris_kosong_diabaikan(self):
+        env = self.jalankan("# catatan\n\nMAIL_NAME=Muara\n")
+        self.assertEqual(env["MAIL_NAME"], "Muara")
+        self.assertNotIn("# catatan", env)
+
+    def test_tanda_kutip_dilepas(self):
+        env = self.jalankan('MAIL_SENDER="a@b.c"\n')
+        self.assertEqual(env["MAIL_SENDER"], "a@b.c")

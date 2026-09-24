@@ -26,6 +26,27 @@ from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, ba
                  init_db, set_app_setting, set_book, set_setting, upgrade_all_books)
 
 BASE = Path(__file__).resolve().parent
+def _load_env_file() -> None:
+    """Baca `.env` di akar proyek kalau ada. Variabel yang sudah ada di
+    environment tidak ditimpa, jadi di server (fly secrets) berkas ini tidak
+    berpengaruh apa-apa. Tanpa ini, `.env` hanya terbaca lewat Docker Compose
+    dan setelan lokal diam-diam terabaikan."""
+    berkas = BASE.parent / ".env"
+    if not berkas.exists():
+        return
+    for baris in berkas.read_text(errors="replace").splitlines():
+        baris = baris.strip()
+        if not baris or baris.startswith("#") or "=" not in baris:
+            continue
+        kunci, _, nilai = baris.partition("=")
+        kunci = kunci.strip()
+        nilai = nilai.strip().strip('"').strip("'")
+        if kunci and kunci not in os.environ:
+            os.environ[kunci] = nilai
+
+
+_load_env_file()
+
 app = FastAPI(title="Muara", docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 app.add_middleware(csrf.CSRFMiddleware)
