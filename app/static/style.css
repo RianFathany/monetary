@@ -1046,7 +1046,8 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
    lebih cepat daripada kata, dan orang yang malas membaca tetap menangkapnya. */
 .gicon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;
        color:hsl(var(--h,220) 55% 45%);background:hsl(var(--h,220) 70% 55% / .14);
-       transition:background var(--base) var(--ease),transform var(--base) var(--ease)}
+       transition:background var(--base) var(--ease),transform var(--base) var(--ease),
+                  color var(--base) var(--ease)}
 .gicon svg{width:19px;height:19px}
 .gcard[open] .gicon{transform:scale(1.06);background:hsl(var(--h,220) 70% 55% / .22)}
 /* Bagiannya terlihat sejak awal — pada beberapa ikon justru garis inilah
@@ -1059,6 +1060,26 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
 .gcard[open] .gicon svg circle.tick:nth-of-type(3){animation-delay:.36s}
 @keyframes g-draw{from{stroke-dashoffset:26}to{stroke-dashoffset:0}}
 @keyframes g-pop{from{opacity:0;transform:scale(.4);transform-origin:center}to{opacity:1;transform:none}}
+
+/* Hover: hanya di perangkat yang benar-benar punya penunjuk. Di layar sentuh
+   :hover menempel sesudah ketukan, jadi kartu yang barusan disentuh terlihat
+   menyala terus — lebih mirip kerusakan daripada gerakan.
+   Perannya dibedakan: hover cuma memberi tahu "ini bisa ditekan", sedangkan
+   menggambar ulang garisnya disimpan untuk saat kartunya benar-benar dibuka.
+   Kalau hover ikut menggambar, menyapu delapan kartu berarti delapan animasi
+   berturut-turut dan halamannya jadi gelisah. */
+@media (hover:hover) and (pointer:fine){
+  .gcard summary:hover .gicon{transform:translateY(-1px) scale(1.04);
+       background:hsl(var(--h,220) 70% 55% / .2);color:hsl(var(--h,220) 60% 42%)}
+  .gcard[open] summary:hover .gicon{transform:translateY(-1px) scale(1.06)}
+  .gcard summary:hover .chev{transform:translateY(1px)}
+  .gcard[open] summary:hover .chev{transform:translateY(1px) rotate(180deg)}
+}
+/* Tekan: satu kedipan mengecil, jalan juga di layar sentuh. */
+.gcard summary:active .gicon{transform:scale(.96);transition-duration:var(--fast)}
+
 @media (prefers-reduced-motion:reduce){
   .gcard[open] .gicon svg .tick{animation:none}
+  .gcard summary:hover .gicon,.gcard summary:active .gicon,
+  .gcard[open] summary:hover .gicon{transform:none}
 }
