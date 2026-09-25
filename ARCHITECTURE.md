@@ -58,6 +58,7 @@ Tempat uang berada. Empat jenis:
 |---|---|---|
 | `cash` | rekening harian, dompet | sisa kas |
 | `savings` | dana darurat, tabungan tujuan | aset; yang bertanda `is_emergency` jadi ketahanan belanja |
+| — | — | `target_amount`/`target_date` opsional pada `savings` & `investment`: kemajuan dihitung terhadap angka yang dipajang barisnya (nilai pasar untuk investasi, saldo untuk tabungan) |
 | `credit` | kartu kredit, paylater | liabilitas, mengurangi kekayaan bersih |
 | `investment` | saham, crypto | aset, dinilai lewat snapshot |
 
@@ -337,7 +338,7 @@ dan ekspor Excel (`/export.xlsx`) untuk membacanya di luar aplikasi.
 
 ## 9. Tes
 
-`tests/` berisi 291 tes `unittest`, tanpa dependensi tambahan dan tanpa menyentuh
+`tests/` berisi 302 tes `unittest`, tanpa dependensi tambahan dan tanpa menyentuh
 database asli — tiap tes membangun datanya sendiri di memori.
 
 Yang dikunci bukan detail implementasi, melainkan aturan yang kalau berubah diam-diam

@@ -34,13 +34,33 @@
   <div class="sec"><h2>{{ title }}</h2><small>{{ _('ketuk untuk mengubah') }}</small></div>
   <div class="panel-wrap" style="padding:0">
     {% for a in groups[type] %}
-    <div class="row {{ '' if a.active else 'planned' }}" style="--i:{{ loop.index0 }}"
-         data-open="sheet-account" data-fill='{{ {"id":a.account_id,"name":a.name,"opening_balance":a.opening_balance,"note":a.note or "","active":"1" if a.active else "0","type":a.type,"is_emergency":a.account_id in emergency} | tojson }}'>
+    {% set tg = target.get(a.account_id) %}
+    <div class="row {{ '' if a.active else 'planned' }}{{ ' hastarget' if tg }}" style="--i:{{ loop.index0 }}"
+         data-open="sheet-account" data-fill='{{ {"id":a.account_id,"name":a.name,"opening_balance":a.opening_balance,"note":a.note or "","active":"1" if a.active else "0","type":a.type,"is_emergency":a.account_id in emergency,"target_amount":a.target_amount or "","target_date":a.target_date or ""} | tojson }}'>
       <span class="av" style="--h:{{ a.name | hue }}">{{ a.name[:2] }}</span>
       <div class="main">
-        <div class="name">{{ a.name }}{% if a.account_id in emergency %} <span class="pill">{{ _('dana darurat') }}</span>{% endif %}{% if not a.active %} <span class="pill">{{ _('nonaktif') }}</span>{% endif %}</div>
-        <div class="meta">{% if a.note %}<span>{{ a.note }}</span>{% endif %}{% if a.opening_balance %}<span>{{ _('saldo awal') }} {{ a.opening_balance | short }}</span>{% endif %}
+        {# Penanda ditaruh di baris keterangan, bukan di sebelah nama: di lebar
+           ponsel nama + pil tidak muat sebaris, dan yang dikorbankan justru
+           namanya — terpotong jadi "Dana Darurat …" sementara pilnya hilang. #}
+        <div class="name">{{ a.name }}</div>
+        <div class="meta">{% if a.account_id in emergency %}<span class="pill">{{ _('dana darurat') }}</span>{% endif %}{% if not a.active %}<span class="pill">{{ _('nonaktif') }}</span>{% endif %}{% if a.note %}<span>{{ a.note }}</span>{% endif %}{% if a.opening_balance %}<span>{{ _('saldo awal') }} {{ a.opening_balance | short }}</span>{% endif %}
           {% if type=='investment' and market.get(a.account_id) %}<span>{{ _('modal') }} {{ a.balance | short }} {{ _('· nilai') }} {{ market[a.account_id] | short }}</span>{% endif %}</div>
+        {# Yang ditampilkan sisa jatah menuju target, bukan cuma persennya:
+           "kurang 12 jt" menggerakkan orang, "68%" tidak. #}
+        {% if tg %}
+        <div class="tgt">
+          <div class="tbar {{ 'done' if tg.tercapai }}{{ ' late' if tg.telat }}"><i style="--w:{{ tg.persen }}%"></i></div>
+          <div class="tlbl">
+            {% if tg.tercapai %}<b class="ok">{{ _('target tercapai') }}</b>
+            {% else %}<b>{{ _('kurang') }} {{ tg.sisa | short }}</b>{% endif %}
+            <span>{{ _('dari') }} {{ tg.target | short }}
+              {%- if tg.sisa_hari is not none and not tg.tercapai %}
+                {%- if tg.sisa_hari < 0 %} · <i class="bad">{{ _('lewat') }} {{ -tg.sisa_hari }} {{ _('hari') }}</i>
+                {%- else %} · {{ tg.sisa_hari }} {{ _('hari lagi') }}{% endif %}
+              {%- endif %}</span>
+          </div>
+        </div>
+        {% endif %}
       </div>
       <div class="amt num {{ 'bad' if a.balance < 0 }}">{{ (market[a.account_id] if type=='investment' and market.get(a.account_id) else a.balance) | rupiah }}</div>
     </div>
@@ -68,6 +88,10 @@
     <div id="acc-emergency" hidden>
       <label class="check"><input type="checkbox" name="is_emergency" value="1"><span>{{ _('Ini dana darurat') }}<small>{{ _('yang dipakai menghitung ketahanan belanja di laporan') }}</small></span></label>
     </div>
+    <div id="acc-target" hidden>
+      <label>{{ _('Target') }}</label><input class="money num" name="target_amount" inputmode="numeric" placeholder="{{ _('kosongkan kalau tanpa target') }}">
+      <label>{{ _('Ingin tercapai') }}</label><input type="date" name="target_date">
+    </div>
     <input type="hidden" name="id">
     <p class="hint">{{ _('Saldo awal = posisi sebelum bulan pertama yang kamu catat. Saldo berjalan dihitung dari transaksi.') }}</p>
     <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
@@ -86,6 +110,7 @@
     <label>{{ _('Saldo awal') }}</label><input class="money num" name="opening_balance" inputmode="numeric" placeholder="0">
     <label>{{ _('Catatan') }}</label><input name="note" autocomplete="off" placeholder="{{ _('opsional') }}">
     <label class="check"><input type="checkbox" name="is_emergency" value="1"><span>{{ _('Ini dana darurat') }}<small>{{ _('hanya berlaku untuk kantong tabungan') }}</small></span></label>
+    <label>{{ _('Target') }}</label><input class="money num" name="target_amount" inputmode="numeric" placeholder="{{ _('opsional, untuk tabungan & investasi') }}">
     <div class="actions"><button class="primary" type="submit">{{ _('Tambah') }}</button></div>
   </form>
 </div></dialog>
@@ -99,8 +124,10 @@ document.addEventListener('click', e => {
   document.getElementById('account-form').action = `/accounts/${data.id}/edit`;
   document.getElementById('account-del').action = `/accounts/${data.id}/delete`;
   document.getElementById('account-del').removeAttribute('data-ok');
-  // Penanda dana darurat cuma berarti untuk kantong tabungan
+  // Penanda dana darurat cuma berarti untuk kantong tabungan; target untuk
+  // tabungan dan investasi — kas dan kartu tidak dikejar sampai angka tertentu.
   document.getElementById('acc-emergency').hidden = data.type !== 'savings';
+  document.getElementById('acc-target').hidden = !['savings', 'investment'].includes(data.type);
 });
 </script>
 {% endblock %}

@@ -12,6 +12,7 @@ import os
 import sqlite3
 from contextlib import contextmanager
 from contextvars import ContextVar
+from datetime import date
 from pathlib import Path
 
 from .schema import SCHEMA_VERSION, apply_schema, seed_defaults, upgrade
@@ -341,6 +342,36 @@ def accounts(db, types=None, active_only=True):
 def balances(db):
     """Saldo semua kantong saat ini (lewat view account_balances)."""
     return {r["account_id"]: r["balance"] for r in db.execute("SELECT account_id, balance FROM account_balances")}
+
+
+def target_view(target: int, nilai: int, tanggal: str = "", hari_ini: str = "") -> dict:
+    """Kemajuan satu kantong terhadap targetnya. Kosong kalau tidak ditargetkan.
+
+    `nilai` adalah angka yang sama dengan yang dipajang di barisnya — untuk
+    kantong investasi berarti nilai pasar, bukan modal. Kemajuan yang memakai
+    modal akan bilang "belum sampai" pada kantong yang sebenarnya sudah lewat
+    target karena harganya naik.
+
+    Saldo negatif dijepit ke nol: bar kemajuan yang mundur ke belakang bukan
+    informasi, cuma bikin bingung.
+    """
+    if target <= 0:
+        return {}
+    capai = max(0, nilai)
+    sisa_hari = None
+    if tanggal:
+        try:
+            sisa_hari = (date.fromisoformat(tanggal) - date.fromisoformat(hari_ini or date.today().isoformat())).days
+        except ValueError:
+            sisa_hari = None
+    return dict(
+        target=target, nilai=capai, sisa=max(0, target - capai),
+        persen=min(100, capai * 100 // target),
+        lewat=capai * 100 // target if capai > target else 0,   # 0 = belum lewat
+        tercapai=capai >= target,
+        tanggal=tanggal or "", sisa_hari=sisa_hari,
+        telat=bool(sisa_hari is not None and sisa_hari < 0 and capai < target),
+    )
 
 
 def emergency_ids(db) -> list:

@@ -1,7 +1,8 @@
 """Aturan uang: transfer bukan belanja, saldo selalu turunan dari transaksi."""
 import unittest
 
-from app.db import CASH_TYPES, DEBT_TYPES, balance_upto, emergency_fund, emergency_ids
+from app.db import (CASH_TYPES, DEBT_TYPES, balance_upto, emergency_fund, emergency_ids,
+                    target_view)
 from tests.helpers import acc, add, make_db, rp
 
 
@@ -121,6 +122,55 @@ class DanaDaruratBertanda(unittest.TestCase):
         """Uangnya masih ada; yang nonaktif cuma tidak muncul di pilihan input."""
         self.db.execute("UPDATE accounts SET active=0 WHERE name='Dana Darurat'")
         self.assertEqual(emergency_fund(self.db, "2026-01"), rp(10_000_000))
+
+
+class TargetKantong(unittest.TestCase):
+    """Kemajuan menuju target. Fungsinya murni supaya bisa diuji tanpa database —
+    yang menentukan `nilai` adalah pemanggilnya, karena kantong investasi diukur
+    dari nilai pasar sementara tabungan dari saldonya."""
+
+    def test_tanpa_target_tidak_menghasilkan_apa_apa(self):
+        self.assertEqual(target_view(0, rp(5_000_000)), {})
+        self.assertEqual(target_view(-1, rp(5_000_000)), {})
+
+    def test_sisa_dan_persen(self):
+        t = target_view(rp(20_000_000), rp(15_000_000))
+        self.assertEqual(t["sisa"], rp(5_000_000))
+        self.assertEqual(t["persen"], 75)
+        self.assertFalse(t["tercapai"])
+
+    def test_tercapai_tidak_lewat_seratus_persen(self):
+        """Bar yang melewati ujungnya bukan informasi tambahan, cuma rusak."""
+        t = target_view(rp(10_000_000), rp(13_000_000))
+        self.assertTrue(t["tercapai"])
+        self.assertEqual(t["persen"], 100)
+        self.assertEqual(t["sisa"], 0)
+        self.assertEqual(t["lewat"], 130)
+
+    def test_saldo_negatif_dijepit_ke_nol(self):
+        t = target_view(rp(10_000_000), rp(-2_000_000))
+        self.assertEqual(t["persen"], 0)
+        self.assertEqual(t["sisa"], rp(10_000_000))
+
+    def test_sisa_hari_dihitung_dari_tanggal_target(self):
+        t = target_view(rp(10_000_000), rp(1_000_000), "2026-12-31", hari_ini="2026-12-01")
+        self.assertEqual(t["sisa_hari"], 30)
+        self.assertFalse(t["telat"])
+
+    def test_lewat_tenggat_dan_belum_tercapai_ditandai_telat(self):
+        t = target_view(rp(10_000_000), rp(4_000_000), "2026-01-31", hari_ini="2026-03-01")
+        self.assertLess(t["sisa_hari"], 0)
+        self.assertTrue(t["telat"])
+
+    def test_lewat_tenggat_tapi_sudah_tercapai_bukan_telat(self):
+        t = target_view(rp(10_000_000), rp(11_000_000), "2026-01-31", hari_ini="2026-03-01")
+        self.assertTrue(t["tercapai"])
+        self.assertFalse(t["telat"])
+
+    def test_tanggal_ngawur_diabaikan_bukan_meledak(self):
+        t = target_view(rp(10_000_000), rp(1_000_000), "31-12-2026")
+        self.assertIsNone(t["sisa_hari"])
+        self.assertFalse(t["telat"])
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ Kolom ledger_id ada sejak sekarang dan selalu 1. Multi-user nanti tinggal
 mengisinya, tanpa membongkar tabel lagi.
 """
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 MONEY_SCALE = 100        # nominal disimpan dalam satuan perseratus (app/money.py)
 
 SCHEMA = """
@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     type            TEXT NOT NULL CHECK (type IN ('cash','savings','credit','investment')),
     opening_balance INTEGER NOT NULL DEFAULT 0,   -- saldo sebelum bulan pertama
     is_emergency    INTEGER NOT NULL DEFAULT 0,   -- hanya berarti untuk type='savings'
+    target_amount   INTEGER NOT NULL DEFAULT 0,   -- satuan perseratus; 0 = tanpa target
+    target_date     TEXT,                         -- 'YYYY-MM-DD', opsional
     note            TEXT,
     sort            INTEGER NOT NULL DEFAULT 100,
     active          INTEGER NOT NULL DEFAULT 1,
@@ -245,7 +247,9 @@ OLD_INDEXES = ("idx_tx_month", "idx_tx_account", "idx_tx_to")
 # indeks dan view di SCHEMA sudah menyebut kolom itu dan langsung gagal. Karena
 # itu kolomnya ditambahkan lebih dulu, bukan lewat MIGRATIONS yang jalan sesudah.
 ADDED_COLUMNS = {
-    "accounts": [("is_emergency", "INTEGER NOT NULL DEFAULT 0")],
+    "accounts": [("is_emergency", "INTEGER NOT NULL DEFAULT 0"),
+                 ("target_amount", "INTEGER NOT NULL DEFAULT 0"),
+                 ("target_date", "TEXT")],
     "transactions": [("recurring_id", "INTEGER REFERENCES recurring(id)")],
 }
 
@@ -299,6 +303,10 @@ MIGRATIONS: dict = {
         "UPDATE categories SET is_debt=0 WHERE kind='expense' AND name='Tagihan Kartu'",
         "DELETE FROM reports",
     ],
+    # v7 — target per kantong tabungan/investasi. Kolomnya lahir dari
+    # apply_schema (ADDED_COLUMNS); tidak ada data lama yang perlu diisi, karena
+    # 0 memang berarti "belum ditentukan targetnya".
+    7: [],
 }
 
 # Skala nominal dijaga penanda sendiri, bukan nomor versi skema. Nomor versi bisa

@@ -25,7 +25,7 @@ from . import (auth, backup, budget, csrf, documents, guide, i18n, legal, mailer
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, DEBT_TYPES, accounts, asset_view, balance_upto, balances,
                  book_currency, emergency_ids, get_db, get_setting, set_book_currency,
-                 init_db, set_app_setting, set_book, set_setting, upgrade_all_books)
+                 init_db, set_app_setting, set_book, set_setting, target_view, upgrade_all_books)
 
 BASE = Path(__file__).resolve().parent
 def _load_env_file() -> None:
@@ -934,7 +934,8 @@ def accounts_page(request: Request):
     if (r := require_login(request)):
         return r
     with get_db() as db:
-        rows = db.execute("SELECT b.*, a.opening_balance, a.note, a.active FROM account_balances b "
+        rows = db.execute("SELECT b.*, a.opening_balance, a.note, a.active, a.target_amount, a.target_date "
+                          "FROM account_balances b "
                           "JOIN accounts a ON a.id=b.account_id ORDER BY b.type, b.sort, b.name").fetchall()
         groups = {}
         for r in rows:
@@ -949,39 +950,57 @@ def accounts_page(request: Request):
             "SELECT account_id, COALESCE(SUM(amount),0) v FROM asset_snapshots "
             "WHERE month_key=(SELECT MAX(month_key) FROM asset_snapshots) GROUP BY account_id")}
         emergency = set(emergency_ids(db))
+        # Kemajuan dihitung terhadap angka yang dipajang di barisnya: nilai pasar
+        # untuk kantong investasi bersnapshot, saldo untuk sisanya.
+        target = {}
+        for r in rows:
+            if r["target_amount"]:
+                nilai = mv[r["account_id"]] if (r["type"] == "investment" and mv.get(r["account_id"])) \
+                        else r["balance"]
+                target[r["account_id"]] = target_view(r["target_amount"], nilai, r["target_date"] or "")
     return render(request, "accounts.html", groups=groups, types=ACCOUNT_TYPES, cash=cash, fund=fund,
-                  credit=credit, owed=-credit if credit < 0 else 0, emergency=emergency,
+                  credit=credit, owed=-credit if credit < 0 else 0, emergency=emergency, target=target,
                   invest=invest, snap=snap, market=mv, page="accounts", mk=this_month())
 
 
 @app.post("/accounts")
 def account_add(request: Request, name: str = Form(...), type: str = Form(...),
-                opening_balance: str = Form("0"), note: str = Form(""), is_emergency: str = Form("")):
+                opening_balance: str = Form("0"), note: str = Form(""), is_emergency: str = Form(""),
+                target_amount: str = Form("0"), target_date: str = Form("")):
     if (r := require_login(request)):
         return r
     name = name.strip()
     if name and type in ACCOUNT_TYPES:
         with get_db() as db:
-            db.execute("INSERT OR IGNORE INTO accounts(name,type,opening_balance,note,sort,is_emergency)"
-                       " VALUES (?,?,?,?,?,?)",
+            db.execute("INSERT OR IGNORE INTO accounts(name,type,opening_balance,note,sort,is_emergency,"
+                       "target_amount,target_date) VALUES (?,?,?,?,?,?,?,?)",
                        (name, type, parse_amount(opening_balance), note.strip() or None,
                         (db.execute("SELECT COALESCE(MAX(sort),0)+10 v FROM accounts").fetchone()["v"]),
-                        1 if (is_emergency and type == "savings") else 0))
+                        1 if (is_emergency and type == "savings") else 0,
+                        parse_amount(target_amount) if type in ASSET_TYPES else 0,
+                        clean_date(target_date) if type in ASSET_TYPES else None))
     return RedirectResponse("/accounts", status_code=303)
 
 
 @app.post("/accounts/{aid}/edit")
 def account_edit(request: Request, aid: int, name: str = Form(...), opening_balance: str = Form("0"),
-                 note: str = Form(""), active: str = Form("1"), is_emergency: str = Form("")):
+                 note: str = Form(""), active: str = Form("1"), is_emergency: str = Form(""),
+                 target_amount: str = Form("0"), target_date: str = Form("")):
     if (r := require_login(request)):
         return r
+    ap = ",".join(f"'{t}'" for t in ASSET_TYPES)       # nama jenis dari konstanta sendiri
     with get_db() as db:
-        # Penanda dana darurat hanya berlaku untuk kantong tabungan; CASE di SQL
-        # supaya jenis kantongnya tidak perlu dibaca dulu ke Python.
-        db.execute("UPDATE accounts SET name=?, opening_balance=?, note=?, active=?,"
-                   " is_emergency=CASE WHEN type='savings' THEN ? ELSE 0 END, updated_at=datetime('now')"
-                   " WHERE id=?", (name.strip(), parse_amount(opening_balance), note.strip() or None,
-                                   1 if active == "1" else 0, 1 if is_emergency else 0, aid))
+        # Penanda dana darurat hanya berlaku untuk kantong tabungan, target hanya
+        # untuk tabungan & investasi; CASE di SQL supaya jenis kantongnya tidak
+        # perlu dibaca dulu ke Python.
+        db.execute(f"UPDATE accounts SET name=?, opening_balance=?, note=?, active=?,"
+                   f" is_emergency=CASE WHEN type='savings' THEN ? ELSE 0 END,"
+                   f" target_amount=CASE WHEN type IN ({ap}) THEN ? ELSE 0 END,"
+                   f" target_date=CASE WHEN type IN ({ap}) THEN ? ELSE NULL END,"
+                   f" updated_at=datetime('now') WHERE id=?",
+                   (name.strip(), parse_amount(opening_balance), note.strip() or None,
+                    1 if active == "1" else 0, 1 if is_emergency else 0,
+                    parse_amount(target_amount), clean_date(target_date), aid))
     return RedirectResponse("/accounts", status_code=303)
 
 

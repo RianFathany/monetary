@@ -24,6 +24,7 @@ MENU_ID = [
         "Pindah antar kantong = transfer, bukan belanja.",
         "Tandai mana yang <b>dana darurat</b> — itu yang dipakai Laporan menghitung ketahananmu.",
         "Kartu kredit &amp; paylater mengurangi kekayaan bersih.",
+        "Beri <b>target</b> pada tabungan atau investasi — yang tampil sisanya, bukan persennya.",
     ]),
     dict(slug="anggaran", judul="Anggaran", untuk="Jatah belanja per kategori.", isi=[
         "Isi yang ingin dijaga. Sisanya diabaikan.",
@@ -69,6 +70,7 @@ MENU_EN = [
         "Between pockets = transfer, not spending.",
         "Mark which one is your <b>emergency fund</b> — the Report uses it to work out your cover.",
         "Credit cards &amp; paylater reduce your net worth.",
+        "Give savings or investments a <b>target</b> — it shows what is left, not a percentage.",
     ]),
     dict(slug="anggaran", judul="Budget", untuk="A spending allowance per category.", isi=[
         "Set the ones you want to watch. The rest are ignored.",

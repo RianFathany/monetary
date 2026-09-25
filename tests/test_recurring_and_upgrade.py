@@ -189,35 +189,46 @@ class MigrasiDicatatSendiri(unittest.TestCase):
         row = self.db.execute("SELECT value FROM settings WHERE key='migrations_applied'").fetchone()
         return row["value"] if row else None
 
+    # Nomor versi tidak ditulis mentah-mentah di sini: diturunkan dari MIGRATIONS
+    # supaya menaikkan skema tidak mematahkan tes yang tidak ada urusannya.
     def test_daftar_ditulis_setelah_migrasi(self):
         upgrade(self.db)
-        self.assertIn("6", (self.daftar() or "").split(","))
+        self.assertIn(str(max(schemamod.MIGRATIONS)), (self.daftar() or "").split(","))
 
     def test_buku_lama_dipercaya_lewat_nomor_versinya_sekali(self):
-        """Buku v5 belum punya daftar: 3–5 dianggap sudah, 6 tetap dijalankan."""
+        """Buku v5 belum punya daftar: yang <= 5 dianggap sudah, sisanya dijalankan."""
         upgrade(self.db)
-        self.assertEqual(self.daftar(), "3,4,5,6")
+        self.assertEqual(self.daftar(), ",".join(str(v) for v in sorted(schemamod.MIGRATIONS)))
 
     def test_migrasi_yang_terlewat_tetap_dikejar(self):
-        """Versi sudah 6 tapi daftarnya bilang 6 belum jalan — harus tetap jalan."""
-        self.db.execute("UPDATE settings SET value='6' WHERE key='schema_version'")
-        self.db.execute("INSERT INTO settings(key,value) VALUES ('migrations_applied','3,4,5')")
+        """Nomor versi sudah yang terbaru tapi daftarnya bilang migrasi terakhir
+        belum jalan — harus tetap dikejar."""
+        semua = sorted(schemamod.MIGRATIONS)
+        # Migrasi yang dilewatkan dipilih dari isinya, bukan nomornya: yang
+        # mengeluarkan Tagihan Kartu dari rasio cicilan, karena efeknya bisa
+        # diperiksa. Menuliskan nomornya berarti tes ini patah tiap skema naik.
+        kena = next(v for v in semua if any("Tagihan Kartu" in x for x in schemamod.MIGRATIONS[v]))
+        self.db.execute("UPDATE settings SET value=? WHERE key='schema_version'", (str(SCHEMA_VERSION),))
+        self.db.execute("INSERT INTO settings(key,value) VALUES ('migrations_applied',?)",
+                        (",".join(str(v) for v in semua if v != kena),))
         self.assertEqual(book_version(self.db), SCHEMA_VERSION)
         upgrade(self.db)
         self.assertEqual(self.db.execute(
             "SELECT is_debt v FROM categories WHERE name='Tagihan Kartu'").fetchone()["v"], 0)
-        self.assertEqual(self.daftar(), "3,4,5,6")
+        self.assertEqual(self.daftar(), ",".join(str(v) for v in semua))
 
     def test_migrasi_baru_jalan_walau_nomor_versi_sudah_terlanjur_naik(self):
         """Persis kejadian tadi: nomor naik duluan, isinya menyusul kemudian."""
-        upgrade(self.db)                                     # buku rapi di v6
+        upgrade(self.db)                                     # buku rapi di versi terbaru
+        baru = SCHEMA_VERSION + 1
         dijalankan = []
-        with mock.patch.dict(schemamod.MIGRATIONS, {7: ["UPDATE settings SET value='lewat' WHERE key='ledger_name'"]}):
-            with mock.patch.object(schemamod, "SCHEMA_VERSION", 7):
-                self.db.execute("UPDATE settings SET value='7' WHERE key='schema_version'")
-                upgrade(self.db)                             # nomor sudah 7, migrasinya belum pernah jalan
+        with mock.patch.dict(schemamod.MIGRATIONS,
+                             {baru: ["UPDATE settings SET value='lewat' WHERE key='ledger_name'"]}):
+            with mock.patch.object(schemamod, "SCHEMA_VERSION", baru):
+                self.db.execute("UPDATE settings SET value=? WHERE key='schema_version'", (str(baru),))
+                upgrade(self.db)                             # nomornya sudah naik, migrasinya belum pernah jalan
                 dijalankan = (self.daftar() or "").split(",")
-        self.assertIn("7", dijalankan)
+        self.assertIn(str(baru), dijalankan)
         self.assertEqual(self.db.execute(
             "SELECT value v FROM settings WHERE key='ledger_name'").fetchone()["v"], "lewat")
 
