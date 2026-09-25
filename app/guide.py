@@ -13,7 +13,8 @@ from .i18n import get_lang
 
 MENU_ID = [
     dict(slug="bulan", judul="Bulan", untuk="Catat dan lihat satu bulan.", isi=[
-        "Angka besar = sisa kas. Tagihan sudah dipotong.",
+        "Angka besar = sisa kas, tagihan yang belum dibayar sudah dipotong.",
+        "Karena itu wajar kalau beda dengan saldo m-banking — ini yang aman dipakai.",
         "Tiga tombol: <b>Keluar</b>, <b>Masuk</b>, <b>Pindah</b>.",
         "Geser baris ke kiri untuk hapus.",
     ]),
@@ -46,6 +47,7 @@ MENU_ID = [
         "PDF terkunci, XLSX, CSV.",
         "Jadi <b>satu</b> pengeluaran, bukan puluhan baris.",
         "Bisa disimpan tanpa ikut dicatat.",
+        "Mau terinci per gesekan? Catat lewat kantong <b>Kartu kredit</b>, bukan dari sini.",
     ]),
     dict(slug="setelan", judul="Setelan", untuk="Atur buku, tampilan, pengguna.", isi=[
         "Kategori, template rutin, mata uang.",
@@ -56,7 +58,8 @@ MENU_ID = [
 
 MENU_EN = [
     dict(slug="bulan", judul="Month", untuk="Record and read one month.", isi=[
-        "Big figure = cash left. Bills already deducted.",
+        "Big figure = cash left, with unpaid bills already deducted.",
+        "So it will differ from your bank balance — this is what is safe to spend.",
         "Three buttons: <b>Out</b>, <b>In</b>, <b>Move</b>.",
         "Swipe a row left to delete.",
     ]),
@@ -89,6 +92,7 @@ MENU_EN = [
         "Locked PDF, XLSX, CSV.",
         "Becomes <b>one</b> expense, not dozens of rows.",
         "Can be stored without being recorded.",
+        "Want it itemised? Record through a <b>Credit card</b> pocket instead.",
     ]),
     dict(slug="setelan", judul="Settings", untuk="Book, display, users.", isi=[
         "Categories, recurring templates, currency.",
