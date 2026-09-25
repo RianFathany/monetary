@@ -913,13 +913,29 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
                  text-overflow:ellipsis;white-space:nowrap}
 /* .live dirancang untuk kartu login: margin negatif dan garis atas. Di sini
    dia cuma sebaris keterangan, jadi semua itu dilepas. */
-.hello .live{margin:0;padding:0;border-top:0;font-family:inherit;gap:6px;font-size:12px}
+.hello .live{margin:0;padding:0;border-top:0;font-family:inherit;gap:6px;font-size:12.5px}
 .hello .live .clock{font-family:"Bebas Neue","Plus Jakarta Sans",sans-serif;font-size:22px;padding-top:0}
+.hello .live .dot{margin-right:-2px}                 /* titik status milik nama kota, bukan butir daftar */
 .hello .live .wx{margin-left:6px;display:flex;align-items:baseline;gap:5px;text-align:left}
 .hello .live .wx b{display:inline;font-size:12.5px;font-weight:700}
-@media (max-width:430px){
-  .hello{gap:4px}
+/* Pemisah kedua baru muncul setelah cuacanya benar-benar terbaca. Ditulis di
+   CSS, bukan di markup, karena markup .live harus tetap sama persis dengan
+   halaman masuk — dan titik yang menggantung saat cuaca gagal dimuat lebih
+   buruk daripada tidak ada pemisah sama sekali. */
+.hello .live .wx b:not(:empty)::before{content:"·";font-weight:400;color:var(--muted);opacity:.5;margin-right:6px}
+
+/* Ponsel: dua baris, bukan satu baris yang kebetulan masih muat.
+   Di 390–430px semuanya pas-pasan masuk satu baris, dan hasilnya berdesakan —
+   lima ukuran huruf beradu tanpa ruang. Dipisah jadi sapaan dan keterangan,
+   lalu jamnya diturunkan: Bebas tetap dipakai, hanya tidak lagi dua kali
+   tinggi teks di sebelahnya. */
+@media (max-width:560px){
+  .hello{flex-direction:column;align-items:flex-start;gap:6px}
   .hello .hai b{font-size:16px}
+  .hello .live{width:100%;gap:7px}
+  .hello .live .clock{font-size:15px;letter-spacing:.06em}
+  .hello .live .wx{margin-left:0}
+  .hello .live .wx b:not(:empty)::before{margin-right:7px}
 }
 
 /* --- panduan: kartu per menu, isinya daftar penjelasan --- */
