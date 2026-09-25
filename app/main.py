@@ -23,8 +23,8 @@ from markupsafe import Markup
 from . import (auth, backup, budget, csrf, documents, guide, i18n, legal, mailer, money,
                oauth, report, statement, suggest, users)
 from .i18n import t
-from .db import (ASSET_TYPES, CASH_TYPES, accounts, asset_view, balance_upto, balances, book_currency,
-                 get_db, get_setting, set_book_currency,
+from .db import (ASSET_TYPES, CASH_TYPES, DEBT_TYPES, accounts, asset_view, balance_upto, balances,
+                 book_currency, emergency_ids, get_db, get_setting, set_book_currency,
                  init_db, set_app_setting, set_book, set_setting, upgrade_all_books)
 
 BASE = Path(__file__).resolve().parent
@@ -893,21 +893,38 @@ def tx_delete(request: Request, tx_id: int, month_key: str = Form(...)):
 def apply_recurring(request: Request, mk: str):
     if (r := require_login(request)):
         return r
-    y, m = map(int, mk.split("-"))
     with get_db() as db:
-        for rr in db.execute("SELECT * FROM recurring WHERE active=1 ORDER BY sort, id").fetchall():
-            d = None
-            if rr["day_of_month"]:
-                try:
-                    d = date(y, m, min(int(rr["day_of_month"]), 28)).isoformat()
-                except ValueError:
-                    d = None
-            db.execute(
-                "INSERT INTO transactions(month_key,type,tx_date,account_id,to_account_id,category_id,description,amount,status)"
-                " VALUES (?,?,?,?,?,?,?,?,?)",
-                (mk, rr["type"], d, rr["account_id"] or default_account(db), rr["to_account_id"], rr["category_id"],
-                 rr["description"], rr["amount"], "planned" if rr["type"] == "expense" else "paid"))
+        fill_from_recurring(db, mk)
     return RedirectResponse(f"/m/{mk}", status_code=303)
+
+
+def fill_from_recurring(db, mk: str) -> int:
+    """Isi bulan dari template rutin. Mengembalikan jumlah baris yang ditulis.
+
+    Tombolnya ada di dua halaman dan tidak ada yang menahan klik kedua. Baris
+    yang lahir dari template menyimpan asal-usulnya, jadi menekan ulang tidak
+    menambah KPR kedua di bulan yang sama — termasuk kalau nominal atau
+    deskripsinya sudah kamu betulkan sesudahnya.
+    """
+    y, m = map(int, mk.split("-"))
+    ditulis = 0
+    for rr in db.execute("SELECT * FROM recurring WHERE active=1 ORDER BY sort, id").fetchall():
+        if db.execute("SELECT 1 FROM transactions WHERE deleted_at IS NULL AND month_key=? "
+                      "AND recurring_id=? LIMIT 1", (mk, rr["id"])).fetchone():
+            continue
+        d = None
+        if rr["day_of_month"]:
+            try:
+                d = date(y, m, min(int(rr["day_of_month"]), 28)).isoformat()
+            except ValueError:
+                d = None
+        db.execute(
+            "INSERT INTO transactions(month_key,type,tx_date,account_id,to_account_id,category_id,description,"
+            "amount,status,recurring_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (mk, rr["type"], d, rr["account_id"] or default_account(db), rr["to_account_id"], rr["category_id"],
+             rr["description"], rr["amount"], "planned" if rr["type"] == "expense" else "paid", rr["id"]))
+        ditulis += 1
+    return ditulis
 
 
 # ---------- kantong ----------
@@ -924,37 +941,47 @@ def accounts_page(request: Request):
             groups.setdefault(r["type"], []).append(r)
         cash = balance_upto(db, this_month(), CASH_TYPES)
         fund = balance_upto(db, this_month(), ("savings",))
+        # Saldo kantong utang sudah negatif saat berutang, jadi menjumlahkannya
+        # ke kekayaan bersih sudah benar; `owed` hanya bentuk positif untuk dibaca.
+        credit = balance_upto(db, this_month(), DEBT_TYPES)
         invest, snap = invest_value(db, this_month())
         mv = {r["account_id"]: r["v"] for r in db.execute(
             "SELECT account_id, COALESCE(SUM(amount),0) v FROM asset_snapshots "
             "WHERE month_key=(SELECT MAX(month_key) FROM asset_snapshots) GROUP BY account_id")}
+        emergency = set(emergency_ids(db))
     return render(request, "accounts.html", groups=groups, types=ACCOUNT_TYPES, cash=cash, fund=fund,
+                  credit=credit, owed=-credit if credit < 0 else 0, emergency=emergency,
                   invest=invest, snap=snap, market=mv, page="accounts", mk=this_month())
 
 
 @app.post("/accounts")
 def account_add(request: Request, name: str = Form(...), type: str = Form(...),
-                opening_balance: str = Form("0"), note: str = Form("")):
+                opening_balance: str = Form("0"), note: str = Form(""), is_emergency: str = Form("")):
     if (r := require_login(request)):
         return r
     name = name.strip()
     if name and type in ACCOUNT_TYPES:
         with get_db() as db:
-            db.execute("INSERT OR IGNORE INTO accounts(name,type,opening_balance,note,sort) VALUES (?,?,?,?,?)",
+            db.execute("INSERT OR IGNORE INTO accounts(name,type,opening_balance,note,sort,is_emergency)"
+                       " VALUES (?,?,?,?,?,?)",
                        (name, type, parse_amount(opening_balance), note.strip() or None,
-                        (db.execute("SELECT COALESCE(MAX(sort),0)+10 v FROM accounts").fetchone()["v"])))
+                        (db.execute("SELECT COALESCE(MAX(sort),0)+10 v FROM accounts").fetchone()["v"]),
+                        1 if (is_emergency and type == "savings") else 0))
     return RedirectResponse("/accounts", status_code=303)
 
 
 @app.post("/accounts/{aid}/edit")
 def account_edit(request: Request, aid: int, name: str = Form(...), opening_balance: str = Form("0"),
-                 note: str = Form(""), active: str = Form("1")):
+                 note: str = Form(""), active: str = Form("1"), is_emergency: str = Form("")):
     if (r := require_login(request)):
         return r
     with get_db() as db:
-        db.execute("UPDATE accounts SET name=?, opening_balance=?, note=?, active=?, updated_at=datetime('now')"
+        # Penanda dana darurat hanya berlaku untuk kantong tabungan; CASE di SQL
+        # supaya jenis kantongnya tidak perlu dibaca dulu ke Python.
+        db.execute("UPDATE accounts SET name=?, opening_balance=?, note=?, active=?,"
+                   " is_emergency=CASE WHEN type='savings' THEN ? ELSE 0 END, updated_at=datetime('now')"
                    " WHERE id=?", (name.strip(), parse_amount(opening_balance), note.strip() or None,
-                                   1 if active == "1" else 0, aid))
+                                   1 if active == "1" else 0, 1 if is_emergency else 0, aid))
     return RedirectResponse("/accounts", status_code=303)
 
 

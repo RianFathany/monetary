@@ -34,6 +34,9 @@ EN = {
     # --- halaman bulan ---
     "Sisa kas": "Cash left",
     "Sisa kas ·": "Cash left ·",
+    "Sisa kas setelah tagihan ·": "Cash left after bills ·",
+    "sebelum tagihan": "before bills",
+    "· dipotong": "· minus",
     "Sisa kas terkini": "Cash on hand",
     "vs saldo awal": "vs opening balance",
     "vs bulan lalu": "vs last month",
@@ -81,6 +84,12 @@ EN = {
     "· ditabung": "· saved",
     "· investasi": "· investments",
     "· tabungan": "· savings",
+    "· utang": "· debt",
+    "dikurangi utang kartu & paylater": "minus card & paylater debt",
+    "dana darurat": "emergency fund",
+    "Ini dana darurat": "This is my emergency fund",
+    "yang dipakai menghitung ketahanan belanja di laporan": "used to work out your spending cover in the report",
+    "hanya berlaku untuk kantong tabungan": "only applies to savings pockets",
     "· aset": "· assets",
     "· nilai": "· value",
     "Ke tabungan & investasi": "To savings & investments",
@@ -354,13 +363,18 @@ EN = {
         "In {inc}, out {exp} — a {net} shortfall, covered from your balance or emergency fund.",
     "{v} dipindahkan ke tabungan/investasi.": "{v} moved into savings/investments.",
     "{v} ditarik dari tabungan/investasi.": "{v} pulled out of savings/investments.",
-    "Tingkat menabung": "Savings rate",
+    "Surplus": "Surplus",
+    "Setoran ke tabungan": "Moved to savings",
+    "{v} benar-benar dipindahkan": "{v} actually moved",
+    "tidak ada yang dipindahkan bulan ini": "nothing was moved this month",
     "pemasukan dikurangi pengeluaran": "income minus expense",
     " — patokan sehat 20%": " — a healthy mark is 20%",
     "Rasio cicilan": "Debt ratio",
-    "{v} cicilan & tagihan kartu": "{v} in instalments & card bills",
+    "{v} cicilan dibanding pemasukan rata-rata": "{v} in instalments against average income",
+    ", tagihan kartu {v} di luar ini": ", card bills of {v} sit outside this",
     " — di atas batas sehat {pct}%": " — above the healthy limit of {pct}%",
     "Cakupan dana darurat": "Emergency fund cover",
+    "tandai dulu kantong mana yang jadi dana darurat": "first mark which pocket is your emergency fund",
     "bln": "mo",
     "{fund} dibanding belanja rata-rata {avg}/bln": "{fund} against average spending of {avg}/mo",
     "naik {v} dari bulan lalu": "up {v} from last month",
@@ -373,8 +387,10 @@ EN = {
     "{v} masih bertanda belum dibayar.": "{v} is still marked unpaid.",
     "{n} transaksi senilai {v} belum berkategori atau masih bertanda perlu dicek — laporan ini ikut melenceng selama itu dibiarkan.":
         "{n} transactions worth {v} have no category or are still flagged for review — this report stays off until they are sorted.",
-    "Cicilan & tagihan kartu {pct}% dari pemasukan ({v}). Di atas 35% ruang gerak bulanan jadi sempit.":
-        "Instalments & card bills are {pct}% of income ({v}). Above 35% the month gets tight.",
+    "Cicilan {pct}% dari pemasukan rata-rata ({v}). Di atas 35% ruang gerak bulanan jadi sempit.":
+        "Instalments are {pct}% of average income ({v}). Above 35% the month gets tight.",
+    "Belum ada kantong yang ditandai sebagai dana darurat, jadi ketahanan belanjamu belum bisa dihitung. Tandai satu di Kantong.":
+        "No pocket is marked as your emergency fund yet, so your spending cover cannot be worked out. Mark one under Pockets.",
     "Dana darurat menutup {n} bulan belanja. Idealnya {target} bulan ({v}).":
         "The emergency fund covers {n} months of spending. Aim for {target} months ({v}).",
     "Dana darurat sudah menutup {n} bulan belanja. Setoran berikutnya lebih berguna diarahkan ke investasi.":

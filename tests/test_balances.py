@@ -1,7 +1,7 @@
 """Aturan uang: transfer bukan belanja, saldo selalu turunan dari transaksi."""
 import unittest
 
-from app.db import balance_upto
+from app.db import CASH_TYPES, DEBT_TYPES, balance_upto, emergency_fund, emergency_ids
 from tests.helpers import acc, add, make_db, rp
 
 
@@ -61,6 +61,66 @@ class Saldo(unittest.TestCase):
             self.db.execute("INSERT INTO transactions(month_key,type,amount,account_id,to_account_id,category_id)"
                             " VALUES ('2026-01','transfer',1000,?,?,?)",
                             (acc(self.db, "Kas"), acc(self.db, "Dana Darurat"), cat(self.db, "Belanja")))
+
+
+class KantongUtang(unittest.TestCase):
+    """Kartu kredit & paylater: saldonya negatif saat berutang, dan ikut
+    mengurangi kekayaan bersih. Sebelum ini kantongnya bisa dibuat tapi
+    diabaikan, jadi angka 'kekayaan bersih' cuma penjumlahan aset."""
+
+    def setUp(self):
+        self.db = make_db((("Kas", "cash", 20_000_000), ("Dana Darurat", "savings", 0),
+                           ("Kartu BNI", "credit", 0)))
+        self.addCleanup(self.db.close)
+
+    def test_belanja_dari_kartu_jadi_utang(self):
+        add(self.db, "2026-01", "expense", 3_000_000, "Kartu BNI", category="Belanja")
+        self.assertEqual(balance_upto(self.db, "2026-01", DEBT_TYPES), rp(-3_000_000))
+        self.assertEqual(balance_upto(self.db, "2026-01", CASH_TYPES), rp(20_000_000),
+                         "belanja kartu belum menyentuh kas")
+
+    def test_bayar_tagihan_memindahkan_utang_ke_kas(self):
+        add(self.db, "2026-01", "expense", 3_000_000, "Kartu BNI", category="Belanja")
+        add(self.db, "2026-02", "transfer", 3_000_000, "Kas", to_account="Kartu BNI")
+        self.assertEqual(balance_upto(self.db, "2026-02", DEBT_TYPES), 0)
+        self.assertEqual(balance_upto(self.db, "2026-02", CASH_TYPES), rp(17_000_000))
+
+    def test_kekayaan_bersih_dikurangi_utang(self):
+        add(self.db, "2026-01", "expense", 3_000_000, "Kartu BNI", category="Belanja")
+        aset = balance_upto(self.db, "2026-01", CASH_TYPES) + balance_upto(self.db, "2026-01", ("savings",))
+        bersih = aset + balance_upto(self.db, "2026-01", DEBT_TYPES)
+        self.assertEqual(aset, rp(20_000_000))
+        self.assertEqual(bersih, rp(17_000_000))
+
+
+class DanaDaruratBertanda(unittest.TestCase):
+    """Yang dihitung sebagai ketahanan belanja hanya kantong yang ditandai."""
+
+    def setUp(self):
+        self.db = make_db((("Kas", "cash", 0), ("Dana Darurat", "savings", 0),
+                           ("Tabungan Liburan", "savings", 0)))
+        self.addCleanup(self.db.close)
+        add(self.db, "2026-01", "income", 50_000_000, "Kas", category="Gaji")
+        add(self.db, "2026-01", "transfer", 10_000_000, "Kas", to_account="Dana Darurat")
+        add(self.db, "2026-01", "transfer", 25_000_000, "Kas", to_account="Tabungan Liburan")
+
+    def test_nama_yang_jelas_ditandai_sendiri(self):
+        self.assertEqual(emergency_ids(self.db), [acc(self.db, "Dana Darurat")])
+
+    def test_hanya_yang_bertanda_yang_dihitung(self):
+        self.assertEqual(emergency_fund(self.db, "2026-01"), rp(10_000_000))
+        self.assertEqual(balance_upto(self.db, "2026-01", ("savings",)), rp(35_000_000))
+
+    def test_tanpa_tanda_hasilnya_none_bukan_nol(self):
+        """None = belum ditentukan. Nol berarti dana daruratnya habis; dua hal
+        yang sangat berbeda kalau ditampilkan ke pemiliknya."""
+        self.db.execute("UPDATE accounts SET is_emergency=0")
+        self.assertIsNone(emergency_fund(self.db, "2026-01"))
+
+    def test_kantong_nonaktif_tetap_dihitung(self):
+        """Uangnya masih ada; yang nonaktif cuma tidak muncul di pilihan input."""
+        self.db.execute("UPDATE accounts SET active=0 WHERE name='Dana Darurat'")
+        self.assertEqual(emergency_fund(self.db, "2026-01"), rp(10_000_000))
 
 
 if __name__ == "__main__":

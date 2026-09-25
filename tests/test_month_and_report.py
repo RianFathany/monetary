@@ -72,10 +72,22 @@ class IndikatorLaporan(unittest.TestCase):
             add(self.db, m, "income", 20_000_000, "Kas", category="Gaji")
             add(self.db, m, "expense", 10_000_000, "Kas", category="Belanja")
 
-    def test_tingkat_menabung(self):
+    def test_surplus_bukan_setoran(self):
+        """Sisa yang mengendap di rekening harian bukan uang yang ditabung."""
         add(self.db, "2026-01", "income", 20_000_000, "Kas", category="Gaji")
         add(self.db, "2026-01", "expense", 15_000_000, "Kas", category="Belanja")
-        self.assertAlmostEqual(build_metrics(self.db, "2026-01")["savings_rate"], 0.25)
+        m = build_metrics(self.db, "2026-01")
+        self.assertAlmostEqual(m["surplus_rate"], 0.25)
+        self.assertEqual(m["saved"], 0)
+        self.assertAlmostEqual(m["saved_rate"], 0.0)
+
+    def test_setoran_dihitung_dari_transfer_ke_tabungan(self):
+        add(self.db, "2026-01", "income", 20_000_000, "Kas", category="Gaji")
+        add(self.db, "2026-01", "expense", 15_000_000, "Kas", category="Belanja")
+        add(self.db, "2026-01", "transfer", 4_000_000, "Kas", to_account="Dana Darurat")
+        m = build_metrics(self.db, "2026-01")
+        self.assertAlmostEqual(m["surplus_rate"], 0.25, msg="transfer tidak mengubah surplus")
+        self.assertAlmostEqual(m["saved_rate"], 0.20)
 
     def test_rasio_cicilan_hanya_dari_kategori_bertanda(self):
         add(self.db, "2026-01", "income", 20_000_000, "Kas", category="Gaji")
@@ -85,9 +97,46 @@ class IndikatorLaporan(unittest.TestCase):
         self.assertEqual(m["debt"], rp(7_000_000))
         self.assertAlmostEqual(m["debt_ratio"], 0.35)
 
+    def test_tagihan_kartu_di_luar_rasio_cicilan(self):
+        """Besarnya mengikuti belanja bulan itu, bukan kewajiban tetap."""
+        add(self.db, "2026-01", "income", 20_000_000, "Kas", category="Gaji")
+        add(self.db, "2026-01", "expense", 7_000_000, "Kas", category="Cicilan Rumah")
+        add(self.db, "2026-01", "expense", 9_000_000, "Kas", category="Tagihan Kartu")
+        m = build_metrics(self.db, "2026-01")
+        self.assertEqual(m["debt"], rp(7_000_000))
+        self.assertEqual(m["card"], rp(9_000_000))
+        self.assertAlmostEqual(m["debt_ratio"], 0.35)
+
+    def test_rasio_cicilan_dibagi_pemasukan_rata_rata(self):
+        """Bulan bonus tidak boleh membuat cicilan terlihat mendadak ringan."""
+        add(self.db, "2026-01", "income", 60_000_000, "Kas", category="Bonus & THR")
+        add(self.db, "2026-01", "expense", 7_000_000, "Kas", category="Cicilan Rumah")
+        m = build_metrics(self.db, "2026-01")
+        self.assertEqual(m["debt_base"], rp(20_000_000), "rata-rata tiga bulan sebelumnya")
+        self.assertAlmostEqual(m["debt_ratio"], 0.35)
+
     def test_cakupan_dana_darurat_dibanding_rata_rata_tiga_bulan(self):
         add(self.db, "2026-01", "transfer", 30_000_000, "Kas", to_account="Dana Darurat")
         self.assertAlmostEqual(build_metrics(self.db, "2026-01")["cover_months"], 3.0)
+
+    def test_tabungan_tujuan_tidak_ikut_dihitung_dana_darurat(self):
+        self.db.execute("INSERT INTO accounts(name, type, sort) VALUES ('Tabungan Liburan','savings',40)")
+        add(self.db, "2026-01", "transfer", 30_000_000, "Kas", to_account="Dana Darurat")
+        add(self.db, "2026-01", "transfer", 50_000_000, "Kas", to_account="Tabungan Liburan")
+        m = build_metrics(self.db, "2026-01")
+        self.assertEqual(m["fund"], rp(80_000_000), "seluruh tabungan tetap dilaporkan apa adanya")
+        self.assertEqual(m["emergency"], rp(30_000_000))
+        self.assertAlmostEqual(m["cover_months"], 3.0)
+
+    def test_tanpa_kantong_bertanda_cakupan_tidak_dikarang(self):
+        self.db.execute("UPDATE accounts SET is_emergency=0")
+        add(self.db, "2026-01", "transfer", 30_000_000, "Kas", to_account="Dana Darurat")
+        m = build_metrics(self.db, "2026-01")
+        self.assertFalse(m["emergency_set"])
+        self.assertIsNone(m["emergency"])
+        self.assertEqual(m["cover_months"], 0)
+        nilai = {h["label"]: h["value"] for h in render_rules(m)["health"]}
+        self.assertEqual(nilai["Cakupan dana darurat"], "–")
 
     def test_kategori_melonjak_terdeteksi(self):
         add(self.db, "2026-01", "income", 20_000_000, "Kas", category="Gaji")

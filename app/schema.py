@@ -9,7 +9,7 @@ Kolom ledger_id ada sejak sekarang dan selalu 1. Multi-user nanti tinggal
 mengisinya, tanpa membongkar tabel lagi.
 """
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 MONEY_SCALE = 100        # nominal disimpan dalam satuan perseratus (app/money.py)
 
 SCHEMA = """
@@ -21,12 +21,17 @@ CREATE TABLE IF NOT EXISTS ledgers (
 );
 
 -- Tempat uang berada. Saldo tidak disimpan, selalu dihitung dari transaksi.
+--
+-- is_emergency: kantong tabungan yang benar-benar dana darurat. Tanpa penanda
+-- ini "cakupan dana darurat" ikut menghitung tabungan liburan dan DP rumah,
+-- lalu memberi tahu pemiliknya bahwa ia aman enam bulan padahal tidak.
 CREATE TABLE IF NOT EXISTS accounts (
     id              INTEGER PRIMARY KEY,
     ledger_id       INTEGER NOT NULL DEFAULT 1 REFERENCES ledgers(id),
     name            TEXT NOT NULL,
     type            TEXT NOT NULL CHECK (type IN ('cash','savings','credit','investment')),
     opening_balance INTEGER NOT NULL DEFAULT 0,   -- saldo sebelum bulan pertama
+    is_emergency    INTEGER NOT NULL DEFAULT 0,   -- hanya berarti untuk type='savings'
     note            TEXT,
     sort            INTEGER NOT NULL DEFAULT 100,
     active          INTEGER NOT NULL DEFAULT 1,
@@ -73,6 +78,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount        INTEGER NOT NULL CHECK (amount > 0),
     status        TEXT NOT NULL DEFAULT 'paid' CHECK (status IN ('planned','paid')),
     needs_review  INTEGER NOT NULL DEFAULT 0,     -- hasil migrasi/impor yang perlu dicek user
+    recurring_id  INTEGER REFERENCES recurring(id),  -- asalnya dari template rutin yang mana
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
     deleted_at    TEXT,
@@ -87,6 +93,7 @@ CREATE INDEX IF NOT EXISTS idx_tx_cat     ON transactions(category_id)         W
 CREATE INDEX IF NOT EXISTS idx_tx_account ON transactions(account_id)          WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_tx_to      ON transactions(to_account_id)       WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_tx_review  ON transactions(month_key)           WHERE deleted_at IS NULL AND needs_review = 1;
+CREATE INDEX IF NOT EXISTS idx_tx_recur   ON transactions(month_key, recurring_id) WHERE deleted_at IS NULL AND recurring_id IS NOT NULL;
 
 -- Nilai kantong investasi/tabungan yang tidak bisa dihitung dari mutasi
 -- (harga saham & crypto bergerak sendiri). Diisi manual per bulan.
@@ -180,11 +187,19 @@ FROM accounts a
 WHERE a.deleted_at IS NULL;
 """
 
-# Kantong bawaan untuk buku baru. (name, type, sort)
+# Kantong bawaan untuk buku baru. (name, type, sort, is_emergency)
 DEFAULT_ACCOUNTS = [
-    ("Kas Utama", "cash", 10),
-    ("Dana Darurat", "savings", 20),
+    ("Kas Utama", "cash", 10, 0),
+    ("Dana Darurat", "savings", 20, 1),
 ]
+
+# Buku lama tidak punya penandanya. Kantong yang namanya sudah jelas dana
+# darurat ditandai sendiri saat migrasi, supaya indikator lama tidak mendadak
+# kosong hanya karena ada kolom baru. Sisanya ditentukan pemiliknya di Kantong.
+TAG_EMERGENCY_SQL = (
+    "UPDATE accounts SET is_emergency=1 WHERE type='savings' AND is_emergency=0 "
+    "AND (LOWER(name) LIKE '%darurat%' OR LOWER(name) LIKE '%emergency%')"
+)
 
 # Kategori bawaan. (name, kind, sort, is_debt, is_system)
 DEFAULT_CATEGORIES = [
@@ -193,7 +208,10 @@ DEFAULT_CATEGORIES = [
     ("Belanja", "expense", 30, 0, 0),
     ("Tagihan & Utilitas", "expense", 40, 0, 0),
     ("Cicilan Rumah", "expense", 50, 1, 0),
-    ("Tagihan Kartu", "expense", 60, 1, 0),
+    # Tagihan kartu bukan cicilan: nominalnya naik-turun mengikuti belanja bulan
+    # itu, dan di buku ini top-up pun lewat sini. Ikut dijumlahkan ke rasio
+    # cicilan, angkanya jadi melar dan peringatannya berhenti berarti.
+    ("Tagihan Kartu", "expense", 60, 0, 0),
     ("Cicilan Lain", "expense", 70, 1, 0),
     ("Kesehatan", "expense", 80, 0, 0),
     ("Pendidikan", "expense", 90, 0, 0),
@@ -222,12 +240,32 @@ DEFAULT_SETTINGS = {
 # lalu dibuat ulang oleh SCHEMA di atas.
 OLD_INDEXES = ("idx_tx_month", "idx_tx_account", "idx_tx_to")
 
+# Kolom yang lahir sesudah tabelnya. `CREATE TABLE IF NOT EXISTS` tidak menyentuh
+# tabel yang sudah ada, jadi buku lama tetap kehilangan kolomnya — sementara
+# indeks dan view di SCHEMA sudah menyebut kolom itu dan langsung gagal. Karena
+# itu kolomnya ditambahkan lebih dulu, bukan lewat MIGRATIONS yang jalan sesudah.
+ADDED_COLUMNS = {
+    "accounts": [("is_emergency", "INTEGER NOT NULL DEFAULT 0")],
+    "transactions": [("recurring_id", "INTEGER REFERENCES recurring(id)")],
+}
+
+
+def _ensure_columns(conn) -> None:
+    for table, cols in ADDED_COLUMNS.items():
+        if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone():
+            continue                                  # tabelnya lahir dari SCHEMA di bawah
+        ada = {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        for name, ddl in cols:
+            if name not in ada:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
+
 
 def apply_schema(conn) -> None:
     for name in OLD_INDEXES:
         row = conn.execute("SELECT sql FROM sqlite_master WHERE type='index' AND name=?", (name,)).fetchone()
         if row and row[0] and "WHERE deleted_at IS NULL" not in row[0]:
             conn.execute(f"DROP INDEX IF EXISTS {name}")
+    _ensure_columns(conn)
     conn.executescript(SCHEMA)
     conn.execute("INSERT OR IGNORE INTO ledgers(id, name) VALUES (1, 'Pribadi')")
 
@@ -250,6 +288,17 @@ MIGRATIONS: dict = {
     # v5 — anggaran per kategori per bulan. Tabelnya juga lahir dari
     # apply_schema, jadi tidak ada perintah yang perlu dijalankan di sini.
     5: [],
+    # v6 — tiga koreksi angka yang selama ini menyesatkan:
+    #   * penanda kantong dana darurat (kolom + tebakan dari namanya),
+    #   * asal-usul baris dari template rutin, supaya tidak bisa dobel,
+    #   * tagihan kartu keluar dari rasio cicilan.
+    # Kolomnya sendiri ditambahkan apply_schema (lihat ADDED_COLUMNS); di sini
+    # tinggal isinya. Laporan tersimpan dibuang karena indikatornya sudah beda arti.
+    6: [
+        TAG_EMERGENCY_SQL,
+        "UPDATE categories SET is_debt=0 WHERE kind='expense' AND name='Tagihan Kartu'",
+        "DELETE FROM reports",
+    ],
 }
 
 # Skala nominal dijaga penanda sendiri, bukan nomor versi skema. Nomor versi bisa
@@ -287,20 +336,60 @@ def book_version(conn) -> int:
         return 0
 
 
+def _migrations_done(conn) -> set:
+    """Migrasi yang benar-benar pernah dijalankan di buku ini.
+
+    Nomor versi saja tidak cukup. Kalau `SCHEMA_VERSION` sempat naik sebelum
+    isi migrasinya ditulis — pernah terjadi pada `money_scale`, dan sekali lagi
+    saat kolom `is_emergency` ditambahkan — buku menyimpan nomor yang baru tanpa
+    perubahannya, lalu `cur == SCHEMA_VERSION` membuat migrasi itu dilewati
+    selamanya. Daftar ini yang dipercaya; nomor versi tinggal jadi label.
+
+    Buku yang belum punya daftarnya (semua buku sebelum v6) dipercaya sekali
+    lewat nomor versinya, lalu daftarnya ditulis — sesudah itu tidak ada lagi
+    migrasi yang bisa hilang diam-diam.
+    """
+    try:
+        row = conn.execute("SELECT value FROM settings WHERE key='migrations_applied'").fetchone()
+    except Exception:
+        return set()                     # berkas kosong: tabelnya lahir sebentar lagi di apply_schema
+    if row is None or row[0] is None:
+        done = {v for v in MIGRATIONS if v <= book_version(conn)}
+        _mark_done(conn, done)
+        return done
+    out = set()
+    for bit in str(row[0]).split(","):
+        try:
+            out.add(int(bit))
+        except ValueError:
+            continue
+    return out
+
+
+def _mark_done(conn, done: set) -> None:
+    conn.execute("INSERT INTO settings(key,value) VALUES ('migrations_applied',?) "
+                 "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                 (",".join(str(v) for v in sorted(done)),))
+
+
 def upgrade(conn) -> int:
     """Bawa satu buku ke versi skema terbaru. Idempoten dan murah kalau sudah terbaru."""
     cur = book_version(conn)
-    if cur == SCHEMA_VERSION:
+    done = _migrations_done(conn)
+    tertinggal = sorted(v for v in MIGRATIONS if v not in done)
+    if cur == SCHEMA_VERSION and not tertinggal:
         _scale_money(conn)                               # murah: satu SELECT kalau sudah beres
         return cur
     apply_schema(conn)                                   # tabel/indeks baru + buang indeks usang
-    for version in sorted(v for v in MIGRATIONS if v > cur):
+    for version in tertinggal:
         for stmt in MIGRATIONS[version]:
             try:
                 conn.execute(stmt)
             except Exception as e:                       # kolom sudah ada dari skema baru
                 if "duplicate column" not in str(e).lower():
                     raise
+        done.add(version)
+        _mark_done(conn, done)                           # dicatat per migrasi, bukan di akhir
     _scale_money(conn)                                   # nominal ke satuan perseratus, sekali saja
     seed_defaults(conn, accounts=False)                  # kategori bawaan yang baru ditambahkan
     conn.execute("INSERT INTO settings(key,value) VALUES ('schema_version',?) "
@@ -316,8 +405,9 @@ def seed_defaults(conn, accounts=True) -> None:
             (name, kind, sort, is_debt, is_system),
         )
     if accounts:
-        for name, type_, sort in DEFAULT_ACCOUNTS:
-            conn.execute("INSERT OR IGNORE INTO accounts(ledger_id, name, type, sort) VALUES (1,?,?,?)",
-                         (name, type_, sort))
+        for name, type_, sort, emergency in DEFAULT_ACCOUNTS:
+            conn.execute(
+                "INSERT OR IGNORE INTO accounts(ledger_id, name, type, sort, is_emergency) VALUES (1,?,?,?,?)",
+                (name, type_, sort, emergency))
     for k, v in DEFAULT_SETTINGS.items():
         conn.execute("INSERT OR IGNORE INTO settings(key, value) VALUES (?,?)", (k, v))

@@ -1,7 +1,7 @@
 # Arsitektur Muara
 
 Catatan keuangan pribadi. Satu pengguna, satu berkas SQLite, dirender di server,
-dipakai dari ponsel. 4.100 baris kode, tanpa build step, tanpa framework frontend.
+dipakai dari ponsel. 9.400 baris kode, tanpa build step, tanpa framework frontend.
 
 Dokumen ini menjelaskan **bentuk** aplikasinya dan **kenapa** dibentuk begitu.
 Cara menjalankan dan mendeploy ada di [README](README.md).
@@ -23,7 +23,7 @@ Cara menjalankan dan mendeploy ada di [README](README.md).
                              │  app/db.py — koneksi & perhitungan saldo
                              ▼
                     ┌─────────────────┐
-                    │  SQLite (WAL)   │   app/schema.py — skema v2
+                    │  SQLite (WAL)   │   app/schema.py — skema v6
                     │  data/monetary.db│
                     └─────────────────┘
                              │
@@ -57,8 +57,8 @@ Tempat uang berada. Empat jenis:
 | Jenis | Isi | Peran di laporan |
 |---|---|---|
 | `cash` | rekening harian, dompet | sisa kas |
-| `savings` | dana darurat, tabungan tujuan | aset |
-| `credit` | kartu kredit, paylater | (belum dipakai — lihat §7) |
+| `savings` | dana darurat, tabungan tujuan | aset; yang bertanda `is_emergency` jadi ketahanan belanja |
+| `credit` | kartu kredit, paylater | liabilitas, mengurangi kekayaan bersih |
 | `investment` | saham, crypto | aset, dinilai lewat snapshot |
 
 Saldo **tidak pernah disimpan**. Selalu dihitung dari transaksi lewat view
@@ -135,10 +135,15 @@ kas dan tabungan sekaligus.
 
 Turunannya:
 
-- **Sisa kas** = `balance_upto(mk, cash)`
-- **Dana darurat** = `balance_upto(mk, savings)`
+- **Sisa kas** = `balance_upto(mk, cash)` — sudah dikurangi tagihan `planned`,
+  jadi memang tidak sama dengan saldo di m-banking; judulnya di layar menyebut itu
+- **Tabungan** = `balance_upto(mk, savings)`
+- **Dana darurat** = hanya kantong bertanda `is_emergency`, atau `None` kalau
+  belum ada yang ditandai. Tabungan liburan yang ikut terhitung membuat
+  "aman 6 bulan" jadi kalimat menenangkan tanpa dasar
 - **Total aset** = saldo `savings` + nilai snapshot `investment`
-- **Kekayaan bersih** = total aset + kas (− `credit` bila nanti dipakai)
+- **Kekayaan bersih** = total aset + kas + saldo `credit`. Saldo kantong utang
+  sudah negatif saat berutang, jadi dijumlahkan begitu saja — tanpa tanda minus buatan
 - **Ditabung bulan ini** = transfer masuk ke `savings`/`investment` − transfer keluar
 
 ### Satuan simpan
@@ -161,10 +166,10 @@ kecil; penanda tersendiri membuat keadaan itu sembuh sendiri saat buku dibuka la
 
 | Berkas | Baris | Isi |
 |---|---:|---|
-| `app/schema.py` | 282 | DDL skema v3, view `account_balances`, kategori & kantong bawaan |
-| `app/db.py` | 395 | koneksi SQLite, `balance_upto`, adopsi database siap-pakai saat start |
-| `app/main.py` | 1410 | 61 route, query domain (`month_summary`, `asset_view`), render |
-| `app/report.py` | 237 | `build_metrics` (angka) + `render_rules` (narasi) + penyimpanan |
+| `app/schema.py` | 373 | DDL skema v6, view `account_balances`, kategori & kantong bawaan, migrasi |
+| `app/db.py` | 422 | koneksi SQLite, `balance_upto`, dana darurat bertanda, adopsi database siap-pakai |
+| `app/main.py` | 1611 | 69 route, query domain (`month_summary`, `asset_view`), render |
+| `app/report.py` | 273 | `build_metrics` (angka) + `render_rules` (narasi) + penyimpanan |
 | `app/money.py` | 213 | mata uang ISO 4217, bentuk angka, baca input, satuan simpan |
 | `app/suggest.py` | 68 | aturan kata kunci → kategori, dipakai layar Rapikan |
 | `app/auth.py` | 178 | password PBKDF2, cookie bertanda tangan 30 hari, pembatas percobaan |
@@ -175,9 +180,9 @@ kecil; penanda tersendiri membuat keadaan itu sembuh sendiri saat buku dibuka la
 | `app/legal.py` | 68 | teks Kebijakan Privasi & Persyaratan Layanan, dwibahasa |
 | `app/mailer.py` | 80 | verifikasi email & setel ulang password lewat Resend |
 | `app/backup.py` | 180 | cadangan harian menumpang lalu lintas; `s3.py` (102) unggah ke R2 |
-| `app/templates/` | ~1740 | 18 berkas Jinja, mewarisi `base.html` |
-| `app/static/` | ~1340 | `style.css` (glass macOS, light/dark), `app.js` (sheet, swipe, picker) |
-| `scripts/migrate_v2.py` | 337 | konversi bentuk lama → skema v2, punya mode pratinjau |
+| `app/templates/` | ~2070 | 24 berkas Jinja, mewarisi `base.html` |
+| `app/static/` | ~1800 | `style.css` (glass macOS, light/dark), `app.js` (sheet, swipe, picker) |
+| `scripts/migrate_v2.py` | 340 | konversi bentuk lama → skema v2, punya mode pratinjau |
 | `scripts/import_xlsx.py` | 208 | spreadsheet → database bentuk lama |
 
 ### Halaman
@@ -217,9 +222,19 @@ tidak bisa diaudit. Yang dikirim nanti hanya agregat (±4 rb token), bukan
 transaksi mentah. Laporan disimpan, jadi membukanya lagi tidak menghitung ulang
 dan tidak memanggil API.
 
-Indikator yang dihitung: tingkat menabung, rasio cicilan (dari kategori `is_debt`,
-ambang sehat 35%), cakupan dana darurat terhadap belanja rata-rata 3 bulan (target
-6 bulan), perubahan total aset, kategori yang naik >30% dari rata-rata.
+Indikator yang dihitung:
+
+- **Surplus** — pemasukan dikurangi pengeluaran, patokan 20%.
+- **Setoran ke tabungan** — yang benar-benar dipindahkan ke `savings`/`investment`.
+  Dipisah dari surplus karena sisa yang mengendap di rekening harian biasanya
+  habis juga bulan depan; satu angka yang dinamai "tingkat menabung" menutupi itu.
+- **Rasio cicilan** — kategori `is_debt` saja, dibagi pemasukan rata-rata 3 bulan,
+  ambang sehat 35%. Tagihan kartu dilaporkan di sebelahnya tapi tidak ikut
+  dijumlahkan: besarnya mengikuti belanja bulan itu, bukan kewajiban tetap, dan
+  bulan bonus tidak boleh membuat cicilan terlihat mendadak ringan.
+- **Cakupan dana darurat** — kantong bertanda `is_emergency` terhadap belanja
+  rata-rata 3 bulan (target 6 bulan), atau "–" kalau belum ada yang ditandai.
+- **Total aset** dan kategori yang naik >30% dari rata-rata.
 
 ---
 
@@ -267,12 +282,30 @@ tapi seluruh perhitungan di `db.py`/`report.py` tetap terpakai.
 
 **Kartu kredit dicatat "tagihannya saja".** Bayar tagihan = pengeluaran kategori
 *Tagihan Kartu*; belanja per gesekan tidak dicatat. Lebih ringan diinput, tapi
-laporan tidak bisa menjawab "uang kartu habis untuk apa", dan rasio cicilan jadi
-tinggi karena top-up ikut terhitung. Jenis kantong `credit` sudah ada di skema
-kalau suatu saat mau pindah cara.
+laporan tidak bisa menjawab "uang kartu habis untuk apa". Karena itu *Tagihan
+Kartu* tidak lagi bertanda `is_debt`: nominalnya mengikuti belanja bulan itu, dan
+ikut dijumlahkan ke rasio cicilan membuat angkanya melompat tiap ada top-up besar.
+Ia tetap dilaporkan, hanya di sebelah rasionya, bukan di dalamnya.
+
+**Kantong `credit` dipakai, dan mengurangi kekayaan bersih.** Yang mencatat kartu
+per gesekan bisa memakainya: belanja mengurangi saldo kantong itu, membayar tagihan
+= transfer dari kas ke sana. Sebelumnya kantongnya bisa dibuat tapi diabaikan
+seluruh halaman, jadi "kekayaan bersih" hanyalah penjumlahan aset dengan nama
+yang salah.
 
 **Hapus lunak.** `deleted_at`, bukan `DELETE`. Salah hapus bisa dipulihkan dari
 database, dan nanti jadi fondasi sinkronisasi offline.
+
+**Migrasi dicatat satu per satu, bukan disimpulkan dari nomor versi.**
+`settings.migrations_applied` menyimpan daftar migrasi yang benar-benar pernah
+jalan di buku itu. Nomor versi sendirian rapuh: kalau `SCHEMA_VERSION` sempat
+naik sebelum isi migrasinya ditulis — pernah terjadi pada `money_scale`, dan
+sekali lagi saat kolom `is_emergency` ditambahkan — buku menyimpan nomor baru
+tanpa perubahannya, lalu `cur == SCHEMA_VERSION` membuat migrasi itu dilewati
+selamanya tanpa jejak. Buku yang belum punya daftarnya dipercaya sekali lewat
+nomor versinya, lalu daftarnya ditulis. Konsekuensinya: memundurkan nomor versi
+tidak lagi menjalankan ulang migrasi — yang memang benar, karena isi migrasi v6
+mengubah data dan mengulangnya berarti menimpa pilihan pemiliknya.
 
 **Aplikasi menolak jalan di atas skema lama.** `init_db()` melempar error kalau
 menemukan tabel `emergency_fund` — lebih baik mati berisik daripada diam-diam
@@ -304,16 +337,19 @@ dan ekspor Excel (`/export.xlsx`) untuk membacanya di luar aplikasi.
 
 ## 9. Tes
 
-`tests/` berisi 31 tes `unittest`, tanpa dependensi tambahan dan tanpa menyentuh
+`tests/` berisi 291 tes `unittest`, tanpa dependensi tambahan dan tanpa menyentuh
 database asli — tiap tes membangun datanya sendiri di memori.
 
 Yang dikunci bukan detail implementasi, melainkan aturan yang kalau berubah diam-diam
 akan membuat angka salah: transfer memindah dan bukan menghabiskan, transfer antar
 kantong sejenis tidak mengubah total, transaksi terhapus tidak ikut dihitung, untung
 investasi diukur dari modal dan bukan dari nol, rasio cicilan hanya menjumlahkan
-kategori bertanda `is_debt`, aplikasi menolak jalan di atas skema lama, dan — yang
-paling mudah salah — satu kejadian yang di spreadsheet tercatat dua kali tidak boleh
-masuk dua kali setelah migrasi.
+kategori bertanda `is_debt`, utang kartu mengurangi kekayaan bersih, ketahanan
+belanja hanya dari kantong yang ditandai (dan `None` kalau belum ada, bukan nol),
+template rutin tidak bisa masuk dua kali ke bulan yang sama, buku lama tetap bisa
+dibuka setelah kolom baru bertambah, aplikasi menolak jalan di atas skema lama,
+dan — yang paling mudah salah — satu kejadian yang di spreadsheet tercatat dua
+kali tidak boleh masuk dua kali setelah migrasi.
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -t .

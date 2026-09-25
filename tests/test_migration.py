@@ -230,24 +230,47 @@ class TestBukuPemilikIkutMigrasi(unittest.TestCase):
         self.addCleanup(pulihkan)
 
     def test_migrasi_berisi_sql_ikut_dijalankan(self):
+        """Buku pemilik ikut jalur yang sama dengan buku pengguna lain.
+
+        Dulu nomor versinya ditulis langsung di `init_db` tanpa menjalankan
+        MIGRATIONS, jadi migrasi pertama yang berisi SQL akan dilewati diam-diam
+        hanya untuk buku ini.
+        """
+        from unittest import mock
         from app import schema
-        versi = schema.SCHEMA_VERSION
+        baru = schema.SCHEMA_VERSION + 1
 
         self.db.init_db()                                  # buku baru, versi terbaru
-        with self.db.get_db() as conn:                     # mundurkan seolah buku lama
-            conn.execute("INSERT INTO settings(key,value) VALUES ('schema_version',?) "
-                         "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(versi - 1),))
         self.db._ready.clear(); self.db._system_ready.clear()
 
         asli = dict(schema.MIGRATIONS)
-        schema.MIGRATIONS[versi] = ["ALTER TABLE transactions ADD COLUMN penanda_uji TEXT"]
+        schema.MIGRATIONS[baru] = ["ALTER TABLE transactions ADD COLUMN penanda_uji TEXT"]
         self.addCleanup(lambda: (schema.MIGRATIONS.clear(), schema.MIGRATIONS.update(asli)))
 
-        self.db.init_db()                                  # migrasinya harus ikut jalan
-        with self.db.get_db() as conn:
-            kolom = {r[1] for r in conn.execute("PRAGMA table_info(transactions)")}
-            self.assertEqual(schema.book_version(conn), versi)
+        with mock.patch.object(schema, "SCHEMA_VERSION", baru):
+            self.db.init_db()                              # migrasinya harus ikut jalan
+            with self.db.get_db() as conn:
+                kolom = {r[1] for r in conn.execute("PRAGMA table_info(transactions)")}
+                self.assertEqual(schema.book_version(conn), baru)
         self.assertIn("penanda_uji", kolom)
+
+    def test_migrasi_yang_sudah_jalan_tidak_diulang_walau_versi_dimundurkan(self):
+        """Nomor versi bukan lagi yang menentukan. Buku yang daftarnya bilang
+        migrasi itu sudah jalan tidak boleh menjalankannya dua kali — kalau
+        isinya mengubah data, pengulangan berarti menimpa pilihan pemiliknya."""
+        from app import schema
+        self.db.init_db()
+        with self.db.get_db() as conn:
+            conn.execute("UPDATE categories SET is_debt=1 WHERE name='Tagihan Kartu'")
+            conn.execute("INSERT INTO settings(key,value) VALUES ('schema_version','5') "
+                         "ON CONFLICT(key) DO UPDATE SET value=excluded.value")
+        self.db._ready.clear(); self.db._system_ready.clear()
+
+        self.db.init_db()
+        with self.db.get_db() as conn:
+            self.assertEqual(conn.execute(
+                "SELECT is_debt v FROM categories WHERE name='Tagihan Kartu'").fetchone()["v"], 1)
+            self.assertEqual(schema.book_version(conn), schema.SCHEMA_VERSION)
 
     def test_buku_baru_dapat_kantong_bawaan(self):
         self.db.init_db()

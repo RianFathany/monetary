@@ -21,6 +21,8 @@ MENU_ID = [
         "Rekening, dompet, tabungan, kartu.",
         "Saldo awal diisi sekali, sesudahnya jalan sendiri.",
         "Pindah antar kantong = transfer, bukan belanja.",
+        "Tandai mana yang <b>dana darurat</b> — itu yang dipakai Laporan menghitung ketahananmu.",
+        "Kartu kredit &amp; paylater mengurangi kekayaan bersih.",
     ]),
     dict(slug="anggaran", judul="Anggaran", untuk="Jatah belanja per kategori.", isi=[
         "Isi yang ingin dijaga. Sisanya diabaikan.",
@@ -29,7 +31,8 @@ MENU_ID = [
     ]),
     dict(slug="laporan", judul="Laporan", untuk="Bulanmu dalam kalimat.", isi=[
         "Masuk, keluar, kategori yang melonjak.",
-        "Rasio menabung, cicilan, ketahanan dana darurat.",
+        "<b>Surplus</b> = sisa. <b>Setoran</b> = yang benar-benar dipindahkan. Dua hal berbeda.",
+        "Rasio cicilan dan ketahanan dana darurat.",
     ]),
     dict(slug="ringkasan", judul="Ringkasan", untuk="Cari transaksi lintas bulan.", isi=[
         "Saring tahun, jenis, kategori, kata kunci.",
@@ -61,6 +64,8 @@ MENU_EN = [
         "Accounts, wallets, savings, cards.",
         "Opening balance once, then it moves on its own.",
         "Between pockets = transfer, not spending.",
+        "Mark which one is your <b>emergency fund</b> — the Report uses it to work out your cover.",
+        "Credit cards &amp; paylater reduce your net worth.",
     ]),
     dict(slug="anggaran", judul="Budget", untuk="A spending allowance per category.", isi=[
         "Set the ones you want to watch. The rest are ignored.",
@@ -69,7 +74,8 @@ MENU_EN = [
     ]),
     dict(slug="laporan", judul="Report", untuk="Your month in sentences.", isi=[
         "In, out, and which categories spiked.",
-        "Savings rate, debt ratio, emergency fund cover.",
+        "<b>Surplus</b> = what is left. <b>Moved to savings</b> = what actually shifted. Not the same thing.",
+        "Debt ratio and emergency fund cover.",
     ]),
     dict(slug="ringkasan", judul="Overview", untuk="Search across months.", isi=[
         "Filter by year, type, category, keyword.",

@@ -36,7 +36,7 @@ Database ada di `./data/monetary.db` (volume). Backup = salin file itu.
 .venv/bin/python -m unittest discover -s tests -t .
 ```
 
-31 tes, tanpa dependensi tambahan (`unittest` bawaan) dan tanpa menyentuh database
+291 tes, tanpa dependensi tambahan (`unittest` bawaan) dan tanpa menyentuh database
 asli — tiap tes membuat datanya sendiri di memori. Yang dikunci: aturan saldo
 (transfer memindah, bukan menghabiskan), ringkasan bulan, untung/rugi investasi
 dihitung dari modal, indikator laporan, perilaku saat start (menolak skema lama,
@@ -454,5 +454,12 @@ hasilnya disimpan dengan `engine='ai'`. Angka tidak pernah dihitung oleh model.
 
 Sisa kas = Σ saldo awal kantong `cash` + pemasukan − pengeluaran − transfer keluar + transfer
 masuk, sampai akhir bulan yang dilihat. Total aset = saldo kantong `savings` + nilai snapshot
-investasi terakhir. Kartu kredit dicatat dengan cara "tagihannya saja": bayar tagihan =
-pengeluaran kategori *Tagihan Kartu*.
+investasi terakhir. Kekayaan bersih = total aset + kas + saldo kantong `credit` — saldo kantong
+utang sudah negatif saat berutang, jadi langsung dijumlahkan. Ketahanan belanja dihitung hanya
+dari kantong tabungan yang ditandai sebagai dana darurat di halaman Kantong.
+
+Kartu kredit bisa dicatat dua cara. Cara ringkas: "tagihannya saja" — bayar tagihan = pengeluaran
+kategori *Tagihan Kartu*, rinciannya di menu Dokumen. Cara penuh: buat kantong jenis *Kartu kredit
+& paylater*, belanja dicatat dari kantong itu, bayar tagihan jadi transfer dari kas ke sana.
+*Tagihan Kartu* tidak dihitung sebagai cicilan — nominalnya mengikuti belanja bulan itu, bukan
+kewajiban tetap.

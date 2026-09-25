@@ -6,7 +6,7 @@ mengubahnya ke satuan simpan (perseratus, lihat app/money.py).
 import sqlite3
 
 from app.money import SCALE
-from app.schema import apply_schema, seed_defaults
+from app.schema import TAG_EMERGENCY_SQL, apply_schema, seed_defaults
 
 
 def rp(n) -> int:
@@ -23,6 +23,7 @@ def make_db(accounts=(("Kas", "cash", 0), ("Dana Darurat", "savings", 0), ("Saha
     for i, (name, type_, opening) in enumerate(accounts):
         db.execute("INSERT INTO accounts(name, type, opening_balance, sort) VALUES (?,?,?,?)",
                    (name, type_, rp(opening), (i + 1) * 10))
+    db.execute(TAG_EMERGENCY_SQL)      # aturan yang sama dengan migrasi buku lama
     return db
 
 

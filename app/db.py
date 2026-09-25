@@ -321,6 +321,10 @@ def set_book_currency(db, code: str) -> None:
 
 CASH_TYPES = ("cash",)
 ASSET_TYPES = ("savings", "investment")
+# Kantong utang. Saldonya negatif saat berutang — belanja mengurangi, membayar
+# tagihan (transfer masuk) mengembalikan ke nol — jadi bisa langsung dijumlahkan
+# ke kekayaan bersih tanpa tanda minus buatan.
+DEBT_TYPES = ("credit",)
 
 
 def accounts(db, types=None, active_only=True):
@@ -337,6 +341,23 @@ def accounts(db, types=None, active_only=True):
 def balances(db):
     """Saldo semua kantong saat ini (lewat view account_balances)."""
     return {r["account_id"]: r["balance"] for r in db.execute("SELECT account_id, balance FROM account_balances")}
+
+
+def emergency_ids(db) -> list:
+    """Kantong yang ditandai pemiliknya sebagai dana darurat.
+
+    Kosong berarti belum ditentukan — dan itu ditampilkan apa adanya, bukan
+    diam-diam diganti seluruh tabungan. Tabungan liburan yang ikut terhitung
+    membuat "aman 6 bulan" jadi kalimat yang menenangkan tanpa dasar.
+    """
+    return [r["id"] for r in db.execute(
+        "SELECT id FROM accounts WHERE deleted_at IS NULL AND type='savings' AND is_emergency=1").fetchall()]
+
+
+def emergency_fund(db, mk: str):
+    """Saldo dana darurat sampai akhir bulan mk, atau None kalau belum ditentukan."""
+    ids = emergency_ids(db)
+    return balance_upto(db, mk, ids=ids) if ids else None
 
 
 def balance_upto(db, mk: str, types=CASH_TYPES, ids=None) -> int:
