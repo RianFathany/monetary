@@ -1046,7 +1046,11 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
    lebih cepat daripada kata, dan orang yang malas membaca tetap menangkapnya. */
 .gicon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;
        color:hsl(var(--h,220) 55% 45%);background:hsl(var(--h,220) 70% 55% / .14);
-       transition:background var(--base) var(--ease),transform var(--base) var(--ease),
+       /* Tumbuh dari alasnya, bukan dari tengah — sama seperti ikon Dock macOS
+          yang membesar ke atas sementara kakinya tetap menempel. */
+       transform-origin:50% 92%;
+       transition:background var(--base) var(--ease),
+                  transform .34s cubic-bezier(.34,1.42,.64,1),
                   color var(--base) var(--ease),box-shadow var(--base) var(--ease)}
 .gicon svg{width:19px;height:19px}
 .gcard[open] .gicon{transform:scale(1.06);background:hsl(var(--h,220) 70% 55% / .22)}
@@ -1072,9 +1076,12 @@ body.land-page::after{content:"";display:block;position:fixed;inset:0;height:aut
    berkali-kali, tapi tiap kartu hanya bergerak selama benar-benar disentuh
    kursor, dan itu justru yang membuatnya terasa menanggapi. */
 @media (hover:hover) and (pointer:fine){
+  /* Bayangannya hitam dan tipis, bukan cahaya sewarna ikon: yang dijual di
+     sini ketinggian, bukan warna. Bayangan berwarna membuat ubinnya tampak
+     menyala sendiri, dan itu bukan bahasa yang sama dengan sisa aplikasi. */
   .gcard summary:hover .gicon{transform:translateY(-3px) scale(1.1);
        background:hsl(var(--h,220) 70% 55% / .28);
-       box-shadow:0 6px 16px hsl(var(--h,220) 60% 40% / .28)}
+       box-shadow:0 2px 7px rgba(0,0,0,.22)}
   .gcard[open] summary:hover .gicon{transform:translateY(-3px) scale(1.12)}
   .gcard summary:hover .gicon svg path.tick{animation:g-draw .5s var(--ease-out) both}
   .gcard summary:hover .gicon svg circle.tick{animation:g-pop .4s var(--ease-out) both}
