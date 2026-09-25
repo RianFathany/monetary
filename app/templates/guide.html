@@ -14,7 +14,7 @@
   {% for m in menus %}
   <details class="ucard gcard" data-demo="{{ m.slug }}" style="--i:{{ loop.index0 }}">
     <summary>
-      <span class="gicon" style="--h:{{ m.judul | hue }}">
+      <span class="gicon" style="{{ m.gaya }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         {%- if m.slug == 'bulan' -%}
           <rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/><path class="tick" d="M8.5 15l2.2 2.2 4.3-4.6"/>

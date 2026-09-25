@@ -109,7 +109,42 @@ TAUTAN = {
     "ringkasan": "/overview", "aset": "/assets", "dokumen": "/dokumen", "setelan": "/settings",
 }
 
+# Warna ikon: (hue, saturasi glyph, saturasi latar).
+#
+# Sebelumnya hue diambil dari hash nama menunya, jadi Aset kebetulan merah muda
+# dan Anggaran kebetulan ungu. Mata menangkap bahwa warnanya tidak berarti apa-apa
+# meski tidak bisa menyebutkan sebabnya — dan ganti nama menu berarti ganti warna
+# tanpa ada yang meminta. Sekarang dipatok, dan tiap warna punya alasan:
+#
+#   Bulan      biru      warna utama aplikasi, ini halaman yang paling sering dibuka
+#   Kantong    hijau     uang yang diam
+#   Anggaran   amber     jatah dan batas — warna yang sama dengan peringatan
+#   Laporan    ungu      analisis, bukan pencatatan
+#   Ringkasan  cyan      penelusuran
+#   Aset       hijau daun uang yang tumbuh; dibedakan dari Kantong yang diam
+#   Dokumen    terakota  kertas
+#   Setelan    netral    ini perkakas, bukan datamu — sengaja nyaris tanpa warna
+#
+# Hue tetangga dijaga berjauhan supaya dua kartu yang bersebelahan tidak pernah
+# terbaca sebagai warna yang sama.
+WARNA = {
+    "bulan":     (212, 55, 70),
+    "kantong":   (150, 55, 70),
+    "anggaran":  (38, 62, 75),
+    "laporan":   (268, 52, 68),
+    "ringkasan": (192, 55, 70),
+    "aset":      (96, 50, 62),
+    "dokumen":   (14, 58, 70),
+    "setelan":   (232, 12, 14),
+}
+
+
+def gaya(slug: str) -> str:
+    """Custom property warna ikon, siap ditempel ke atribut style."""
+    h, s, b = WARNA.get(slug, (220, 55, 70))
+    return f"--h:{h};--gs:{s}%;--gb:{b}%"
+
 
 def menus() -> list:
     daftar = MENU_EN if get_lang() == "en" else MENU_ID
-    return [dict(m, tautan=TAUTAN.get(m["slug"], "/")) for m in daftar]
+    return [dict(m, tautan=TAUTAN.get(m["slug"], "/"), gaya=gaya(m["slug"])) for m in daftar]

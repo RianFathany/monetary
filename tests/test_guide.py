@@ -38,6 +38,30 @@ class TestPanduan(unittest.TestCase):
                     tutup = re.findall(r"</(\w+)>", baris)
                     self.assertEqual(sorted(buka), sorted(tutup), baris)
 
+    def test_tiap_menu_punya_warna_sendiri(self):
+        """Warna ikon dipatok per menu, bukan diambil dari hash namanya. Menu
+        baru yang lupa diberi warna akan jatuh ke biru bawaan dan menabrak
+        Bulan — jadi kelupaannya harus berbunyi di sini, bukan di mata orang."""
+        self.assertEqual(sorted(guide.WARNA), sorted(m["slug"] for m in guide.MENU_ID))
+        hue = [w[0] for w in guide.WARNA.values()]
+        self.assertEqual(len(set(hue)), len(hue), "dua menu tidak boleh sewarna")
+
+    def test_warna_tetangga_berjauhan(self):
+        """Dua kartu yang bersebelahan tidak boleh terbaca sebagai warna yang
+        sama. Yang netral (Setelan) dikecualikan: dia memang nyaris tanpa warna."""
+        urut = [guide.WARNA[m["slug"]] for m in guide.MENU_ID]
+        for (h1, s1, _), (h2, s2, _) in zip(urut, urut[1:]):
+            if s1 < 30 or s2 < 30:
+                continue
+            jarak = abs(h1 - h2)
+            self.assertGreaterEqual(min(jarak, 360 - jarak), 40, f"{h1} dan {h2} terlalu dekat")
+
+    def test_gaya_siap_tempel_ke_style(self):
+        gaya = guide.menus()[0]["gaya"]
+        for bagian in ("--h:", "--gs:", "--gb:"):
+            self.assertIn(bagian, gaya)
+        self.assertNotIn('"', gaya, "akan merusak atribut style")
+
     def test_semua_menu_navigasi_terdokumentasi(self):
         """Menu yang ada di navigasi tapi tidak ada di panduan adalah menu yang
         tidak pernah dijelaskan ke siapa pun."""
