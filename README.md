@@ -36,7 +36,7 @@ Database ada di `./data/monetary.db` (volume). Backup = salin file itu.
 .venv/bin/python -m unittest discover -s tests -t .
 ```
 
-302 tes, tanpa dependensi tambahan (`unittest` bawaan) dan tanpa menyentuh database
+308 tes, tanpa dependensi tambahan (`unittest` bawaan) dan tanpa menyentuh database
 asli — tiap tes membuat datanya sendiri di memori. Yang dikunci: aturan saldo
 (transfer memindah, bukan menghabiskan), ringkasan bulan, untung/rugi investasi
 dihitung dari modal, indikator laporan, perilaku saat start (menolak skema lama,

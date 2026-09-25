@@ -57,6 +57,36 @@
 </section>
 {% endif %}
 
+<!-- Proyeksi bulan depan -->
+{% if r.proyeksi %}
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Bulan depan') }} {{ r.proyeksi.month | month_label }}</h2><small>{{ r.proyeksi.basis }}</small></div>
+  <p style="font-size:15px;line-height:1.55;margin:4px 0 12px;font-weight:500">{{ r.proyeksi.text }}</p>
+  <div class="legend" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+    <div><b class="dot in"></b>{{ _('Perkiraan masuk') }} <span class="num">{{ r.proyeksi.income | rupiah }}</span></div>
+    <div><b class="dot out"></b>{{ _('Perkiraan keluar') }} <span class="num">{{ r.proyeksi.expense | rupiah }}</span></div>
+    <div><b class="dot"></b>{{ _('Perkiraan sisa kas') }} <span class="num {{ 'bad' if r.proyeksi.cash < 0 }}">{{ r.proyeksi.cash | rupiah }}</span><small>{{ _('akhir bulan depan') }}</small></div>
+  </div>
+  {% if r.proyeksi.scheduled %}
+  <div class="sec" style="margin-top:12px"><h2 style="font-size:13px">{{ _('Sudah terjadwal') }}</h2>
+    <small>{{ _('dari template rutin · sudah ikut di angka atas') }}</small></div>
+  <div class="panel-wrap" style="padding:0">
+    {% for s in r.proyeksi.scheduled %}
+    <div class="row static" style="grid-template-columns:32px minmax(0,1fr) auto;--i:{{ loop.index0 }}">
+      <span class="av" style="--h:{{ s.desc | hue }}">{{ s.desc[:2] }}</span>
+      <div class="main"><div class="name">{{ s.desc }}</div>
+        <div class="meta">{% if s.day %}<span>{{ _('biasanya tgl') }} {{ s.day }}</span>{% endif %}
+          <span>{{ _('masuk') if s.type=='income' else (_('pindah') if s.type=='transfer' else _('keluar')) }}</span></div></div>
+      <b class="num">{{ s.amount | rupiah }}</b>
+    </div>
+    {% endfor %}
+  </div>
+  {% if r.proyeksi.scheduled_more %}<p class="hint" style="margin:6px 0 0">{{ _('dan') }} {{ r.proyeksi.scheduled_more }} {{ _('template lain') }}</p>{% endif %}
+  {% endif %}
+  <p class="hint" style="margin:10px 0 0">{{ _('Proyeksi ini lanjutan dari kebiasaanmu, bukan ramalan: pengeluaran tahunan yang kebetulan jatuh bulan depan tidak terlihat di sini.') }}</p>
+</section>
+{% endif %}
+
 <div class="two">
 <!-- Pengeluaran per kategori -->
 <section class="card">

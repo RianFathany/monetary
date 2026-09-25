@@ -115,6 +115,22 @@ def build_metrics(db, mk: str) -> dict:
             missing.append(dict(desc=rr["description"] or rr["category"] or "—", amount=rr["amount"],
                                 day=rr["day_of_month"]))
 
+    # Yang sudah terjadwal bulan depan: seluruh template rutin yang aktif.
+    # Ini keterangan, bukan tambahan — nominalnya sudah ikut terhitung di
+    # rata-rata tiga bulan, dan menjumlahkannya lagi berarti menghitung dua kali.
+    jadwal = [dict(desc=rr["description"] or rr["category"] or "—", amount=rr["amount"],
+                   day=rr["day_of_month"], type=rr["type"])
+              for rr in db.execute(
+                  "SELECT r.*, c.name AS category FROM recurring r "
+                  "LEFT JOIN categories c ON c.id=r.category_id "
+                  "WHERE r.active=1 ORDER BY r.sort, r.id").fetchall()]
+
+    # Berapa bulan yang benar-benar punya catatan. Proyeksi dari satu bulan data
+    # bukan proyeksi, cuma pengulangan — dan itu harus disebut, bukan disembunyikan.
+    riwayat = int(db.execute(
+        "SELECT COUNT(DISTINCT month_key) v FROM transactions WHERE deleted_at IS NULL AND month_key<=?",
+        (mk,)).fetchone()["v"] or 0)
+
     av = asset_view(db, mk)
     av_prev = asset_view(db, _shift(mk, -1))
 
@@ -124,6 +140,12 @@ def build_metrics(db, mk: str) -> dict:
     # Cicilan itu kewajiban tetap; membandingkannya dengan bulan bonus membuatnya
     # terlihat ringan, dan dengan bulan sepi membuatnya terlihat gawat.
     debt_base = avg_income or income
+
+    # Proyeksi bulan depan. Dasarnya rata-rata tiga bulan, bukan penjumlahan
+    # template rutin: rata-rata sudah memuat yang rutin maupun yang tidak, dan
+    # itu satu-satunya cara menghindari menghitung KPR dua kali. Konsekuensinya
+    # jujur: pengeluaran tahunan yang kebetulan jatuh bulan depan tidak terlihat.
+    proj_net = avg_income - avg_expense
     return dict(
         month=mk, income=income, expense=expense, net=income - expense, unpaid=unpaid,
         avg_income=avg_income, avg_expense=avg_expense,
@@ -135,6 +157,13 @@ def build_metrics(db, mk: str) -> dict:
         emergency=emergency, emergency_set=emergency is not None,
         cover_months=cover, categories=cats, spikes=spikes, top=top,
         review_count=review["n"], review_value=int(review["v"]), missing_recurring=missing,
+        next_month=_shift(mk, 1), proj_income=avg_income, proj_expense=avg_expense,
+        proj_net=proj_net, proj_cash=cash + proj_net, scheduled=jadwal,
+        history_months=riwayat,
+        # Berapa bulan kas bertahan kalau polanya tidak berubah. Hanya berarti
+        # saat memang defisit; kalau surplus, angkanya tak terhingga dan
+        # menampilkan "999 bulan" cuma kebisingan.
+        months_left=(cash // -proj_net) if (proj_net < 0 and cash > 0) else None,
         assets=av["total"], assets_delta=av["total"] - av_prev["total"], pots=av["pots"],
         stale_pots=[p["name"] for p in av["pots"] if p.get("stale")],
         generated_at=date.today().isoformat(),
@@ -253,8 +282,31 @@ def render_rules(m: dict) -> dict:
                          label=t("Perbarui"), href=f"/assets?mk={mk}"))
 
     plan = [dict(desc=r["desc"], amount=r["amount"], day=r["day"]) for r in m["missing_recurring"]]
+
+    # ---- proyeksi bulan depan ----
+    # Angkanya sudah dihitung di build_metrics; di sini cuma dirangkai jadi
+    # kalimat, berikut kejujuran soal seberapa kuat dasarnya.
+    if m["proj_net"] >= 0:
+        kalimat = t("Kalau polanya sama, bulan depan masuk {inc} dan keluar {exp} — sisa {net}.",
+                    inc=_rp(m["proj_income"]), exp=_rp(m["proj_expense"]), net=_rp(m["proj_net"]))
+    else:
+        kalimat = t("Kalau polanya sama, bulan depan keluar {exp} sementara masuk {inc} — kurang {net}.",
+                    exp=_rp(m["proj_expense"]), inc=_rp(m["proj_income"]), net=_rp(-m["proj_net"]))
+    if m["months_left"] is not None:
+        kalimat += " " + (t("Dengan kas sekarang, itu bertahan sekitar {n} bulan lagi.", n=m["months_left"])
+                          if m["months_left"] else t("Kas sekarang tidak cukup menutup satu bulan."))
+
+    dasar = (t("dari rata-rata {n} bulan terakhir", n=LOOKBACK) if m["history_months"] > LOOKBACK
+             else t("baru {n} bulan tercatat — angkanya masih kasar", n=m["history_months"]))
+
+    proyeksi = dict(
+        month=m["next_month"], income=m["proj_income"], expense=m["proj_expense"],
+        net=m["proj_net"], cash=m["proj_cash"], months_left=m["months_left"],
+        text=kalimat, basis=dasar, kasar=m["history_months"] <= LOOKBACK,
+        scheduled=m["scheduled"][:6], scheduled_more=max(0, len(m["scheduled"]) - 6),
+    )
     return dict(month=mk, summary=summary, health=health, highlights=highlights,
-                tips=tips[:4], plan=plan, metrics=m)
+                tips=tips[:4], plan=plan, proyeksi=proyeksi, metrics=m)
 
 
 def get_or_build(db, mk: str, engine: str = "rules", force: bool = False) -> dict:

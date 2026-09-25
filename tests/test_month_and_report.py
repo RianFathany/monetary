@@ -6,7 +6,7 @@ from pathlib import Path
 from app.db import asset_view
 from app.main import month_summary
 from app.report import build_metrics, render_rules
-from tests.helpers import acc, add, make_db, rp
+from tests.helpers import acc, add, cat, make_db, rp
 
 
 def snapshot(db, month, account, symbol, amount):
@@ -143,6 +143,51 @@ class IndikatorLaporan(unittest.TestCase):
         add(self.db, "2026-01", "expense", 20_000_000, "Kas", category="Belanja")
         names = [c["name"] for c in build_metrics(self.db, "2026-01")["spikes"]]
         self.assertIn("Belanja", names)
+
+    def test_proyeksi_memakai_rata_rata_bukan_jumlah_template(self):
+        """Template rutin sudah ikut terhitung di rata-rata. Menjumlahkannya lagi
+        berarti menghitung KPR dua kali — dan proyeksinya jadi jauh meleset."""
+        self.db.execute(
+            "INSERT INTO recurring(type, account_id, category_id, description, amount)"
+            " VALUES ('expense',?,?,'Cicilan Rumah',?)",
+            (acc(self.db, "Kas"), cat(self.db, "Cicilan Rumah"), rp(4_000_000)))
+        m = build_metrics(self.db, "2026-01")
+        self.assertEqual(m["proj_income"], rp(20_000_000))
+        self.assertEqual(m["proj_expense"], rp(10_000_000), "bukan 10jt + 4jt")
+        self.assertEqual(m["proj_net"], rp(10_000_000))
+        self.assertEqual(len(m["scheduled"]), 1, "template tetap didaftar sebagai keterangan")
+
+    def test_proyeksi_sisa_kas_bertumpu_pada_kas_sekarang(self):
+        m = build_metrics(self.db, "2026-01")
+        self.assertEqual(m["proj_cash"], m["cash"] + m["proj_net"])
+        self.assertEqual(m["next_month"], "2026-02")
+
+    def test_kas_bertahan_hanya_dihitung_saat_defisit(self):
+        self.assertIsNone(build_metrics(self.db, "2026-01")["months_left"],
+                          "surplus: angka bertahan tidak berarti apa-apa")
+
+    def test_kas_bertahan_saat_defisit(self):
+        db = make_db((("Kas", "cash", 30_000_000), ("Dana Darurat", "savings", 0)))
+        self.addCleanup(db.close)
+        for bln in ("2025-10", "2025-11", "2025-12"):
+            add(db, bln, "income", 5_000_000, "Kas", category="Gaji")
+            add(db, bln, "expense", 10_000_000, "Kas", category="Belanja")
+        m = build_metrics(db, "2026-01")
+        self.assertEqual(m["proj_net"], rp(-5_000_000))
+        self.assertEqual(m["months_left"], 3, "kas 30jt − 15jt terpakai, defisit 5jt/bln")
+
+    def test_riwayat_pendek_ditandai_kasar(self):
+        db = make_db()
+        self.addCleanup(db.close)
+        add(db, "2026-01", "income", 9_000_000, "Kas", category="Gaji")
+        r = render_rules(build_metrics(db, "2026-01"))
+        self.assertTrue(r["proyeksi"]["kasar"])
+        self.assertIn("1", r["proyeksi"]["basis"])
+
+    def test_riwayat_cukup_tidak_ditandai_kasar(self):
+        add(self.db, "2026-01", "income", 20_000_000, "Kas", category="Gaji")
+        r = render_rules(build_metrics(self.db, "2026-01"))
+        self.assertFalse(r["proyeksi"]["kasar"])
 
     def test_defisit_disebut_di_ringkasan(self):
         add(self.db, "2026-01", "income", 5_000_000, "Kas", category="Gaji")

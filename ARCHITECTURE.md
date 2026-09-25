@@ -237,6 +237,16 @@ Indikator yang dihitung:
   rata-rata 3 bulan (target 6 bulan), atau "–" kalau belum ada yang ditandai.
 - **Total aset** dan kategori yang naik >30% dari rata-rata.
 
+Di bawahnya ada **proyeksi bulan depan**. Dasarnya rata-rata tiga bulan, bukan
+penjumlahan template rutin — rata-rata sudah memuat yang rutin maupun yang tidak,
+dan menjumlahkan keduanya berarti menghitung KPR dua kali. Template rutin tetap
+didaftar di sebelahnya sebagai keterangan, dengan catatan bahwa nominalnya sudah
+ikut di angka atas. Konsekuensinya disebut di halamannya: pengeluaran tahunan yang
+kebetulan jatuh bulan depan tidak terlihat. Kalau proyeksinya defisit, ditambahkan
+berapa bulan kas bertahan; kalau surplus, angka itu tidak ditampilkan karena tak
+terhingga. Buku yang baru punya satu-dua bulan catatan ditandai "masih kasar",
+bukan disajikan seolah sekuat yang lain.
+
 ---
 
 ## 6. Migrasi & impor
@@ -338,7 +348,7 @@ dan ekspor Excel (`/export.xlsx`) untuk membacanya di luar aplikasi.
 
 ## 9. Tes
 
-`tests/` berisi 302 tes `unittest`, tanpa dependensi tambahan dan tanpa menyentuh
+`tests/` berisi 308 tes `unittest`, tanpa dependensi tambahan dan tanpa menyentuh
 database asli — tiap tes membangun datanya sendiri di memori.
 
 Yang dikunci bukan detail implementasi, melainkan aturan yang kalau berubah diam-diam

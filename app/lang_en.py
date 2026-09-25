@@ -405,6 +405,28 @@ EN = {
         "Spending exceeded income by {v} this month. Top three categories: {list}.",
     "Nilai {pots} belum diperbarui untuk bulan ini, jadi total aset memakai angka lama.":
         "{pots} has no updated value this month, so total assets still use the old figure.",
+    # --- proyeksi bulan depan ---
+    "Bulan depan": "Next month",
+    "Perkiraan masuk": "Expected in",
+    "Perkiraan keluar": "Expected out",
+    "Perkiraan sisa kas": "Expected cash left",
+    "akhir bulan depan": "end of next month",
+    "Sudah terjadwal": "Already scheduled",
+    "dari template rutin · sudah ikut di angka atas": "from recurring templates · already in the figures above",
+    "template lain": "more templates",
+    "pindah": "moves",
+    "Proyeksi ini lanjutan dari kebiasaanmu, bukan ramalan: pengeluaran tahunan yang kebetulan jatuh bulan depan tidak terlihat di sini.":
+        "This projection continues your habits, it is not a forecast: a yearly expense that happens to fall next month does not show up here.",
+    "Kalau polanya sama, bulan depan masuk {inc} dan keluar {exp} — sisa {net}.":
+        "If the pattern holds, next month brings in {inc} and takes out {exp} — leaving {net}.",
+    "Kalau polanya sama, bulan depan keluar {exp} sementara masuk {inc} — kurang {net}.":
+        "If the pattern holds, next month takes out {exp} against {inc} coming in — {net} short.",
+    "Dengan kas sekarang, itu bertahan sekitar {n} bulan lagi.":
+        "On today's cash that lasts about {n} more months.",
+    "Kas sekarang tidak cukup menutup satu bulan.": "Today's cash does not cover a single month.",
+    "dari rata-rata {n} bulan terakhir": "from the last {n} months' average",
+    "baru {n} bulan tercatat — angkanya masih kasar": "only {n} months recorded — the figures are still rough",
+
     "Tanpa kategori": "No category",
     "baru saja": "just now",
     # --- halaman login: sapaan & cuaca ---

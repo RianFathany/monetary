@@ -35,6 +35,7 @@ MENU_ID = [
         "Masuk, keluar, kategori yang melonjak.",
         "<b>Surplus</b> = sisa. <b>Setoran</b> = yang benar-benar dipindahkan. Dua hal berbeda.",
         "Rasio cicilan dan ketahanan dana darurat.",
+        "Perkiraan bulan depan dari kebiasaanmu — bukan ramalan.",
     ]),
     dict(slug="ringkasan", judul="Ringkasan", untuk="Cari transaksi lintas bulan.", isi=[
         "Saring tahun, jenis, kategori, kata kunci.",
@@ -81,6 +82,7 @@ MENU_EN = [
         "In, out, and which categories spiked.",
         "<b>Surplus</b> = what is left. <b>Moved to savings</b> = what actually shifted. Not the same thing.",
         "Debt ratio and emergency fund cover.",
+        "Next month estimated from your habits — not a forecast.",
     ]),
     dict(slug="ringkasan", judul="Overview", untuk="Search across months.", isi=[
         "Filter by year, type, category, keyword.",
