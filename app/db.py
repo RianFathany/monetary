@@ -66,8 +66,18 @@ def book_path() -> str:
 
 
 def book_file(name: str) -> str:
-    """Nama file buku -> path lengkap. Nama berasal dari database sendiri."""
-    return DB_PATH if not name or name == Path(DB_PATH).name else str(books_dir() / name)
+    """Nama file buku -> path lengkap. Nama berasal dari database sendiri.
+
+    Nama kosong dulunya jatuh ke buku pemilik. Satu baris pengguna yang kolom
+    `book`-nya kosong — karena migrasi, insert manual, atau restore setengah
+    jalan — berarti dia membaca dan menulis keuangan pemilik tanpa satu pun
+    pesan galat. Sekarang melempar.
+    """
+    if not name:
+        raise ValueError("nama buku kosong")
+    if ".." in name or "/" in name or "\\" in name:
+        raise ValueError(f"nama buku tidak wajar: {name!r}")
+    return DB_PATH if name == Path(DB_PATH).name else str(books_dir() / name)
 
 
 def _open(path: str) -> sqlite3.Connection:

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, RedirectResponse,
+from fastapi.responses import (FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse,
                                StreamingResponse)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -166,6 +166,34 @@ async def _canonical_host(request: Request, call_next):
 
 
 @app.middleware("http")
+async def _security_headers(request: Request, call_next):
+    """Header keamanan dasar.
+
+    frame-ancestors: halaman keuangan tidak boleh ditempel di dalam iframe situs
+    lain, karena di situlah clickjacking bekerja. HSTS: kunjungan berikutnya
+    tidak pernah lagi mencoba lewat http. CSP disusun longgar untuk gambar dan
+    huruf karena halaman memuat dua-duanya dari luar, tapi skrip hanya boleh dari
+    diri sendiri — aplikasi ini tidak memuat skrip pihak ketiga sama sekali.
+    """
+    resp = await call_next(request)
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("Referrer-Policy", "same-origin")
+    resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    resp.headers.setdefault("Permissions-Policy", "geolocation=(self), camera=(), microphone=()")
+    resp.headers.setdefault("Content-Security-Policy",
+        "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; "
+        "object-src 'none'; img-src 'self' data: blob: https:; media-src 'self'; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "script-src 'self' 'unsafe-inline'; "
+        "connect-src 'self' https://api.open-meteo.com https://api-bdc.net https://api.bigdatacloud.net")
+    if CANONICAL_HOST:
+        resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return resp
+
+
+@app.middleware("http")
 async def _book_and_language(request: Request, call_next):
     """Tentukan buku milik sesi ini lalu bahasanya, sebelum rute apa pun jalan.
 
@@ -176,10 +204,18 @@ async def _book_and_language(request: Request, call_next):
     i18n.set_lang("id")
     money.set_currency(money.DEFAULT)
     if not request.url.path.startswith("/static"):
+        # Menentukan buku tidak boleh gagal diam-diam. Kalau ada sesi tapi bukunya
+        # tidak bisa dipastikan, permintaan dihentikan — bukan diteruskan dengan
+        # buku bawaan, yang berarti buku pemilik.
         try:
             u = signed_in(request)
             if u:
                 set_book(users.path_for(u))
+        except Exception:
+            return PlainTextResponse("Layanan sedang tidak siap. Coba lagi sebentar lagi.",
+                                     status_code=503)
+        try:
+            if u:
                 with get_db() as db:
                     i18n.set_lang(get_setting(db, "lang", "id") or "id")
                     money.set_currency(book_currency(db))
@@ -191,7 +227,7 @@ async def _book_and_language(request: Request, call_next):
                 i18n.set_lang(i18n.guest_lang(request.cookies.get(i18n.COOKIE, ""),
                                               request.headers.get("accept-language", "")))
             backup.maybe_run()                 # cadangan harian menumpang lalu lintas biasa
-        except Exception:                      # database belum siap (mis. saat start pertama)
+        except Exception:                      # setelan belum siap (mis. saat start pertama)
             pass
     return await call_next(request)
 
@@ -282,7 +318,7 @@ def render(request: Request, name: str, **ctx):
     resp = templates.TemplateResponse(request, name, ctx)
     if not request.cookies.get(csrf.COOKIE):
         resp.set_cookie(csrf.COOKIE, ctx["csrf_token"], max_age=60 * 60 * 24 * 30, httponly=True,
-                        samesite="lax", secure=request.url.scheme == "https")
+                        samesite="lax", secure=cookie_secure(request))
     return resp
 
 
@@ -413,10 +449,10 @@ def login_page(request: Request, next: str = "/", error: str = "", bye: str = ""
 @app.post("/login")
 def login(request: Request, password: str = Form(...), email: str = Form(""), next: str = Form("/")):
     """Masuk dengan email + password. Pemilik boleh mengosongkan email (pintu lama)."""
-    if auth.locked_for(request):
+    email = (email or "").strip().lower()
+    if auth.locked_for(request, email or "owner"):
         return RedirectResponse(f"/login?next={next}&error=locked", status_code=303)
 
-    email = (email or "").strip().lower()
     u = users.by_email(email) if email else users.owner()
     ok = False
     if u and u["active"]:
@@ -425,15 +461,15 @@ def login(request: Request, password: str = Form(...), email: str = Form(""), ne
         elif u["is_owner"]:
             ok = auth.check_password(password)          # password pemilik dari setelan aplikasi
     if not ok:
-        auth.note_failure(request)
+        auth.note_failure(request, email or "owner")
         return RedirectResponse(f"/login?next={next}&error=1", status_code=303)
 
-    auth.note_success(request)
+    auth.note_success(request, email or "owner")
     users.touch_login(u["id"])
     resp = RedirectResponse(next or "/", status_code=303)
     resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], u["email"] or "password", u["session_epoch"]),
                     max_age=auth.MAX_AGE, httponly=True, samesite="lax",
-                    secure=request.url.scheme == "https")
+                    secure=cookie_secure(request))
     return resp
 
 
@@ -462,10 +498,25 @@ RESET_MAX_AGE = 60 * 60                  # tautan setel ulang password berlaku 1
 
 
 def base_url(request: Request) -> str:
+    """Alamat dasar untuk tautan di dalam surel.
+
+    request.base_url dibangun dari header Host kiriman klien. Kalau diteruskan
+    apa adanya, orang bisa memicu surel setel-ulang ke korban yang tautannya
+    menunjuk servernya sendiri, lalu menukar token itu jadi akses penuh. Kalau
+    CANONICAL_HOST diset, itu yang dipakai dan header diabaikan.
+    """
+    if CANONICAL_HOST:
+        return "https://" + CANONICAL_HOST
     url = str(request.base_url).rstrip("/")
     if url.startswith("http://") and request.headers.get("x-forwarded-proto") == "https":
         url = "https://" + url[len("http://"):]
     return url
+
+
+def cookie_secure(request: Request) -> bool:
+    """Cookie sesi ditandai secure. Skema permintaan berasal dari X-Forwarded-Proto
+    yang bisa dipalsukan, jadi kalau CANONICAL_HOST diset, kita tahu ini produksi."""
+    return bool(CANONICAL_HOST) or request.url.scheme == "https"
 
 
 def send_verification(request: Request, u) -> bool:
@@ -562,7 +613,7 @@ def reset(request: Request, token: str = Form(""), new: str = Form(""), confirm:
     resp = RedirectResponse("/", status_code=303)
     resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], u["email"], u["session_epoch"]),
                     max_age=auth.MAX_AGE, httponly=True, samesite="lax",
-                    secure=request.url.scheme == "https")
+                    secure=cookie_secure(request))
     return resp
 
 
@@ -598,19 +649,37 @@ def auth_ping(request: Request):
 
 @app.post("/auth/unlock")
 def auth_unlock(request: Request, password: str = Form(...)):
-    """Buka kunci tanpa meninggalkan halaman: cukup password, cookie diperbarui."""
-    if (wait := auth.locked_for(request)):
+    """Perpanjang sesi yang sudah ada tanpa meninggalkan halaman.
+
+    Dulu rute ini tidak memeriksa sesi sama sekali dan memverifikasi password
+    APLIKASI, lalu menerbitkan cookie untuk auth.user_id() yang bawaannya 1 —
+    yaitu pemilik. Siapa pun yang berhasil menebak satu password langsung
+    mendapat sesi pemilik. Sekarang: harus sudah punya sesi yang sah, dan yang
+    diperiksa password pengguna itu sendiri.
+    """
+    me = signed_in(request)
+    if me is None:
+        return JSONResponse({"error": "auth"}, status_code=401)
+
+    who = me["email"] or "owner"
+    if (wait := auth.locked_for(request, who)):
         return JSONResponse({"error": "locked", "wait": (wait + 59) // 60}, status_code=429)
-    if not auth.check_password(password):
-        auth.note_failure(request)
+
+    if me["password_hash"]:
+        ok = auth.check_hash(password, me["password_hash"])
+    elif me["is_owner"]:
+        ok = auth.check_password(password)     # pemilik lama: password dari setelan aplikasi
+    else:
+        ok = False                             # masuk lewat Google, tidak punya password
+    if not ok:
+        auth.note_failure(request, who)
         return JSONResponse({"error": "wrong"}, status_code=401)
-    auth.note_success(request)
+
+    auth.note_success(request, who)
     resp = JSONResponse({"ok": True, "left": auth.MAX_AGE})
     resp.set_cookie(auth.COOKIE,
-                    auth.make_token(auth.user_id(request), auth.whoami(request) or "password",
-                                    users.epoch(auth.user_id(request))),
-                    max_age=auth.MAX_AGE, httponly=True, samesite="lax",
-                    secure=request.url.scheme == "https")
+                    auth.make_token(me["id"], me["email"] or "password", me["session_epoch"]),
+                    max_age=auth.MAX_AGE, httponly=True, samesite="lax", secure=cookie_secure(request))
     return resp
 
 
@@ -648,7 +717,7 @@ def register(request: Request, email: str = Form(""), password: str = Form(""), 
     users.touch_login(u["id"])
     resp = RedirectResponse("/", status_code=303)
     resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], u["email"], u["session_epoch"]), max_age=auth.MAX_AGE,
-                    httponly=True, samesite="lax", secure=request.url.scheme == "https")
+                    httponly=True, samesite="lax", secure=cookie_secure(request))
     return resp
 
 
@@ -661,7 +730,7 @@ def google_start(request: Request, next: str = "/"):
         url, blob = oauth.start(db, request, next)
     resp = RedirectResponse(url, status_code=303)
     resp.set_cookie(oauth.STATE_COOKIE, auth.sign(blob), max_age=oauth.STATE_MAX_AGE, httponly=True,
-                    samesite="lax", secure=request.url.scheme == "https")
+                    samesite="lax", secure=cookie_secure(request))
     return resp
 
 
@@ -707,7 +776,7 @@ def google_callback(request: Request, code: str = "", state: str = "", error: st
     resp = RedirectResponse(blob.get("next") or "/", status_code=303)
     resp.delete_cookie(oauth.STATE_COOKIE)
     resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], email, u["session_epoch"]), max_age=auth.MAX_AGE,
-                    httponly=True, samesite="lax", secure=request.url.scheme == "https")
+                    httponly=True, samesite="lax", secure=cookie_secure(request))
     return resp
 
 
@@ -1138,7 +1207,7 @@ def set_language(request: Request, lang: str = Form("id")):
     code = lang if lang in i18n.LANGS else "id"
     resp = RedirectResponse(_back_to(request), status_code=303)
     resp.set_cookie(i18n.COOKIE, code, max_age=60 * 60 * 24 * 365, samesite="lax",
-                    secure=request.url.scheme == "https")
+                    secure=cookie_secure(request))
     if signed_in(request):
         with get_db() as db:
             set_setting(db, "lang", code)
@@ -1238,7 +1307,7 @@ def settings_password(request: Request, new: str = Form(...), confirm: str = For
     resp.set_cookie(auth.COOKIE, auth.make_token(u["id"], auth.whoami(request) or "password",
                                                  users.epoch(u["id"])),
                     max_age=auth.MAX_AGE, httponly=True, samesite="lax",
-                    secure=request.url.scheme == "https")
+                    secure=cookie_secure(request))
     return resp
 
 

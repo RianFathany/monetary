@@ -18,6 +18,8 @@ karena kunci penyimpanan adalah urusan penyebaran, ada alasan khusus di sini:
 terbungkus di dalam setiap cadangan yang ditulisnya sendiri. Yang tetap tinggal di
 database cuma catatan hasil cadangan terakhir.
 """
+import base64
+import hashlib
 import io
 import os
 import sqlite3
@@ -116,10 +118,39 @@ def archive() -> tuple:
     return buf.getvalue(), count
 
 
+# ── Enkripsi arsip ────────────────────────────────────────────────────────
+# Satu arsip memuat keuangan SEMUA pengguna. Satu kunci penyimpanan yang bocor,
+# satu bucket yang tanpa sengaja publik, atau satu .env yang tercecer, dan yang
+# keluar bukan data satu orang. Kuncinya dari environment, bukan dari database,
+# karena system.db ikut masuk ke dalam arsipnya sendiri.
+# Namanya sengaja bukan BACKUP_KEY: itu sudah dipakai untuk access key S3.
+ENCRYPTION_KEY = os.environ.get("BACKUP_ENCRYPTION_KEY", "").strip()
+
+
+def encryption_ready() -> bool:
+    return bool(ENCRYPTION_KEY)
+
+
+def _fernet():
+    from cryptography.fernet import Fernet
+    # Kunci boleh kalimat bebas; dijadikan 32 byte lewat SHA-256 supaya tidak
+    # ada syarat format yang bikin orang salah pasang.
+    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(ENCRYPTION_KEY.encode()).digest()))
+
+
+def seal(blob: bytes) -> bytes:
+    return _fernet().encrypt(blob)
+
+
+def unseal(blob: bytes) -> bytes:
+    return _fernet().decrypt(blob)
+
+
 def object_key(cfg: dict, when=None) -> str:
     when = when or datetime.now(timezone.utc)
     prefix = cfg["prefix"].strip("/")
-    name = f"monetary-{when:%Y%m%d-%H%M}.tar.gz"
+    ext = "tar.gz.enc" if encryption_ready() else "tar.gz"
+    name = f"monetary-{when:%Y%m%d-%H%M}.{ext}"
     return f"{prefix}/{name}" if prefix else name
 
 
@@ -129,7 +160,7 @@ def prune(cfg: dict) -> tuple:
     Kegagalan dihitung, bukan diabaikan: kalau token kehilangan izin hapus,
     arsip menumpuk lewat batas tanpa ada yang tahu — dan itu justru baru
     ketahuan saat tagihan atau kuota penyimpanan yang memberitahu."""
-    keys = sorted(k for k in s3.list_keys(cfg, cfg["prefix"].strip("/")) if k.endswith(".tar.gz"))
+    keys = sorted(k for k in s3.list_keys(cfg, cfg["prefix"].strip("/")) if k.endswith((".tar.gz", ".tar.gz.enc")))
     extra = keys[:-cfg["keep"]] if len(keys) > cfg["keep"] else []
     hapus = gagal = 0
     for key in extra:
@@ -150,7 +181,12 @@ def run() -> tuple:
     try:
         cfg = config()
         blob, count = archive()
-        status_code, body = s3.put(cfg, object_key(cfg), blob, "application/gzip")
+        if encryption_ready():
+            blob = seal(blob)
+            ctype = "application/octet-stream"
+        else:
+            ctype = "application/gzip"
+        status_code, body = s3.put(cfg, object_key(cfg), blob, ctype)
         ok = 200 <= status_code < 300
         set_app_setting("backup_last_at", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"))
         set_app_setting("backup_last_status", "ok" if ok else "fail")

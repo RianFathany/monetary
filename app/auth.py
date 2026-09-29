@@ -70,26 +70,58 @@ def _now() -> float:
     return time.time()
 
 
+FAIL_KEYS_MAX = 5000   # batas jumlah kunci yang disimpan, supaya tidak bisa dijadikan jalur habisnya memori
+
+
 def client_key(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    return (fwd.split(",")[0].strip() or (request.client.host if request.client else "?"))
+    """Alamat yang dipakai sebagai kunci pembatas.
+
+    Sebelumnya memakai entri PERTAMA X-Forwarded-For, yaitu bagian yang dikirim
+    klien dan bebas diisi apa saja: ganti header tiap permintaan, dan penguncian
+    tidak pernah tercapai. Entri TERAKHIR yang ditambahkan proxy di depan kita,
+    jadi itu yang dipakai; kalau tidak ada, pakai alamat koneksinya langsung.
+    """
+    fwd = [x.strip() for x in request.headers.get("x-forwarded-for", "").split(",") if x.strip()]
+    if fwd:
+        return fwd[-1]
+    return request.client.host if request.client else "?"
 
 
-def locked_for(request: Request) -> int:
-    """Sisa detik penguncian, 0 kalau masih boleh mencoba."""
-    hits = [t for t in _fails.get(client_key(request), []) if _now() - t < FAIL_WINDOW]
+def account_key(who: str) -> str:
+    """Kunci kedua, per akun. Mengganti-ganti alamat tidak menambah jatah tebakan
+    untuk satu akun yang sama."""
+    return "akun:" + (who or "").strip().lower()
+
+
+def _trim() -> None:
+    if len(_fails) > FAIL_KEYS_MAX:
+        for k in sorted(_fails, key=lambda k: _fails[k][-1])[:len(_fails) - FAIL_KEYS_MAX]:
+            _fails.pop(k, None)
+
+
+def _locked(key: str) -> int:
+    hits = [t for t in _fails.get(key, []) if _now() - t < FAIL_WINDOW]
     if len(hits) < FAIL_MAX:
         return 0
     return max(0, int(LOCK_FOR - (_now() - hits[-1])))
 
 
-def note_failure(request: Request) -> None:
-    k = client_key(request)
-    _fails[k] = [t for t in _fails.get(k, []) if _now() - t < FAIL_WINDOW] + [_now()]
+def locked_for(request: Request, who: str = "") -> int:
+    """Sisa detik penguncian, 0 kalau masih boleh mencoba. Dihitung per alamat
+    dan per akun; yang mana pun yang terkunci lebih lama itu yang berlaku."""
+    return max(_locked(client_key(request)), _locked(account_key(who)) if who else 0)
 
 
-def note_success(request: Request) -> None:
+def note_failure(request: Request, who: str = "") -> None:
+    for k in [client_key(request)] + ([account_key(who)] if who else []):
+        _fails[k] = [t for t in _fails.get(k, []) if _now() - t < FAIL_WINDOW] + [_now()]
+    _trim()
+
+
+def note_success(request: Request, who: str = "") -> None:
     _fails.pop(client_key(request), None)
+    if who:
+        _fails.pop(account_key(who), None)
 
 
 def _secret() -> str:

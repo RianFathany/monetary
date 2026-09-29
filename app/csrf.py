@@ -60,6 +60,12 @@ def field_multipart(body: bytes, ctype: str) -> str:
     return potong.rstrip(b"\r\n").decode("utf-8", "replace").strip()
 
 
+# Body dibaca habis ke memori sebelum token diperiksa. Tanpa batas, satu POST
+# anonim berukuran besar sudah cukup menghabiskan memori mesin kecil. Unggahan
+# terbesar yang sah adalah rekening koran, dan itu dibatasi 8 MB di statement.py.
+MAX_BODY = 12 * 1024 * 1024
+
+
 class CSRFMiddleware:
     def __init__(self, app):
         self.app = app
@@ -69,6 +75,17 @@ class CSRFMiddleware:
             await self.app(scope, receive, send)
             return
 
+        declared = 0
+        for name, value in scope.get("headers", []):
+            if name == b"content-length":
+                try:
+                    declared = int(value)
+                except ValueError:
+                    declared = 0
+        if declared > MAX_BODY:
+            await self._too_big(send)
+            return
+
         body = b""
         more = True
         while more:                                   # baca habis body sekali
@@ -76,6 +93,9 @@ class CSRFMiddleware:
             if message["type"] == "http.disconnect":
                 return
             body += message.get("body", b"")
+            if len(body) > MAX_BODY:                  # tanpa Content-Length, atau berbohong
+                await self._too_big(send)
+                return
             more = message.get("more_body", False)
 
         cookie = token_from(scope)
@@ -116,3 +136,9 @@ class CSRFMiddleware:
                     "headers": [(b"content-type", b"text/html; charset=utf-8"),
                                 (b"content-length", str(len(html)).encode())]})
         await send({"type": "http.response.body", "body": html})
+
+
+    async def _too_big(self, send):
+        await send({"type": "http.response.start", "status": 413,
+                    "headers": [(b"content-type", b"text/plain; charset=utf-8")]})
+        await send({"type": "http.response.body", "body": "Kiriman terlalu besar.".encode()})
