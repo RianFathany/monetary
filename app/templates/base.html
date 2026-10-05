@@ -12,6 +12,9 @@
 <meta name="robots" content="noindex,nofollow">
 <title>{% block title %}Muara{% endblock %}</title>
 <script>try{var t=localStorage.getItem('monetary-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script>(function(){function tod(){var h=+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jakarta',hour:'numeric',hourCycle:'h23'}).format(new Date());
+document.documentElement.setAttribute('data-tod',h>=5&&h<10?'pagi':h<15&&h>=10?'siang':h>=15&&h<19?'sore':'malam')}
+try{tod();setInterval(tod,600000)}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bebas+Neue&family=Outfit:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/vendor/tom-select.css">

@@ -60,7 +60,7 @@
   {% for r in recurring %}
   <div class="sw" data-del="/settings/recurring/{{ r.id }}/delete" data-del-title="{{ r.description or r.category or '—' }}" data-del-sub="{{ r.type }} · {{ r.amount | rupiah }}" data-del-note="{{ _('Template dihapus; entri yang sudah dibuat tidak ikut terhapus.') }}"><div class="sw-track">
   <div class="row static tpl" style="--i:{{ loop.index0 }}">
-    <span class="av {{ 'in' if r.type=='income' }}" style="--h:{{ (r.category or r.description or 'X') | hue }}">{{ '⇄' if r.type=='transfer' else (r.category or r.description or '·')[:2] }}</span>
+    {% set lg = r.description | bank_logo %}{% if lg %}<span class="av logo"><img src="{{ lg }}" alt=""></span>{% else %}<span class="av {{ 'in' if r.type=='income' }}" style="--h:{{ (r.category or r.description or 'X') | hue }}">{{ '⇄' if r.type=='transfer' else (r.category or r.description or '·')[:2] }}</span>{% endif %}
     <div class="main">
       <div class="name">{{ r.description or r.category or '—' }}</div>
       <div class="meta">
@@ -78,63 +78,70 @@
 </section>
 
 <section class="card" id="email" style="margin-top:10px">
-  <div class="sec"><h2>{{ _('Sumber Email') }}</h2><small>{{ _('notifikasi bank jadi draf transaksi') }}</small></div>
-  {% if em=='ok' %}<div class="note ok">{{ _('Gmail tersambung. Tambahkan aturan pengirim di bawahnya.') }}</div>
-  {% elif em=='ruleok' %}<div class="note ok">{{ _('Aturan disimpan.') }}</div>
-  {% elif em=='gone' %}<div class="note ok">{{ _('Gmail diputus dan izinnya dicabut.') }}</div>
-  {% elif em=='denied' %}<div class="note bad">{{ _('Izin tidak diberikan di layar Google.') }}</div>
-  {% elif em=='scope' %}<div class="note bad">{{ _('Centang izin “Lihat pesan email” di layar Google, lalu coba lagi.') }}</div>
+  <div class="sec"><h2>{{ _('Sumber Email') }}</h2>
+    {% if email_sources %}{% set pend = email_sources | sum(attribute='pending') %}{% if pend %}<a class="pill ok" href="/dokumen/email">{{ pend }} {{ _('draf') }}</a>{% endif %}{% endif %}</div>
+  {% if em=='ok' %}<div class="note ok">{{ _('Gmail tersambung. Tambahkan bank.') }}</div>
+  {% elif em=='ruleok' %}<div class="note ok">{{ _('Bank ditambahkan.') }}</div>
+  {% elif em=='gone' %}<div class="note ok">{{ _('Gmail diputus.') }}</div>
+  {% elif em=='denied' %}<div class="note bad">{{ _('Izin tidak diberikan.') }}</div>
+  {% elif em=='scope' %}<div class="note bad">{{ _('Centang izin baca email, lalu coba lagi.') }}</div>
   {% elif em=='rule' %}<div class="note bad">{{ _('Pengirim wajib diisi.') }}</div>
   {% elif em=='fail' %}<div class="note bad">{{ _('Gagal menyambungkan Gmail. Coba lagi.') }}</div>
   {% elif em=='off' %}<div class="note bad">{{ _('Sumber email belum aktif di server ini.') }}</div>{% endif %}
 
-  <p class="hint" style="margin:0 0 8px">{{ _('Muara hanya membaca email yang cocok dengan aturan Anda (pengirim + kata di subjek). Tidak ada email yang dikirim, dihapus, atau ditandai. Setiap transaksi yang terbaca masuk sebagai draf di Dokumen → Dari Email dan baru dicatat setelah Anda setujui.') }}</p>
+  {% if not email_sources %}
+  <div class="eflow" aria-hidden="true">
+    <div><span class="eic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span><b>{{ _('Gmail') }}</b></div><i></i>
+    <div><span class="eic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18L12 4 3 10Z"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg></span><b>{{ _('Pilih bank') }}</b></div><i></i>
+    <div><span class="eic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg></span><b>{{ _('Setujui') }}</b></div>
+  </div>
+  <p class="elead">{{ _('Notifikasi bank otomatis jadi draf transaksi.') }}</p>
+  {% if email_enabled %}<button type="button" class="primary" data-open="sheet-connect" style="width:100%">{{ _('Hubungkan Gmail') }}</button>{% endif %}
+  {% endif %}
 
   {% for s in email_sources %}
-  <div class="sw" data-del="/email/source/{{ s.id }}/delete" data-del-title="{{ s.email }}" data-del-sub="{{ s.rules | length }} {{ _('aturan') }}"
-       data-del-note="{{ _('Izin Gmail dicabut, aturan dan draf yang menunggu ikut dihapus. Transaksi yang sudah dicatat tetap ada.') }}"><div class="sw-track">
-  <div class="row static">
-    <span class="av {{ 'in' if s.status=='ok' and not s.last_error else 'out' }}" style="--h:{{ s.email | hue }}">{{ s.email[:2] }}</span>
-    <div class="main">
-      <div class="name">{{ s.email }}</div>
-      <div class="meta">
-        <span>{{ _('sinkron') }}: {{ s.last_sync_at | stamp if s.last_sync_at else _('belum pernah') }}</span>
-        {% if s.pending %}<span>{{ s.pending }} {{ _('draf') }}</span>{% endif %}
-        {% if s.status=='reauth' %}<span class="pill warn">{{ _('perlu disambung ulang') }}</span>
-        {% elif s.last_error %}<span class="pill warn">{{ s.last_error }}</span>{% endif %}
-      </div>
-    </div>
-    {% if s.status=='reauth' and email_enabled %}<a class="btn sm" href="/email/connect?hint={{ s.email | urlencode }}">{{ _('Sambung ulang') }}</a>{% endif %}
+  <div class="egh">
+    <span class="addr">{{ s.email }}</span>
+    <span class="st">
+      {% if s.status=='reauth' %}<i class="edot warn"></i>{{ _('perlu disambung ulang') }}
+      {% elif s.last_error %}<i class="edot warn"></i>{{ _('gagal sinkron') }}
+      {% else %}<i class="edot"></i>{{ s.last_sync_at | stamp_local if s.last_sync_at else _('belum sinkron') }}{% endif %}
+    </span>
   </div>
-  {% include "_swact.html" %}</div></div>
-  <div class="panel-wrap" style="padding:0 0 0 18px">
-    {% for r in s.rules %}
-    <div class="sw" data-del="/email/rule/{{ r.id }}/delete" data-del-title="{{ r.sender }}" data-del-sub="{{ r.account or '—' }}"
-         data-del-note="{{ _('Aturan dihapus; draf yang sudah ada tidak ikut terhapus.') }}"><div class="sw-track">
-    <div class="row static" style="grid-template-columns:minmax(0,1fr)">
-      <div class="main">
-        <div class="name" style="font-size:13px">{{ r.sender }}</div>
-        <div class="meta">
-          <span>→ {{ r.account or _('kantong belum dipilih') }}</span>
-          <span>{{ email_parsers[r.parser].label if r.parser in email_parsers else r.parser }}</span>
-          {% if r.keywords %}<span>{{ _('subjek') }}: {{ r.keywords }}</span>{% endif %}
-        </div>
-      </div>
+  <div class="elist">
+    {% for r in s.rules %}{% set p = email_parsers.get(r.parser) %}{% set nm = p.label if p and r.parser!='umum' else r.sender %}
+    <div class="sw" data-del="/email/rule/{{ r.id }}/delete" data-del-title="{{ nm }}" data-del-sub="{{ _('Lepas bank ini?') }}"
+         data-del-note="{{ _('Draf yang sudah ada tidak ikut terhapus.') }}"><div class="sw-track">
+    <div class="row static erow">
+      {% if p and p.logo %}<span class="bank img"><img src="{{ p.logo }}" alt="" loading="lazy"></span>{% else %}<span class="bank" {% if p and p.color %}style="--bc:{{ p.color }}"{% endif %}>{{ p.mark if p and p.mark else (r.sender[:1] | upper) }}</span>{% endif %}
+      <div class="tx"><b>{{ nm }}</b><small>{{ _('Masuk ke kantong') }}</small></div>
+      <span class="val">{{ r.account or '—' }}</span>
     </div>
     {% include "_swact.html" %}</div></div>
     {% endfor %}
-    <div class="actions" style="margin:4px 0 8px"><button type="button" class="sm" data-open="sheet-rule" data-fill='{{ {"source_id": s.id} | tojson }}'>{{ _('+ Aturan pengirim') }}</button></div>
+    {% if s.status=='reauth' and email_enabled %}
+    <a class="erow lnk" href="/email/connect?hint={{ s.email | urlencode }}"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-3.9L4 9"/><path d="M4 4v5h5"/></svg></span>{{ _('Sambung ulang') }}</a>
+    {% elif email_enabled %}
+    <button type="button" class="erow lnk" data-open="sheet-rule" data-fill='{{ {"source_id": s.id} | tojson }}'><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>{{ _('Tambah bank') }}</button>
+    {% endif %}
   </div>
+  <form method="post" action="/email/source/{{ s.id }}/delete" class="eoff"
+        data-confirm="{{ _('Putuskan Gmail ini?') }}" data-confirm-what="{{ s.email }}"
+        data-confirm-note="{{ _('Aturan dan draf yang menunggu ikut dihapus. Transaksi yang sudah dicatat tetap ada.') }}">{{ csrf_field }}
+    <button type="submit">{{ _('Putuskan') }}</button>
+  </form>
   {% endfor %}
 
-  {% if email_enabled %}
-  <a class="btn tall" href="/email/connect" style="margin-top:4px;width:100%"><b>{{ _('Hubungkan Gmail') }}</b><span>{{ _('bisa lebih dari satu akun, tidak harus akun yang dipakai masuk') }}</span></a>
-  <p class="hint">{{ _('Google akan menampilkan peringatan “aplikasi belum diverifikasi” selama Muara belum lolos verifikasi Google. Pilih Lanjutan → Buka Muara untuk melanjutkan.') }}</p>
-  {% elif is_owner %}
-  <p class="hint">{{ _('Belum aktif. Isi environment berikut di server, lalu aktifkan Gmail API dan scope gmail.readonly di Google Cloud:') }} <code>{{ email_missing | join(', ') }}</code></p>
-  <p class="hint">{{ _('URI callback:') }} <code>{{ email_redirect }}</code></p>
-  {% else %}
-  <p class="hint">{{ _('Fitur ini belum diaktifkan oleh pengelola aplikasi.') }}</p>
+  {% if email_sources and email_enabled %}
+  <div class="elist" style="margin-top:18px">
+    <button type="button" class="erow lnk" data-open="sheet-connect"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>{{ _('Hubungkan Gmail lain') }}</button>
+  </div>
+  {% endif %}
+  {% if not email_enabled %}
+    {% if is_owner %}
+    <p class="hint">{{ _('Belum aktif. Isi environment berikut di server, lalu aktifkan Gmail API dan scope gmail.readonly di Google Cloud:') }} <code>{{ email_missing | join(', ') }}</code></p>
+    <p class="hint">{{ _('URI callback:') }} <code>{{ email_redirect }}</code></p>
+    {% else %}<p class="hint">{{ _('Fitur ini belum diaktifkan oleh pengelola aplikasi.') }}</p>{% endif %}
   {% endif %}
 </section>
 
@@ -346,20 +353,105 @@
   </form>
 </div></dialog>
 
+<dialog class="sheet" id="sheet-connect"><div class="panel"><div class="grab"></div>
+  <h3>{{ _('Hubungkan Gmail') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
+  <div class="etrust">
+    <div><span class="eic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></span>{{ _('Hanya email bank') }}</div>
+    <div><span class="eic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>{{ _('Email tidak diubah') }}</div>
+    <div><span class="eic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg></span>{{ _('Kamu yang menyetujui') }}</div>
+  </div>
+  <p class="ehint">{{ _('Muncul peringatan Google? Ketuk') }} <b>{{ _('Lanjutan') }}</b> › <b>{{ _('Buka Muara') }}</b>{{ _(', lalu centang izin baca email.') }}</p>
+  <div class="actions"><a class="btn primary" href="/email/connect" style="width:100%">{{ _('Lanjut ke Google') }}</a></div>
+</div></dialog>
+
 <dialog class="sheet" id="sheet-rule"><div class="panel"><div class="grab"></div>
-  <h3>{{ _('Aturan pengirim') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
-  <form method="post" action="/email/rule">{{ csrf_field }}
+  <h3>{{ _('Tambah bank') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
+  <form method="post" action="/email/rule" id="rule-form">{{ csrf_field }}
     <input type="hidden" name="source_id">
-    <label>{{ _('Alamat pengirim') }}</label><input name="sender" placeholder="{{ _('mis. notifikasi@bank.co.id') }}" required autocomplete="off">
-    <label>{{ _('Kata di subjek (pisahkan dengan koma, opsional)') }}</label><input name="keywords" placeholder="{{ _('mis. transaksi, transfer, pembayaran') }}" autocomplete="off">
-    <div class="f2">
-      <div><label>{{ _('Format bank') }}</label><select name="parser" data-plain>{% for k, p in email_parsers.items() %}<option value="{{ k }}">{{ p.label }}</option>{% endfor %}</select></div>
-      <div><label>{{ _('Masuk ke kantong') }}</label><select name="account_id"><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+    <input type="search" id="bank-q" class="ebq" placeholder="{{ _('Cari bank…') }}" autocomplete="off" aria-label="{{ _('Cari bank…') }}">
+    <div class="eblist" role="radiogroup" aria-label="{{ _('Bank') }}">
+      {% for region, title in [('id', _('Indonesia')), ('intl', _('Luar negeri')), ('', _('Lainnya'))] %}
+      <div class="ebg">{{ title }}</div>
+      {% for k, p in email_parsers.items() if p.region == region %}
+      <label class="ebr" data-q="{{ (p.label ~ ' ' ~ p.short ~ ' ' ~ p.sender) | lower }}">
+        <input type="radio" name="parser" value="{{ k }}" data-sender="{{ p.sender }}" data-keywords="{{ p.keywords }}">
+        {% if p.logo %}<span class="bank img"><img src="{{ p.logo }}" alt="" loading="lazy"></span>
+        {% elif k == 'umum' %}<span class="bank plus">…</span>
+        {% else %}<span class="bank" {% if p.color %}style="--bc:{{ p.color }}"{% endif %}>{{ p.mark }}</span>{% endif %}
+        <b>{{ _('Bank lain, atur pengirim sendiri') if k == 'umum' else p.label }}</b>
+        <svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+      </label>
+      {% endfor %}
+      {% endfor %}
+      <p class="ebnone" hidden>{{ _('Tidak ketemu. Pilih "Bank lain" di paling bawah.') }}</p>
     </div>
-    <p class="hint">{{ _('Pengirim bisa alamat lengkap atau domainnya saja. Kata kunci subjek menyaring email promo dari bank yang sama.') }}</p>
-    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
+    <label>{{ _('Masuk ke kantong') }}</label>
+    <select name="account_id" required><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select>
+    <div id="rule-result" class="ecount" aria-live="polite" hidden></div>
+    <details class="acc" id="rule-adv" style="margin-top:10px">
+      <summary>{{ _('Atur pengirim') }}</summary>
+      <label>{{ _('Alamat atau domain pengirim') }}</label><input name="sender" placeholder="{{ _('mis. bank.co.id') }}" autocomplete="off">
+      <label>{{ _('Kata di subjek') }}</label><input name="keywords" autocomplete="off">
+    </details>
+    <div class="actions"><button class="primary" type="submit" style="width:100%">{{ _('Simpan') }}</button></div>
   </form>
 </div></dialog>
+
+<script>
+(function(){
+  const f = document.getElementById('rule-form'); if (!f) return;
+  const adv = document.getElementById('rule-adv'), out = document.getElementById('rule-result');
+  const L = {{ {"checking": _('Mencari email…'), "found": _('{n} email dalam 30 hari terakhir'),
+               "more": _('50+ email dalam 30 hari terakhir'), "none": _('Belum ada email dari bank ini dalam 30 hari terakhir'),
+               "fail": _('Gmail tidak bisa dihubungi. Coba lagi sebentar.'), "sample": _('lihat contoh')} | tojson }};
+  let seq = 0, timer = null;
+  function show(cls, text){ out.hidden = false; out.className = 'ecount ' + cls; out.textContent = text; }
+  async function check(){
+    if (!f.sender.value.trim() || !f.source_id.value) { out.hidden = true; return; }
+    const my = ++seq; show('wait', L.checking);
+    const q = new URLSearchParams({source_id: f.source_id.value, sender: f.sender.value, keywords: f.keywords.value});
+    try {
+      const r = await fetch('/email/preview?' + q, {credentials: 'same-origin'}); const d = await r.json();
+      if (my !== seq) return;
+      if (!r.ok) { show('bad', d.error || L.fail); return; }
+      if (!d.count) { show('warn', L.none); return; }
+      show('ok', d.more ? L.more : L.found.replace('{n}', d.count));
+      if (d.subjects && d.subjects.length) {
+        const det = document.createElement('details'), sum = document.createElement('summary'), ul = document.createElement('ul');
+        sum.textContent = L.sample; det.append(sum, ul);
+        d.subjects.forEach(s => { const li = document.createElement('li'); li.textContent = s || '—'; ul.appendChild(li); });
+        out.appendChild(det);
+      }
+    } catch (_) { if (my === seq) show('bad', L.fail); }
+  }
+  function apply(){
+    const r = f.querySelector('input[name=parser]:checked');
+    f.sender.value = r.dataset.sender; f.keywords.value = r.dataset.keywords;
+    adv.open = !r.dataset.sender; f.sender.required = !r.dataset.sender;
+    if (!r.dataset.sender) setTimeout(() => f.sender.focus(), 60);
+    check();
+  }
+  f.addEventListener('change', e => { if (e.target.name === 'parser') apply(); });
+  f.addEventListener('input', e => { if (e.target.name === 'sender' || e.target.name === 'keywords') { clearTimeout(timer); timer = setTimeout(check, 600); } });
+  // Cari bank: sembunyikan baris yang tidak cocok, juga judul kelompok yang kosong.
+  const q = document.getElementById('bank-q'), none = f.querySelector('.ebnone');
+  function filter(){
+    const v = q.value.trim().toLowerCase(); let any = false, head = null, shown = 0;
+    f.querySelectorAll('.eblist > *').forEach(el => {
+      if (el.classList.contains('ebg')) { if (head) head.hidden = !shown; head = el; shown = 0; return; }
+      if (!el.classList.contains('ebr')) return;
+      const ok = !v || el.dataset.q.includes(v); el.hidden = !ok; if (ok) { shown++; any = true; }
+    });
+    if (head) head.hidden = !shown;
+    none.hidden = any;
+  }
+  q.addEventListener('input', filter);
+  q.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+  document.addEventListener('click', e => { if (e.target.closest('[data-open="sheet-rule"]')) {
+    setTimeout(() => { q.value = ''; filter(); f.querySelector('.eblist').scrollTop = 0;
+      f.querySelector('input[name=parser]').checked = true; apply(); }, 0); } });
+})();
+</script>
 
 <dialog class="sheet" id="sheet-cat"><div class="panel"><div class="grab"></div>
   <h3>{{ _('Kategori baru') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>

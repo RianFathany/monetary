@@ -60,7 +60,7 @@
   <div class="panel-wrap" style="padding:0">
     {% for b in bill.rows %}
     <div class="row static bill {{ b.state }}" style="--i:{{ loop.index0 }}">
-      <span class="av" style="--h:{{ (b.category or 'X') | hue }}">{{ (b.category or '·')[:2] }}</span>
+      {% set lg = b.description | bank_logo %}{% if lg %}<span class="av logo"><img src="{{ lg }}" alt=""></span>{% else %}<span class="av" style="--h:{{ (b.category or 'X') | hue }}">{{ (b.category or '·')[:2] }}</span>{% endif %}
       <div class="main">
         <div class="name">{{ b.description or b.category or '—' }}</div>
         <div class="meta">
@@ -127,7 +127,7 @@
     {% for t in expenses %}
     <div class="sw" data-del="/tx/{{ t.id }}/delete" data-del-title="{{ t.description or t.category or '—' }}" data-del-sub="−{{ t.amount | rupiah }}{% if t.tx_date %} · {{ t.tx_date | fmt_date }}{% endif %}"><div class="sw-track">
     <div class="row {{ t.status }}" style="--i:{{ loop.index0 }}" data-edit='{{ {"id":t.id,"kind":"expense","amount":t.amount,"category_id":t.category_id or "","account_id":t.account_id or "","description":t.description or "","tx_date":t.tx_date or "","status":t.status,"month_key":t.month_key} | tojson }}'>
-      <span class="av" style="--h:{{ (t.category or 'X') | hue }}">{{ (t.category or '·')[:2] }}</span>
+      {% set lg = t.description | bank_logo %}{% if lg %}<span class="av logo"><img src="{{ lg }}" alt=""></span>{% else %}<span class="av" style="--h:{{ (t.category or 'X') | hue }}">{{ (t.category or '·')[:2] }}</span>{% endif %}
       <div class="main">
         <div class="name">{{ t.description or t.category or '—' }}</div>
         <div class="meta">{% if t.category and t.description %}<span>{{ t.category }}</span>{% endif %}{% if t.tx_date %}<span>{{ t.tx_date | fmt_date }}</span>{% endif %}<span>{{ t.account }}</span>{% if t.status=='planned' %}<span class="pill warn">{{ _('belum') }}</span>{% endif %}{% if t.needs_review %}<span class="pill">{{ _('cek') }}</span>{% endif %}</div>
@@ -145,7 +145,7 @@
     {% for t in incomes %}
     <div class="sw" data-del="/tx/{{ t.id }}/delete" data-del-title="{{ t.description or t.category or '—' }}" data-del-sub="+{{ t.amount | rupiah }}{% if t.tx_date %} · {{ t.tx_date | fmt_date }}{% endif %}"><div class="sw-track">
     <div class="row" style="--i:{{ loop.index0 }}" data-edit='{{ {"id":t.id,"kind":"income","amount":t.amount,"category_id":t.category_id or "","account_id":t.account_id or "","description":t.description or "","tx_date":t.tx_date or "","status":t.status,"month_key":t.month_key} | tojson }}'>
-      <span class="av in" style="--h:{{ (t.description or t.category or 'X') | hue }}">{{ (t.description or t.category or '·')[:2] }}</span>
+      {% set lg = t.description | bank_logo %}{% if lg %}<span class="av logo"><img src="{{ lg }}" alt=""></span>{% else %}<span class="av in" style="--h:{{ (t.description or t.category or 'X') | hue }}">{{ (t.description or t.category or '·')[:2] }}</span>{% endif %}
       <div class="main">
         <div class="name">{{ t.description or t.category or '—' }}</div>
         <div class="meta">{% if t.category and t.description %}<span>{{ t.category }}</span>{% endif %}{% if t.tx_date %}<span>{{ t.tx_date | fmt_date }}</span>{% endif %}<span>→ {{ t.account }}</span></div>

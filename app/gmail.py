@@ -238,6 +238,16 @@ def fetch(token: str, msg_id: str) -> dict:
                 text=body_text(payload) or html.unescape(body.get("snippet", "")))
 
 
+def subjects(token: str, ids: list) -> list:
+    """Subjek beberapa email, untuk pratinjau aturan. Hanya header, tanpa isi."""
+    out = []
+    for mid in ids:
+        body = _get(token, f"messages/{mid}", {"format": "metadata", "metadataHeaders": "Subject"})
+        heads = (body.get("payload") or {}).get("headers", [])
+        out.append(next((h.get("value", "") for h in heads if h.get("name", "").lower() == "subject"), ""))
+    return out
+
+
 def _decode(data: str) -> str:
     try:
         return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("utf-8", "replace")

@@ -37,7 +37,7 @@
     {% set tg = target.get(a.account_id) %}
     <div class="row {{ '' if a.active else 'planned' }}{{ ' hastarget' if tg }}" style="--i:{{ loop.index0 }}"
          data-open="sheet-account" data-fill='{{ {"id":a.account_id,"name":a.name,"opening_balance":a.opening_balance,"note":a.note or "","active":"1" if a.active else "0","type":a.type,"is_emergency":a.account_id in emergency,"target_amount":a.target_amount or "","target_date":a.target_date or ""} | tojson }}'>
-      <span class="av" style="--h:{{ a.name | hue }}">{{ a.name[:2] }}</span>
+      {% set lg = a.name | bank_logo %}{% if lg %}<span class="av logo"><img src="{{ lg }}" alt=""></span>{% else %}<span class="av" style="--h:{{ a.name | hue }}">{{ a.name[:2] }}</span>{% endif %}
       <div class="main">
         {# Penanda ditaruh di baris keterangan, bukan di sebelah nama: di lebar
            ponsel nama + pil tidak muat sebaris, dan yang dikorbankan justru

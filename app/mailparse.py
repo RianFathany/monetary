@@ -11,9 +11,10 @@ supaya pemilik buku melihatnya dan bisa mengisi sendiri — sama seperti baris
 sisa di halaman Impor.
 """
 import re
+from pathlib import Path
 from datetime import date, datetime, timezone, timedelta
 
-from . import statement
+from . import banks, statement
 
 WIB = timezone(timedelta(hours=7))
 
@@ -25,15 +26,66 @@ UMUM = dict(
                 "rekening tujuan", "keterangan", "berita", "deskripsi", "description", "pembayaran"),
 )
 
-PROFILES = {
-    "umum": dict(label="Umum", **UMUM),
-    "bca": dict(label="BCA", nominal=("nominal", "jumlah") + UMUM["nominal"],
+# sender + keywords = isian bawaan saat pengguna memilih bank di Setelan. Pengirim
+# sengaja domain, bukan alamat lengkap: bank memakai beberapa alamat notifikasi,
+# dan from:(domain) di Gmail menangkap semuanya. Email promo dari domain yang sama
+# disaring kata kunci subjek, lalu parser (nominal kosong = tetap draf, bukan transaksi).
+# Tiga bank di bawah punya label baca sendiri; bank lain dari app/banks.py memakai label umum.
+KHUSUS = {
+    "bca": dict(color="#0060AF", mark="BCA", keywords="transaksi, transfer, pembayaran, notifikasi",
+                nominal=("nominal", "jumlah") + UMUM["nominal"],
                 keterangan=("merchant", "nama penerima", "keterangan") + UMUM["keterangan"]),
-    "mega": dict(label="Bank Mega", nominal=("nilai transaksi", "jumlah tagihan") + UMUM["nominal"],
+    "mega": dict(color="#E8731A", mark="mega", keywords="transaksi, tagihan, pembayaran",
+                 nominal=("nilai transaksi", "jumlah tagihan") + UMUM["nominal"],
                  keterangan=("merchant", "lokasi transaksi") + UMUM["keterangan"]),
-    "livin": dict(label="Livin' by Mandiri", nominal=("nominal transaksi", "total pembayaran") + UMUM["nominal"],
+    "livin": dict(color="#003D79", mark="mdr", keywords="berhasil, transaksi, transfer, pembayaran, top up",
+                  nominal=("nominal transaksi", "total pembayaran") + UMUM["nominal"],
                   keterangan=("penerima", "nama penerima", "tujuan transaksi") + UMUM["keterangan"]),
 }
+
+# Logo asli diunduh sekali ke app/static/banks/<kunci>.png (scripts/fetch_bank_logos.py).
+# Tidak ada file = kotak warna + singkatan; aplikasi tidak pernah memanggil layanan logo saat berjalan.
+_LOGO_DIR = Path(__file__).parent / "static" / "banks"
+
+PROFILES = {}
+for _b in banks.ALL:
+    _p = dict(label=_b["name"], short=_b["short"], sender=_b["sender"], region=_b["region"],
+              color="", mark=_b["short"][:4], keywords="transaksi, transfer, pembayaran", **UMUM)
+    _p.update(KHUSUS.get(_b["key"], {}))
+    _p["logo"] = f"/static/banks/{_b['key']}.png" if (_LOGO_DIR / f"{_b['key']}.png").is_file() else ""
+    PROFILES[_b["key"]] = _p
+PROFILES["umum"] = dict(label="Bank lain", short="Lainnya", mark="", color="", sender="", region="",
+                        keywords="transaksi", logo="", **UMUM)
+
+# Logo bank untuk baris transaksi/kantong: dicocokkan dari teks (keterangan atau nama kantong).
+# Kata yang juga kata biasa (raya, jago, blu, wise, ...) hanya cocok lewat nama lengkapnya,
+# supaya "Gaji raya" tidak dapat logo Bank Raya.
+_SAMAR = {"raya", "neo", "blu", "allo", "jago", "wise", "krom", "hana", "citi", "chase", "dki", "jatim",
+          "jateng", "nagari", "sumut", "permata", "panin", "mnc", "raya", "superbank", "line", "anz", "sc", "qnb"}
+_ALIAS = []
+for _k, _p in PROFILES.items():
+    if not _p.get("logo"):
+        continue
+    names = {_p["label"].lower(), _p["short"].lower()}
+    if _p["short"].lower() not in _SAMAR:
+        names.add(_k)
+    if _k == "livin":
+        names |= {"mandiri", "livin", "bank mandiri"}
+    names = {n for n in names if n not in _SAMAR and len(n) >= 3}
+    _ALIAS += [(n, _p["logo"]) for n in names]
+_ALIAS.sort(key=lambda a: -len(a[0]))      # nama terpanjang dulu: "bank mega syariah" sebelum "mega"
+
+
+def bank_logo(text) -> str:
+    """Path logo bank yang disebut di teks, atau "" kalau tidak ada."""
+    if not text:
+        return ""
+    t = " " + " ".join(re.findall(r"[a-z0-9']+", str(text).lower())) + " "
+    for name, logo in _ALIAS:
+        if f" {name} " in t:
+            return logo
+    return ""
+
 
 RE_MATA_UANG = re.compile(r"(?:Rp\.?|IDR)\s*([\d][\d.,]*)", re.I)
 RE_ANGKA = re.compile(r"([\d][\d.,]*\d|\d)")

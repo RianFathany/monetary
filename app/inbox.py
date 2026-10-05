@@ -74,7 +74,9 @@ def delete_source(db, source_id: int, api=gmail) -> bool:
 
 
 def add_rule(db, source_id: int, sender: str, keywords: str, parser: str, account_id) -> int:
-    sender = " ".join((sender or "").split())
+    sender = " ".join((sender or "").split()) or mailparse.PROFILES.get(parser, {}).get("sender", "")
+    if not keywords and parser in mailparse.PROFILES:
+        keywords = mailparse.PROFILES[parser]["keywords"]        # tanpa JS: isian bawaan bank
     if not sender:
         raise ValueError("pengirim kosong")
     if parser not in mailparse.PROFILES:
@@ -88,6 +90,21 @@ def add_rule(db, source_id: int, sender: str, keywords: str, parser: str, accoun
     cur = db.execute("INSERT INTO email_rules(source_id, sender, keywords, parser, account_id) VALUES (?,?,?,?,?)",
                      (source_id, sender, kata, parser, account_id))
     return cur.lastrowid
+
+
+def preview(db, source_id: int, sender: str, keywords: str, api=gmail, now: int = 0) -> dict:
+    """Berapa email 30 hari terakhir yang cocok dengan calon aturan, plus tiga
+    subjek contoh — supaya pengguna tahu aturannya kena sebelum menyimpan.
+    Tidak menulis apa pun."""
+    row = db.execute("SELECT * FROM email_sources WHERE id=?", (source_id,)).fetchone()
+    if not row:
+        raise ValueError("sumber tidak ada")
+    if not (sender or "").strip():
+        raise ValueError("pengirim kosong")
+    now = now or int(time.time())
+    token = api.access_token(api.unseal(row["token_enc"]))
+    ids = api.list_ids(token, api.query(sender, keywords, now - FIRST_SYNC_DAYS * 86400), PER_RULE)
+    return dict(count=len(ids), more=len(ids) >= PER_RULE, subjects=api.subjects(token, ids[:3]))
 
 
 def delete_rule(db, rule_id: int) -> None:
@@ -154,8 +171,8 @@ def pending_count(db) -> int:
 
 def drafts(db, status: str = "pending", limit: int = 200) -> list:
     return db.execute(
-        "SELECT d.*, a.name AS account FROM email_drafts d LEFT JOIN accounts a ON a.id=d.account_id "
-        "WHERE d.status=? ORDER BY COALESCE(d.tx_date, d.received_at) DESC, d.id DESC LIMIT ?",
+        "SELECT d.*, a.name AS account, r.parser FROM email_drafts d LEFT JOIN accounts a ON a.id=d.account_id "
+        "LEFT JOIN email_rules r ON r.id=d.rule_id WHERE d.status=? ORDER BY COALESCE(d.tx_date, d.received_at) DESC, d.id DESC LIMIT ?",
         (status, limit)).fetchall()
 
 

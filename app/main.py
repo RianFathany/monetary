@@ -130,12 +130,25 @@ def stamp(raw) -> str:
         return str(raw)
 
 
+def stamp_local(raw) -> str:
+    """Stempel dari datetime('now') SQLite (UTC) dalam jam Jakarta. Server Fly
+    berjalan di UTC; tanpa ini "sinkron 06:45" tampil saat jam dinding 13:45."""
+    try:
+        from zoneinfo import ZoneInfo
+        d = datetime.strptime(str(raw)[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=ZoneInfo("UTC"))
+        return stamp(d.astimezone(ZoneInfo("Asia/Jakarta")).strftime("%Y-%m-%d %H:%M"))
+    except (ValueError, TypeError, KeyError):
+        return stamp(raw)
+
+
 templates.env.filters["stamp"] = stamp
+templates.env.filters["stamp_local"] = stamp_local
 templates.env.filters["rupiah"] = rupiah
 templates.env.filters["month_label"] = month_label
 templates.env.filters["fmt_date"] = fmt_date
 templates.env.filters["hue"] = hue
 templates.env.filters["short"] = short_rupiah
+templates.env.filters["bank_logo"] = mailparse.bank_logo
 templates.env.filters["plain"] = money.plain
 templates.env.filters["t"] = t
 templates.env.globals["_"] = t
@@ -1531,7 +1544,7 @@ def email_inbox(request: Request, s: str = "", n: str = "", u: str = "", f: str 
                   cats_exp=cats_exp, cats_inc=cats_inc, page="email", enabled=gmail.is_enabled(),
                   synced=bool(s), n_new=int(n or 0) if n.isdigit() else 0,
                   n_unread=int(u or 0) if u.isdigit() else 0, n_failed=int(f or 0) if f.isdigit() else 0,
-                  ok=ok, err=err, doc_count=doc_count, pending=len(items))
+                  ok=ok, err=err, doc_count=doc_count, pending=len(items), parsers=mailparse.PROFILES)
 
 
 @app.get("/dokumen/{doc_id}", response_class=HTMLResponse)
@@ -1621,6 +1634,23 @@ def email_rule_add(request: Request, source_id: str = Form(...), sender: str = F
         except ValueError:
             return RedirectResponse("/settings?em=rule#email", status_code=303)
     return RedirectResponse("/settings?em=ruleok#email", status_code=303)
+
+
+@app.get("/email/preview")
+def email_preview(request: Request, source_id: str = "", sender: str = "", keywords: str = ""):
+    """Pratinjau calon aturan untuk sheet di Setelan. Hanya membaca."""
+    if signed_in(request) is None:
+        return JSONResponse({"error": t("Sesi berakhir. Muat ulang halaman.")}, status_code=401)
+    with get_db() as db:
+        try:
+            res = inbox.preview(db, int(source_id) if source_id.isdigit() else 0, sender, keywords)
+        except ValueError:
+            return JSONResponse({"error": t("Pengirim wajib diisi.")}, status_code=400)
+        except gmail.PerluSambungUlang:
+            return JSONResponse({"error": t("Izin Gmail sudah tidak berlaku. Sambung ulang akun ini.")}, status_code=409)
+        except gmail.Gagal:
+            return JSONResponse({"error": t("Gmail tidak bisa dihubungi. Coba lagi sebentar.")}, status_code=502)
+    return JSONResponse(res)
 
 
 @app.post("/email/rule/{rid}/delete")

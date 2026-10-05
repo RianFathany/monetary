@@ -27,7 +27,7 @@
   {% for it in items %}
   {% set t = it.t %}
   <div class="row arow" style="--i:{{ loop.index0 }};grid-template-columns:36px minmax(0,1fr) auto;align-items:start">
-    <span class="av {{ 'in' if t.type=='income' }}" style="--h:{{ (t.description or 'X') | hue }}">{{ '⇄' if t.type=='transfer' else (t.description or '·')[:2] }}</span>
+    {% set lg = t.description | bank_logo %}{% if lg %}<span class="av logo"><img src="{{ lg }}" alt=""></span>{% else %}<span class="av {{ 'in' if t.type=='income' }}" style="--h:{{ (t.description or 'X') | hue }}">{{ '⇄' if t.type=='transfer' else (t.description or '·')[:2] }}</span>{% endif %}
     <div class="main">
       <div class="name">{{ t.description or '(tanpa keterangan)' }}</div>
       <div class="meta">

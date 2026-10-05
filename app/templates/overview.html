@@ -61,7 +61,7 @@
   <div class="toplist">
     {% for t in top %}
     <a class="trow" href="/m/{{ t.month_key }}#{{ 'income' if t.type=='income' else 'expense' }}" style="--i:{{ loop.index0 }}">
-      <span class="av {{ 'in' if t.type=='income' }}" style="--h:{{ (t.category or 'X') | hue }}">{{ (t.category or '·')[:2] }}</span>
+      {% set lg = t.description | bank_logo %}{% if lg %}<span class="av logo"><img src="{{ lg }}" alt=""></span>{% else %}<span class="av {{ 'in' if t.type=='income' }}" style="--h:{{ (t.category or 'X') | hue }}">{{ (t.category or '·')[:2] }}</span>{% endif %}
       <span class="main"><span class="name">{{ t.description or t.category or '—' }}</span><span class="meta">{{ _('pemasukan') if t.type=='income' else _('pengeluaran') }}{% if t.category %} · {{ t.category }}{% endif %}{% if t.tx_date %} · {{ t.tx_date | fmt_date }}{% endif %}</span></span>
       <b class="num {{ 'in' if t.type=='income' }}">{{ '+' if t.type=='income' else '−' }}{{ t.amount | plain }}</b>
     </a>

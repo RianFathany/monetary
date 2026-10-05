@@ -400,9 +400,9 @@ document.addEventListener('change', e => { if (e.target.id === 'month-select') l
     if (f.classList.contains('money')) return !(Number(f.value.replace(/\D/g, '')) > 0);
     return f.required && !f.value.trim();
   }
-  function clear(f){ const el = fieldEl(f); el.classList.remove('invalid'); const m = el.nextElementSibling; if (m && m.classList.contains('fmsg')) m.remove(); }
+  function clear(f){ const el = fieldEl(f); el.classList.remove('fbad'); const m = el.nextElementSibling; if (m && m.classList.contains('fmsg')) m.remove(); }
   function mark(f){
-    clear(f); const el = fieldEl(f); el.classList.add('invalid');
+    clear(f); const el = fieldEl(f); el.classList.add('fbad');
     el.insertAdjacentHTML('afterend', `<div class="fmsg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>${msgFor(f)}</div>`);
   }
   document.addEventListener('submit', e => {
