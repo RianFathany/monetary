@@ -8,15 +8,18 @@ Semua fungsi menerima koneksi buku yang sedang dibuka; jaringan lewat
 argumen `api` (bawaannya app/gmail.py) supaya bisa diuji tanpa Google.
 """
 import calendar
+import re
 import time
 from datetime import datetime, timezone
 
-from . import gmail, mailparse
+from . import db as dbm, gmail, mailparse, suggest
 
 FIRST_SYNC_DAYS = 30        # sinkron pertama mundur sebulan
 OVERLAP_SECONDS = 86400     # mundur sehari dari sinkron terakhir; dobel dicegah UNIQUE(gmail_id)
 PER_RULE = 50               # batas email per aturan per sinkron
 STALE_SECONDS = 30 * 60     # halaman Dari Email menyinkron sendiri kalau sudah lewat setengah jam
+OWN_NAMES_KEY = "email_own_names"   # nama pemilik rekening, dipisah koma; untuk mengenali transfer ke rekening sendiri
+PAIR_DAYS = 1               # "dana masuk" dianggap pasangan transfer kalau tanggalnya selisih paling banyak sehari
 
 
 def _epoch(stamp: str) -> int:
@@ -177,33 +180,137 @@ def drafts(db, status: str = "pending", limit: int = 200) -> list:
 
 
 def approve(db, draft_id: int, type_: str, amount: int, tx_date: str, description: str,
-            account_id: int, category_id) -> int:
+            account_id: int, category_id, to_account_id=None) -> int:
     """Jadikan draf satu transaksi. Tanpa kategori, transaksinya masuk antrean
-    Rapikan (needs_review), bukan ditebak diam-diam."""
+    Rapikan (needs_review), bukan ditebak diam-diam.
+
+    type_ 'transfer' = pindah antar kantong sendiri: account_id asal, to_account_id
+    tujuan, tanpa kategori. Draf "dana masuk" pasangannya (nominal sama, tanggal
+    berdekatan, dari rekening sendiri) ikut dibuang supaya tidak tercatat dua kali."""
     d = db.execute("SELECT * FROM email_drafts WHERE id=? AND status='pending'", (draft_id,)).fetchone()
     if not d:
         raise ValueError("draf tidak ada atau sudah diputuskan")
-    if type_ not in ("income", "expense"):
+    if type_ not in ("income", "expense", "transfer"):
         raise ValueError("jenis tidak sah")
     if not amount or amount <= 0:
         raise ValueError("nominal kosong")
-    if not db.execute("SELECT 1 FROM accounts WHERE id=? AND deleted_at IS NULL", (account_id,)).fetchone():
-        raise ValueError("kantong tidak ada")
-    if category_id is not None and not db.execute(
+    for a in (account_id, to_account_id) if type_ == "transfer" else (account_id,):
+        if not a or not db.execute("SELECT 1 FROM accounts WHERE id=? AND deleted_at IS NULL", (a,)).fetchone():
+            raise ValueError("kantong tidak ada")
+    if type_ == "transfer":
+        if to_account_id == account_id:
+            raise ValueError("kantong asal dan tujuan sama")
+        category_id = None
+    elif category_id is not None and not db.execute(
             "SELECT 1 FROM categories WHERE id=? AND kind=? AND deleted_at IS NULL", (category_id, type_)).fetchone():
         category_id = None
     try:
         datetime.strptime(tx_date or "", "%Y-%m-%d")
     except ValueError:
         raise ValueError("tanggal tidak sah")
+    review = 0 if (category_id or type_ == "transfer") else 1
     cur = db.execute(
-        "INSERT INTO transactions(month_key, type, tx_date, account_id, category_id, description, amount, "
-        "status, needs_review) VALUES (?,?,?,?,?,?,?,'paid',?)",
-        (tx_date[:7], type_, tx_date, account_id, category_id, (description or "").strip()[:200] or None,
-         amount, 0 if category_id else 1))
+        "INSERT INTO transactions(month_key, type, tx_date, account_id, to_account_id, category_id, description, "
+        "amount, status, needs_review) VALUES (?,?,?,?,?,?,?,?,'paid',?)",
+        (tx_date[:7], type_, tx_date, account_id, to_account_id if type_ == "transfer" else None, category_id,
+         (description or "").strip()[:200] or None, amount, review))
     db.execute("UPDATE email_drafts SET status='approved', tx_id=? WHERE id=?", (cur.lastrowid, draft_id))
+    if type_ == "transfer":
+        pasangan = _pairs(db, [dict(r) for r in db.execute(
+            "SELECT * FROM email_drafts WHERE status='pending' AND type='income' AND amount=?", (amount,))],
+            own_names(db), [dict(id=draft_id, amount=amount, tx_date=tx_date, type="expense")])
+        for did in pasangan:
+            db.execute("UPDATE email_drafts SET status='dismissed' WHERE id=? AND status='pending'", (did,))
     return cur.lastrowid
 
 
 def dismiss(db, draft_id: int) -> None:
     db.execute("UPDATE email_drafts SET status='dismissed' WHERE id=? AND status='pending'", (draft_id,))
+
+
+# ---------- transfer & dobel ----------
+
+def _kata(text) -> str:
+    return " " + " ".join(re.findall(r"[a-z0-9]+", str(text or "").lower())) + " "
+
+
+def own_names(db) -> list:
+    return [n for n in (_kata(x).strip() for x in dbm.get_setting(db, OWN_NAMES_KEY, "").split(",")) if n]
+
+
+def save_own_names(db, raw: str) -> None:
+    names = [" ".join(x.split()) for x in (raw or "").split(",") if x.strip()]
+    dbm.set_setting(db, OWN_NAMES_KEY, ", ".join(names)[:300])
+
+
+def _milik_sendiri(text, names) -> bool:
+    t = _kata(text)
+    return any(f" {n} " in t for n in names)
+
+
+def _dekat(a: str, b: str) -> bool:
+    try:
+        return abs((datetime.strptime(a, "%Y-%m-%d") - datetime.strptime(b, "%Y-%m-%d")).days) <= PAIR_DAYS
+    except (TypeError, ValueError):
+        return False
+
+
+def _pairs(db, incomes: list, names: list, outs: list) -> set:
+    """Id draf masuk yang merupakan sisi terima dari transfer keluar di `outs`
+    (draf transfer atau transaksi transfer yang sudah dicatat)."""
+    found = set()
+    terpakai = set()
+    for inc in incomes:
+        if inc.get("type") != "income" or not inc.get("amount"):
+            continue
+        for o in outs:
+            if o["id"] in terpakai or o["amount"] != inc["amount"] or not _dekat(o["tx_date"], inc["tx_date"]):
+                continue
+            found.add(inc["id"])
+            terpakai.add(o["id"])
+            break
+    return found
+
+
+def classify(db, rows: list) -> dict:
+    """{draft_id: 'transfer' | 'dup' | ''} untuk draf yang menunggu.
+
+    transfer : penerima/pengirim di keterangan adalah nama pemilik sendiri.
+    dup      : "dana masuk" yang pasangannya transfer keluar (draf atau transaksi
+               transfer yang sudah dicatat), jadi bukan pemasukan baru.
+    Tanpa nama pemilik, tidak ada yang ditebak sebagai transfer."""
+    names = own_names(db)
+    rows = [dict(r) for r in rows]
+    kind = {r["id"]: "" for r in rows}
+    if not names:
+        return kind
+    for r in rows:
+        if _milik_sendiri(f"{r.get('description') or ''} {r.get('subject') or ''} {r.get('snippet') or ''}", names):
+            kind[r["id"]] = "transfer"
+    outs = [r for r in rows if kind[r["id"]] == "transfer" and r["type"] == "expense" and r.get("amount")]
+    outs += [dict(id=-t["id"], amount=t["amount"], tx_date=t["tx_date"]) for t in db.execute(
+        "SELECT id, amount, tx_date FROM transactions WHERE type='transfer' AND deleted_at IS NULL "
+        "AND tx_date >= date('now', '-45 day')")]
+    for did in _pairs(db, [r for r in rows if r["type"] == "income"], names, outs):
+        kind[did] = "dup"
+    return kind
+
+
+def approve_all(db, rows: list, kinds: dict, cats: dict) -> dict:
+    """Setujui sekaligus draf yang sudah lengkap: nominal & kantong terisi, bukan
+    transfer, bukan dobel. Kategori dari saran (sama dengan isian lembar periksa);
+    yang tidak punya saran masuk Rapikan. Sisanya dibiarkan untuk diperiksa.
+    cats = {"expense": {nama: id}, "income": {...}}."""
+    done = skipped = 0
+    for d in rows:
+        if not d["amount"] or not d["account_id"] or kinds.get(d["id"]):
+            skipped += 1
+            continue
+        cid, _ = suggest.suggest(d["description"] or d["subject"] or "", d["type"], cats.get(d["type"], {}))
+        try:
+            approve(db, d["id"], d["type"], d["amount"], d["tx_date"] or "", d["description"] or d["subject"] or "",
+                    d["account_id"], cid)
+            done += 1
+        except ValueError:
+            skipped += 1
+    return dict(done=done, skipped=skipped)

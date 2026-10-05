@@ -1118,11 +1118,12 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", ma
         first_month = get_setting(db, "first_month", "")
         review_count = db.execute(f"SELECT COUNT(*) c FROM transactions t WHERE {REVIEW_WHERE}").fetchone()["c"]
         email_sources = inbox.sources(db)
+        email_own_names = get_setting(db, inbox.OWN_NAMES_KEY, "")
         mc = mailer.config()
     u = me(request)
     return render(request, "settings.html", mail=mail, verify=verify, verified=bool(verified),
                   bk=bk, backup_cfg=backup.config(), backup_status=backup.status(),
-                  em=em, email_sources=email_sources, email_enabled=gmail.is_enabled(),
+                  em=em, email_sources=email_sources, email_enabled=gmail.is_enabled(), email_own_names=email_own_names,
                   email_missing=gmail.missing(), email_parsers=mailparse.PROFILES,
                   email_redirect=gmail.redirect_uri(request),
                   mail_aktif=mailer.is_enabled(),
@@ -1523,7 +1524,8 @@ def documents_page(request: Request):
 
 # Harus terdaftar sebelum /dokumen/{doc_id}: kalau tidak, 'email' dibaca sebagai id dan ditolak 422.
 @app.get("/dokumen/email", response_class=HTMLResponse)
-def email_inbox(request: Request, s: str = "", n: str = "", u: str = "", f: str = "", ok: str = "", err: str = ""):
+def email_inbox(request: Request, s: str = "", n: str = "", u: str = "", f: str = "", ok: str = "", err: str = "",
+                all_n: str = ""):
     if (r := require_login(request)):
         return r
     with get_db() as db:
@@ -1534,17 +1536,21 @@ def email_inbox(request: Request, s: str = "", n: str = "", u: str = "", f: str 
         srcs = inbox.sources(db)
         cats_exp, cats_inc = categories(db, "expense"), categories(db, "income")
         avail = {"expense": {c["name"]: c["id"] for c in cats_exp}, "income": {c["name"]: c["id"] for c in cats_inc}}
+        kinds = inbox.classify(db, rows)
         items = []
         for d in rows:
             sid, _ = suggest.suggest(d["description"] or d["subject"] or "", d["type"], avail.get(d["type"], {}))
-            items.append(dict(d=d, sug=sid))
+            items.append(dict(d=d, sug=sid, kind=kinds.get(d["id"], "")))
+        ready = sum(1 for it in items if it["d"]["amount"] and it["d"]["account_id"] and not it["kind"])
+        has_names = bool(inbox.own_names(db))
         accs = accounts(db)
         doc_count = db.execute("SELECT COUNT(*) c FROM documents").fetchone()["c"]
     return render(request, "email_inbox.html", items=items, sources=srcs, accounts=accs,
                   cats_exp=cats_exp, cats_inc=cats_inc, page="email", enabled=gmail.is_enabled(),
                   synced=bool(s), n_new=int(n or 0) if n.isdigit() else 0,
                   n_unread=int(u or 0) if u.isdigit() else 0, n_failed=int(f or 0) if f.isdigit() else 0,
-                  ok=ok, err=err, doc_count=doc_count, pending=len(items), parsers=mailparse.PROFILES)
+                  ok=ok, err=err, doc_count=doc_count, pending=len(items), parsers=mailparse.PROFILES,
+                  ready=ready, has_names=has_names, n_all=int(all_n) if all_n.isdigit() else -1)
 
 
 @app.get("/dokumen/{doc_id}", response_class=HTMLResponse)
@@ -1677,17 +1683,40 @@ def email_sync(request: Request):
 @app.post("/email/draft/{did}/approve")
 def email_draft_approve(request: Request, did: int, type: str = Form("expense"), amount: str = Form(""),
                         tx_date: str = Form(""), description: str = Form(""), account_id: str = Form(""),
-                        category_id: str = Form("")):
+                        category_id: str = Form(""), to_account_id: str = Form("")):
     if (r := require_login(request)):
         return r
     with get_db() as db:
         try:
             inbox.approve(db, did, type, parse_amount(amount), clean_date(tx_date) or "", description,
                           int(account_id) if account_id.isdigit() else 0,
-                          int(category_id) if category_id.isdigit() else None)
+                          int(category_id) if category_id.isdigit() else None,
+                          int(to_account_id) if to_account_id.isdigit() else None)
         except ValueError:
             return RedirectResponse(f"/dokumen/email?s=1&err={did}#d{did}", status_code=303)
     return RedirectResponse("/dokumen/email?s=1&ok=1", status_code=303)
+
+
+@app.post("/email/drafts/approve-all")
+def email_drafts_approve_all(request: Request):
+    """Setujui sekaligus draf yang sudah lengkap; transfer, dobel, dan yang belum
+    lengkap tetap menunggu untuk diperiksa satu per satu."""
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        rows = inbox.drafts(db)
+        cats = {k: {c["name"]: c["id"] for c in categories(db, k)} for k in ("expense", "income")}
+        res = inbox.approve_all(db, rows, inbox.classify(db, rows), cats)
+    return RedirectResponse(f"/dokumen/email?s=1&all_n={res['done']}", status_code=303)
+
+
+@app.post("/email/own-names")
+def email_own_names(request: Request, names: str = Form("")):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        inbox.save_own_names(db, names)
+    return RedirectResponse("/settings?em=names#email", status_code=303)
 
 
 @app.post("/email/draft/{did}/dismiss")

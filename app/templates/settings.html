@@ -82,6 +82,7 @@
     {% if email_sources %}{% set pend = email_sources | sum(attribute='pending') %}{% if pend %}<a class="pill ok" href="/dokumen/email">{{ pend }} {{ _('draf') }}</a>{% endif %}{% endif %}</div>
   {% if em=='ok' %}<div class="note ok">{{ _('Gmail tersambung. Tambahkan bank.') }}</div>
   {% elif em=='ruleok' %}<div class="note ok">{{ _('Bank ditambahkan.') }}</div>
+  {% elif em=='names' %}<div class="note ok">{{ _('Nama disimpan.') }}</div>
   {% elif em=='gone' %}<div class="note ok">{{ _('Gmail diputus.') }}</div>
   {% elif em=='denied' %}<div class="note bad">{{ _('Izin tidak diberikan.') }}</div>
   {% elif em=='scope' %}<div class="note bad">{{ _('Centang izin baca email, lalu coba lagi.') }}</div>
@@ -131,6 +132,15 @@
     <button type="submit">{{ _('Putuskan') }}</button>
   </form>
   {% endfor %}
+
+  {% if email_sources %}
+  <form method="post" action="/email/own-names" class="enames">{{ csrf_field }}
+    <label for="own-names">{{ _('Nama di rekening') }}</label>
+    <div class="row2"><input id="own-names" name="names" value="{{ email_own_names }}" placeholder="{{ _('mis. Rian Fathany') }}" autocomplete="off">
+      <button type="submit">{{ _('Simpan') }}</button></div>
+    <p class="hint">{{ _('Supaya transfer ke rekeningmu sendiri dikenali sebagai pindah kantong, bukan pengeluaran. Lebih dari satu nama pisahkan dengan koma.') }}</p>
+  </form>
+  {% endif %}
 
   {% if email_sources and email_enabled %}
   <div class="elist" style="margin-top:18px">
