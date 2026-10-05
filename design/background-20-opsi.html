@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Background Muara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--pg:#f4f4f5;--pgfg:#18181b;--pgmut:#71717a;--pgline:#e4e4e7;--pgcard:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--pg:#18181b;--pgfg:#f4f4f5;--pgmut:#a1a1aa;--pgline:#2e2e33;--pgcard:#222226}}
+:root[data-theme=dark]{--pg:#18181b;--pgfg:#f4f4f5;--pgmut:#a1a1aa;--pgline:#2e2e33;--pgcard:#222226}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--pgfg);font:15px/1.55 "Plus Jakarta Sans",-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px 80px}
+header.top{padding:40px 0 8px}
+header.top h1{font-size:28px;letter-spacing:-.02em;margin:0 0 6px}
+header.top p{margin:0;color:var(--pgmut);max-width:640px}
+nav.jump{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--pg) 92%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--pgline);margin:16px -16px 0;padding:10px 16px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+nav.jump a{flex:none;min-width:34px;height:32px;padding:0 10px;display:grid;place-items:center;border-radius:8px;color:var(--pgfg);text-decoration:none;font-size:13px;font-weight:600;border:1px solid var(--pgline);background:var(--pgcard)}
+nav.jump a.rk{color:#fff;background:#0066cc;border-color:#0066cc}
+.opt{padding:36px 0 8px;border-bottom:1px solid var(--pgline);scroll-margin-top:60px}
+.opt h2{font-size:19px;margin:0;letter-spacing:-.01em}
+.opt h2 small{font-size:13px;font-weight:500;color:var(--pgmut);margin-left:8px}
+.opt .why{margin:4px 0 16px;color:var(--pgmut);font-size:14px;max-width:720px}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.sw{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.sw span{display:inline-flex;align-items:center;gap:6px;font:500 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--pgmut)}
+.sw i{width:14px;height:14px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+
+/* ---- miniatur aplikasi ---- */
+.app{position:relative;overflow:hidden;border-radius:14px;height:520px;color:var(--fg);background:var(--bg);
+  box-shadow:0 0 0 1px var(--pgline);font-size:13px;isolation:isolate}
+.app::before{content:"";position:absolute;inset:0;z-index:-2;background:linear-gradient(135deg,var(--g1) 0%,var(--g2) 35%,var(--g3) 70%,var(--g4) 100%)}
+.app::after{content:"";position:absolute;left:0;right:0;top:0;height:300px;z-index:-1;
+  background:radial-gradient(700px 220px at 50% -60px,var(--hz) 0%,color-mix(in srgb,var(--hz) 45%,transparent) 40%,transparent 72%)}
+.app .tag{position:absolute;right:10px;bottom:10px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.bar{display:flex;align-items:center;gap:8px;padding:12px 14px;background:color-mix(in srgb,var(--card) 70%,transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid color-mix(in srgb,var(--line) 80%,transparent)}
+.bar b{font-size:14px}
+.bar .m{width:22px;height:22px;border-radius:6px;background:var(--fg);opacity:.85}
+.bar .tabs{margin-left:auto;display:flex;gap:2px;font-size:11.5px;color:var(--muted)}
+.bar .tabs span{padding:4px 7px;border-radius:6px}
+.bar .tabs .on{background:var(--card);color:var(--fg);box-shadow:0 0 0 .5px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.08)}
+.body{padding:12px 12px 0;display:grid;gap:10px}
+.hi{font-weight:700;font-size:14px;padding:2px 2px 0}
+.hi span{font-weight:400;color:var(--muted);font-size:12px;margin-left:4px}
+.card{background:var(--card);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow)}
+.card .k{font-size:11.5px;color:var(--muted)}
+.card .v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+.card .s{font-size:11px;color:var(--muted)}
+.bars{display:flex;gap:3px;margin-top:10px;height:5px}
+.bars i{border-radius:9px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.sec b{font-size:12.5px}.sec small{font-size:10.5px;color:var(--muted)}
+.row{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line2)}
+.row:first-of-type{border-top:0}
+.av{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#fff}
+.row .n{font-weight:500;font-size:12.5px;line-height:1.2}
+.row .n small{display:block;font-weight:400;font-size:10.5px;color:var(--muted)}
+.row .a{font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums}
+.btn{height:36px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:600;font-size:12.5px}
+
+/* ---- rekomendasi ---- */
+.rk{padding:40px 0 0;scroll-margin-top:60px}
+.rk h2{font-size:22px;margin:0 0 8px;letter-spacing:-.01em}
+.rk h3{font-size:15px;margin:26px 0 6px}
+.rk p{margin:0 0 10px;color:var(--pgmut);max-width:760px}
+.rk p b{color:var(--pgfg)}
+.rk .pick{background:var(--pgcard);border-radius:12px;padding:18px 20px;margin:14px 0;box-shadow:0 0 0 1px var(--pgline)}
+.rk .pick p{color:var(--pgfg);margin:0}
+.rk .pick p+p{margin-top:8px;color:var(--pgmut)}
+.rk dl{margin:0}
+.rk .seg{display:grid;grid-template-columns:170px minmax(0,1fr);gap:4px 16px;padding:10px 0;border-top:1px solid var(--pgline);font-size:14px}
+.rk dt{font-weight:600}.rk dd{margin:0;color:var(--pgmut)}
+.rk a{color:#0066cc;font-weight:600;text-decoration:none}
+@media (max-width:560px){.rk .seg{grid-template-columns:1fr}.app{height:500px}}
+.tog{position:fixed;right:16px;bottom:16px;z-index:6;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--pgline);background:var(--pgcard);color:var(--pgfg);font:600 13px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Background Muara</h1>
+    <p>20 pasangan latar terang dan gelap untuk kartu putih solid dengan bayangan berlapis ala macOS. Tiap opsi menampilkan miniatur halaman Kantong di kedua mode. Kode warna di bawah tiap miniatur bisa dipakai langsung.</p>
+  </header>
+  <nav class="jump" id="jump"></nav>
+  <main id="opts"></main>
+
+  <section class="rk" id="rekomendasi">
+    <h2>Rekomendasi</h2>
+    <p>Penyebab utama latar gelap yang sekarang terasa tidak menyatu adalah suhu warnanya. Kartu gelap Muara berwarna abu netral (#232325), sedangkan latarnya gradasi navy ke ungu. Dua warna dengan suhu berbeda yang saling bertumpuk selalu terlihat seperti tempelan. Di mode terang masalahnya serupa tapi lebih halus: gradasi biru-ungu-merah muda terlalu berwarna untuk aplikasi keuangan, sehingga perhatian lari ke latar, bukan ke angka.</p>
+    <p>Patokan yang saya pakai: kartu dan latar harus satu keluarga warna, latar sedikit lebih gelap dari kartu supaya bayangan macOS terlihat, dan kroma latar rendah. Angka saldo yang harus menonjol, bukan latarnya.</p>
+
+    <div class="pick">
+      <p><b>Pilihan utama: <a href="#o15">Opsi 15, Netral + horizon tipis</a>.</b></p>
+      <p>Badan halaman abu netral seperti macOS, jadi kartu putih dan kartu gelap langsung menyatu. Cahaya horizon di bagian atas tetap ada sebagai ciri Muara, tapi warnanya diturunkan jauh dan di mode gelap diganti abu kebiruan yang nyaris netral, bukan navy. Identitas visual lama tetap terasa, sementara masalah tempelan hilang.</p>
+      <p>Kalau ingin lebih bersih lagi tanpa horizon sama sekali, pakai <a href="#o1">Opsi 1, Grafit macOS</a>. Kalau ingin kesan lebih hangat dan personal, <a href="#o2">Opsi 2, Kertas hangat</a>.</p>
+    </div>
+
+    <h3>Per kebutuhan</h3>
+    <dl>
+      <div class="seg"><dt>Paling aman, semua umur</dt><dd><a href="#o1">1</a>, <a href="#o15">15</a>, <a href="#o10">10</a>. Netral, kontras teks terjaga, tidak lelah dipakai lama.</dd></div>
+      <div class="seg"><dt>Terasa hangat dan personal</dt><dd><a href="#o2">2</a>, <a href="#o5">5</a>, <a href="#o8">8</a>. Cocok untuk buku keuangan keluarga; kesannya seperti buku catatan, bukan dasbor bank.</dd></div>
+      <div class="seg"><dt>Tetap ada identitas biru</dt><dd><a href="#o13">13</a>, <a href="#o6">6</a>. Biru sangat tipis, nyambung dengan warna tombol, tanpa jatuh ke navy.</dd></div>
+      <div class="seg"><dt>Tenang, sedikit warna alam</dt><dd><a href="#o4">4</a>, <a href="#o9">9</a>, <a href="#o14">14</a>. Hijau keabuan memberi kesan "aman" yang cocok untuk tabungan.</dd></div>
+      <div class="seg"><dt>Mata kurang awas</dt><dd><a href="#o19">19</a>. Pemisahan kartu dan latar paling tegas.</dd></div>
+    </dl>
+
+    <h3>Yang sebaiknya dihindari</h3>
+    <p><a href="#o11">Opsi 11</a> (hitam OLED) membuat bayangan macOS hilang total di mode gelap, padahal bayangan itu yang ingin dipertahankan. <a href="#o12">Opsi 12</a> dan <a href="#o16">16</a> (senja, terakota) menarik dilihat sekali, tapi warna kemerahan berdekatan dengan arti "minus" atau "telat bayar" di aplikasi keuangan. <a href="#o18">Opsi 18</a> (pastel berlapis) paling mirip latar yang sekarang, jadi masalah tidak menyatunya hanya berkurang, tidak hilang.</p>
+
+    <h3>Catatan penerapan</h3>
+    <p>Yang diubah hanya token warna di bagian atas style.css (--bg, --g1 sampai --g4, --hz, dan --card untuk mode gelap). Kartu, tombol, dan bayangan tidak perlu disentuh. Header kaca di atas tetap memakai blur, karena di atas latar yang lebih tenang efek kacanya justru terlihat lebih rapi.</p>
+  </section>
+</div>
+<button class="tog" id="tog" type="button">Halaman: terang/gelap</button>
+
+<script>
+const SH_L = "0 0 0 .5px rgba(0,0,0,.06),0 1px 1px rgba(0,0,0,.04),0 2px 6px rgba(0,0,0,.05),0 10px 24px rgba(0,0,0,.07),0 24px 56px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.65)";
+const SH_D = "0 0 0 .5px rgba(0,0,0,.55),0 1px 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.28),0 10px 24px rgba(0,0,0,.32),0 24px 56px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.10)";
+// l: [bg, g1, g2, g3, g4, hz]   d: [bg, g1, g2, g3, g4, hz, card, line, line2]
+const O = [
+ ["Grafit macOS","netral","Abu netral persis seperti jendela macOS. Tanpa warna, kartu putih dan kartu gelap menyatu sempurna.",
+  ["#f5f5f7","#f5f5f7","#f2f2f4","#f2f2f4","#f5f5f7","#ebebef"],["#161618","#18181a","#161618","#151517","#18181a","#232326","#252527","#353538","#2d2d30"]],
+ ["Kertas hangat","hangat","Putih gading dan arang hangat. Terasa seperti buku catatan, bukan dasbor bank.",
+  ["#f6f4ef","#f7f5f0","#f4f1ea","#f3efe7","#f6f3ec","#ece6da"],["#181614","#1a1816","#181614","#171513","#1a1816","#26221e","#27241f","#39352f","#302c27"]],
+ ["Abu dingin","dingin","Abu kebiruan yang sangat tipis. Rapi dan teknis tanpa terasa biru.",
+  ["#f2f4f7","#f3f5f8","#f0f2f6","#f1f3f6","#f2f4f7","#e3e8f0"],["#14161a","#15181c","#14161a","#13151a","#16181d","#1f242c","#20242b","#30353d","#292d35"]],
+ ["Sage","hijau keabuan","Hijau abu yang tenang. Memberi kesan aman dan stabil.",
+  ["#f1f3f0","#f2f5f1","#eef2ec","#eff2ed","#f1f4ef","#e0e9dc"],["#141715","#161917","#141715","#131614","#161917","#1f2620","#212623","#323834","#2a302c"]],
+ ["Pasir","hangat","Krem pasir yang lebih berwarna dari Opsi 2. Ramah dan santai.",
+  ["#f6f1ea","#f7f2eb","#f3ede3","#f1e9dc","#f5efe6","#ebdfcc"],["#1a1714","#1c1916","#1a1714","#181512","#1c1916","#2a241d","#29251f","#3b352e","#322d26"]],
+ ["Langit pagi","biru pudar","Penerus latar sekarang, tapi kromanya dipangkas sampai nyaris abu.",
+  ["#f1f4f9","#eef3fa","#f2f2f8","#f5f2f6","#eff4f8","#dde7f5"],["#14161b","#14171d","#16161c","#17161b","#14171c","#1e2430","#212329","#31343c","#2a2c33"]],
+ ["Kabut lavender","ungu pudar","Lavender sangat lembut. Lebih personal, tetap kalem.",
+  ["#f4f2f8","#f4f2f9","#f2f0f7","#f4f1f6","#f3f2f8","#e6e0f2"],["#17151b","#18161d","#17151b","#16141a","#18161c","#25202f","#24212a","#36323d","#2e2a35"]],
+ ["Mocha","coklat susu","Coklat susu terang dan kopi gelap. Hangat dan dewasa.",
+  ["#f5f0eb","#f6f1ec","#f2ece6","#f1e9e2","#f4eee8","#e8dbcf"],["#1b1816","#1d1a17","#1b1816","#191614","#1c1917","#2b241f","#2a2521","#3c3631","#332e29"]],
+ ["Mint dingin","hijau kebiruan","Hijau toska pudar. Segar, cocok untuk kesan transaksi lancar.",
+  ["#eff5f4","#eff6f4","#edf3f2","#eef4f3","#f0f5f4","#d9ebe7"],["#121817","#131a19","#121817","#111716","#131918","#1b2826","#1e2625","#2e3736","#272f2e"]],
+ ["Batu","netral hangat","Abu batu yang sedikit hangat. Seimbang di antara Opsi 1 dan Opsi 2.",
+  ["#f1f0ee","#f2f1ef","#efeeeb","#eeedea","#f1f0ed","#e4e2dd"],["#181817","#1a1918","#181817","#171615","#1a1918","#252422","#262523","#373634","#2f2e2c"]],
+ ["Monokrom OLED","hitam","Putih bersih dan hitam pekat. Kontras maksimal, tapi bayangan hilang di mode gelap.",
+  ["#fafafa","#fafafa","#fafafa","#fafafa","#fafafa","#f0f0f0"],["#000000","#000000","#000000","#000000","#000000","#0a0a0a","#1a1a1a","#2a2a2a","#222222"]],
+ ["Senja","peach-plum","Peach ke merah muda, gelapnya plum grafit. Paling ekspresif.",
+  ["#f8f2ef","#f9f1ec","#f8eff0","#f4eef4","#f7f1ef","#f3dcd3"],["#19161a","#1b1619","#1a151a","#18151b","#1b1719","#2c2027","#26212a","#38323c","#2f2a33"]],
+ ["Biru Muara","biru tipis","Biru tombol Muara diencerkan sampai jadi latar. Satu keluarga dengan aksen.",
+  ["#f2f6fb","#f1f5fb","#f3f6fa","#f2f5f9","#f1f5fa","#dce8f8"],["#12151a","#12161c","#13161b","#12151a","#13161c","#1a2333","#1e2229","#2e333b","#272b33"]],
+ ["Zaitun","hijau zaitun","Hijau zaitun pudar. Bersahaja dan tidak umum.",
+  ["#f3f3ee","#f4f4ee","#f1f1ea","#f0f0e8","#f3f3ec","#e3e5d4"],["#171814","#191a16","#171814","#161713","#191a15","#25271e","#25261f","#36372f","#2e2f28"]],
+ ["Netral + horizon tipis","netral + biru tipis","Badan halaman abu netral, horizon di atas tetap ada tapi sangat tipis. Identitas lama tetap, tempelannya hilang.",
+  ["#f5f5f7","#f5f5f7","#f3f3f5","#f3f3f5","#f5f5f7","#dfe7f4"],["#161618","#18181a","#161618","#151517","#18181a","#1f2530","#242426","#343437","#2c2c2f"]],
+ ["Terakota","oranye bata","Terakota lembut. Hangat, tapi dekat dengan warna peringatan.",
+  ["#f8f1ec","#f9f2ed","#f6eee8","#f5ece5","#f8f0ea","#f1dccd"],["#1b1614","#1d1715","#1b1614","#191412","#1c1715","#2d211c","#2a221f","#3c3430","#332b28"]],
+ ["Laut dalam","teal","Teal gelap yang dalam. Kuat di mode gelap, terang tetap bersih.",
+  ["#eff4f5","#eff5f6","#edf3f4","#eef3f4","#eff4f5","#d6e7ea"],["#101618","#10181a","#101618","#0f1517","#11181a","#172629","#1b2427","#2b3538","#232d30"]],
+ ["Pastel berlapis","multi pastel","Gradasi empat pastel berkroma rendah, mirip latar sekarang tapi lebih tenang.",
+  ["#f2f1f6","#e9eef8","#f3eef6","#f6efeb","#eaf3f1","#dfe6f5"],["#16171c","#15171d","#19171e","#1b171b","#15191b","#22263a","#232329","#33333b","#2b2b32"]],
+ ["Kontras tinggi","netral tegas","Latar sedikit lebih gelap supaya tepi kartu tegas. Untuk mata yang kurang awas.",
+  ["#eaebee","#ebecef","#e8e9ec","#e8e9ec","#ebecef","#dcdee3"],["#0e0e10","#0f0f11","#0e0e10","#0d0d0f","#0f0f11","#18181b","#222225","#3a3a3e","#323236"]],
+ ["Aubergine grafit","ungu gelap","Grafit dengan sedikit ungu terong. Pengganti navy yang lebih menyatu dengan kartu.",
+  ["#f4f2f5","#f5f3f6","#f2f0f4","#f3f1f4","#f4f2f5","#e7e1ec"],["#17151a","#19161b","#17151a","#161419","#18161b","#251f2b","#232027","#35313a","#2d2932"]],
+];
+const L_TOK = {card:"#ffffff",line:"#e2e2e7",line2:"#ececf0",fg:"#1d1d1f",muted:"#6e6e73",accent:"#0066cc"};
+const D_TOK = {fg:"#f5f5f7",muted:"#a1a1a6",accent:"#3d95ff"};
+function vars(t, dark){
+  const [bg,g1,g2,g3,g4,hz,card,line,line2] = t;
+  const base = dark ? {...D_TOK, card, line, line2, shadow:SH_D} : {...L_TOK, shadow:SH_L};
+  const v = {bg,g1,g2,g3,g4,hz,...base};
+  return Object.entries(v).map(([k,x])=>`--${k}:${x}`).join(';');
+}
+function app(t, dark){
+  return `<div><div class="app" style="${vars(t,dark)}">
+    <div class="bar"><span class="m"></span><b>Muara</b><div class="tabs"><span>Bulan</span><span class="on">Kantong</span><span>Dokumen</span></div></div>
+    <div class="body">
+      <div class="hi">Selamat sore<span>Pemilik</span></div>
+      <div class="card"><div class="k">Kekayaan bersih</div><div class="v">Rp 233.130.973</div>
+        <div class="s">kas 4,6 jt · tabungan 47,5 jt · investasi 181 jt</div>
+        <div class="bars"><i style="flex:2;background:#3b82f6"></i><i style="flex:20;background:#34c759"></i><i style="flex:78;background:#e8a33d"></i></div></div>
+      <div class="card"><div class="sec"><b>Kas & rekening harian</b><small>ketuk untuk mengubah</small></div>
+        <div class="row"><span class="av" style="background:#003D79">mdr</span><div class="n">Operasional<small>saldo awal 120 jt</small></div><span class="a">Rp 4.635.180</span></div>
+        <div class="row"><span class="av" style="background:#0060AF">BCA</span><div class="n">BCA Operasional<small>dari email</small></div><span class="a">Rp 2.000.000</span></div>
+        <div class="row"><span class="av" style="background:#E8731A">mega</span><div class="n">CC Mega<small>kartu kredit</small></div><span class="a">Rp 48.000</span></div></div>
+      <div class="btn">+ Tambah kantong</div>
+    </div><span class="tag">${dark?'gelap':'terang'}</span></div>
+    <div class="sw">${[t[0],t[2],t[5]].concat(dark?[t[6]]:[]).map((c,i)=>`<span><i style="background:${c}"></i>${['latar','gradasi','horizon','kartu'][i]} ${c}</span>`).join('')}</div></div>`;
+}
+const opts = document.getElementById('opts'), jump = document.getElementById('jump');
+O.forEach(([name, kind, why, l, d], i) => {
+  const n = i + 1;
+  opts.insertAdjacentHTML('beforeend', `<section class="opt" id="o${n}"><h2>${n} · ${name}<small>${kind}</small></h2><p class="why">${why}</p><div class="pair">${app(l,false)}${app(d,true)}</div></section>`);
+  jump.insertAdjacentHTML('beforeend', `<a href="#o${n}">${n}</a>`);
+});
+jump.insertAdjacentHTML('beforeend', `<a class="rk" href="#rekomendasi">Rekomendasi</a>`);
+document.getElementById('tog').onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+};
+</script>
+</body>
+</html>

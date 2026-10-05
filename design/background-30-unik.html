@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradasi Muara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--pg:#f4f4f5;--pgfg:#18181b;--pgmut:#71717a;--pgline:#e4e4e7;--pgcard:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--pg:#18181b;--pgfg:#f4f4f5;--pgmut:#a1a1aa;--pgline:#2e2e33;--pgcard:#222226}}
+:root[data-theme=dark]{--pg:#18181b;--pgfg:#f4f4f5;--pgmut:#a1a1aa;--pgline:#2e2e33;--pgcard:#222226}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--pgfg);font:15px/1.55 "Plus Jakarta Sans",-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px 80px}
+header.top{padding:40px 0 8px}
+header.top h1{font-size:28px;letter-spacing:-.02em;margin:0 0 6px}
+header.top p{margin:0 0 6px;color:var(--pgmut);max-width:680px}
+nav.jump{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--pg) 92%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--pgline);margin:16px -16px 0;padding:10px 16px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+nav.jump a{flex:none;min-width:34px;height:32px;padding:0 10px;display:grid;place-items:center;border-radius:8px;color:var(--pgfg);text-decoration:none;font-size:13px;font-weight:600;border:1px solid var(--pgline);background:var(--pgcard)}
+nav.jump a.rk{color:#fff;background:#0066cc;border-color:#0066cc}
+nav.jump i{flex:none;width:1px;background:var(--pgline);margin:4px 4px}
+.grp{padding:40px 0 0;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--pgmut)}
+.opt{padding:22px 0 28px;border-bottom:1px solid var(--pgline);scroll-margin-top:60px}
+.opt h2{font-size:19px;margin:0;letter-spacing:-.01em}
+.opt h2 small{font-size:13px;font-weight:500;color:var(--pgmut);margin-left:8px}
+.opt .why{margin:4px 0 4px;color:var(--pgmut);font-size:14px;max-width:760px}
+.opt .fit{margin:0 0 16px;font-size:13.5px;max-width:760px}
+.opt .fit b{font-weight:600}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+
+.app{position:relative;overflow:hidden;border-radius:14px;height:580px;color:var(--fg);background:var(--bg);isolation:isolate;
+  box-shadow:0 0 0 1px var(--pgline);font-size:13px}
+.app::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--layer),var(--bg);filter:saturate(var(--sat))}
+.app .tag{position:absolute;right:10px;bottom:10px;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+  background:var(--bg);padding:2px 6px;border-radius:5px}
+.bar{display:flex;align-items:center;gap:8px;padding:12px 14px;background:color-mix(in srgb,var(--card) 62%,transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.bar b{font-size:14px}
+.bar .m{width:22px;height:22px;border-radius:6px;background:var(--fg);opacity:.85}
+.bar .tabs{margin-left:auto;display:flex;gap:2px;font-size:11.5px;color:var(--muted)}
+.bar .tabs span{padding:4px 7px;border-radius:6px}
+.bar .tabs .on{background:var(--card);color:var(--fg);box-shadow:0 0 0 .5px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.08)}
+.body{padding:12px 12px 0;display:grid;gap:10px}
+.hi{font-weight:700;font-size:14px;padding:2px 2px 0}
+.hi span{font-weight:400;color:var(--muted);font-size:12px;margin-left:4px}
+.card{background:var(--card);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow)}
+.card .k{font-size:11.5px;color:var(--muted)}
+.card .v{font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+.card .s{font-size:11px;color:var(--muted)}
+.bars{display:flex;gap:3px;margin-top:10px;height:5px}
+.bars i{border-radius:9px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.sec b{font-size:12.5px}.sec small{font-size:10.5px;color:var(--muted)}
+.row{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line2)}
+.row:first-of-type{border-top:0}
+.av{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:9.5px;font-weight:700;color:#fff}
+.row .n{font-weight:500;font-size:12.5px;line-height:1.2}
+.row .n small{display:block;font-weight:400;font-size:10.5px;color:var(--muted)}
+.row .a{font-weight:600;font-size:12.5px;font-variant-numeric:tabular-nums}
+.btn{height:36px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:600;font-size:12.5px}
+
+.rk{padding:44px 0 0;scroll-margin-top:60px}
+.rk h2{font-size:22px;margin:0 0 8px;letter-spacing:-.01em}
+.rk h3{font-size:15px;margin:26px 0 6px}
+.rk p{margin:0 0 10px;color:var(--pgmut);max-width:760px}
+.rk p b{color:var(--pgfg)}
+.rk .pick{background:var(--pgcard);border-radius:12px;padding:18px 20px;margin:14px 0;box-shadow:0 0 0 1px var(--pgline)}
+.rk .pick p{color:var(--pgfg);margin:0}
+.rk .pick p+p{margin-top:8px;color:var(--pgmut)}
+.rk .seg{display:grid;grid-template-columns:190px minmax(0,1fr);gap:4px 16px;padding:10px 0;border-top:1px solid var(--pgline);font-size:14px}
+.rk dl{margin:0}.rk dt{font-weight:600}.rk dd{margin:0;color:var(--pgmut)}
+.rk a{color:#0066cc;font-weight:600;text-decoration:none}
+@media (max-width:560px){.rk .seg{grid-template-columns:1fr}}
+.tog{position:fixed;right:16px;bottom:16px;z-index:6;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--pgline);background:var(--pgcard);color:var(--pgfg);font:600 13px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Gradasi unik Muara</h1>
+    <p>30 gradasi latar. Yang berubah hanya latar di belakang kartu: layout, kartu putih, kartu gelap #232325, dan bayangan macOS tetap persis seperti sekarang.</p>
+    <p>Supaya tidak membosankan, tiap opsi memakai bentuk gradasi yang berbeda (berlapis, berputar, dari bawah, diagonal, cincin), bukan sekadar ganti warna. Supaya tetap menyatu dengan kartu, warna dasarnya netral dan warnanya hanya hadir sebagai cahaya.</p>
+  </header>
+  <nav class="jump" id="jump"></nav>
+  <main id="opts"></main>
+
+  <section class="rk" id="rekomendasi">
+    <h2>Rekomendasi</h2>
+    <p>Semua opsi di sini sudah memenuhi syarat yang sama: dasar latar netral supaya kartu putih dan kartu gelap #232325 menyatu, warna hanya muncul sebagai cahaya di tepi atau sudut, dan area tengah tempat daftar transaksi tetap tenang. Jadi pilihannya soal karakter.</p>
+
+    <div class="pick">
+      <p><b>Pilihan utama: <a href="#o1">Opsi 1, Muara</a>.</b></p>
+      <p>Dua cahaya bertemu di bagian atas: toska dari kiri (sungai) dan pasir hangat dari kanan (laut). Itu arti harfiah "muara", jadi gradasinya punya alasan, bukan sekadar hiasan. Toska dan pasir juga berlawanan suhu, sehingga terasa hidup tanpa perlu warna yang jenuh. Di mode gelap keduanya diredam jadi cahaya tipis di atas grafit, cocok dengan kartu #232325.</p>
+      <p>Dua cadangan terbaik: <a href="#o30">Opsi 30, Ikut jam</a>, kalau ingin latar yang berganti sendiri pagi, siang, sore, dan malam (sejalan dengan video login yang sudah mengikuti jam), dan <a href="#o10">Opsi 10, Mutiara</a>, kalau ingin kesan premium yang berkilau halus.</p>
+    </div>
+
+    <h3>Per karakter</h3>
+    <dl>
+      <div class="seg"><dt>Punya cerita</dt><dd><a href="#o1">1</a>, <a href="#o7">7</a>, <a href="#o16">16</a>, <a href="#o30">30</a>. Gradasinya bisa dijelaskan maknanya.</dd></div>
+      <div class="seg"><dt>Premium, berkilau</dt><dd><a href="#o10">10</a>, <a href="#o9">9</a>, <a href="#o11">11</a>. Gradasi berputar seperti pantulan logam atau mutiara.</dd></div>
+      <div class="seg"><dt>Hangat, ramah</dt><dd><a href="#o2">2</a>, <a href="#o8">8</a>, <a href="#o22">22</a>, <a href="#o24">24</a>.</dd></div>
+      <div class="seg"><dt>Sejuk, menenangkan</dt><dd><a href="#o4">4</a>, <a href="#o5">5</a>, <a href="#o20">20</a>, <a href="#o21">21</a>.</dd></div>
+      <div class="seg"><dt>Paling beda dari aplikasi lain</dt><dd><a href="#o14">14</a>, <a href="#o16">16</a>, <a href="#o28">28</a>. Cahaya dari bawah, cincin gerhana, atau spiral dari pojok.</dd></div>
+      <div class="seg"><dt>Paling dramatis di mode gelap</dt><dd><a href="#o25">25</a>, <a href="#o4">4</a>, <a href="#o12">12</a>.</dd></div>
+    </dl>
+
+    <h3>Catatan penerapan</h3>
+    <p>Semua opsi murni gradasi CSS, ditaruh di latar halaman (body::before dan body::after yang sudah ada). Tidak ada gambar, tidak menambah waktu muat, dan kartu serta layout tidak disentuh. Opsi 30 butuh beberapa baris kode untuk memilih warna sesuai jam. Kalau warna di miniatur terasa terlalu kuat atau kurang, intensitasnya bisa diatur dengan satu angka saja.</p>
+  </section>
+</div>
+<button class="tog" id="tog" type="button">Halaman: terang/gelap</button>
+
+<script>
+const SH_L = "0 0 0 .5px rgba(0,0,0,.06),0 1px 1px rgba(0,0,0,.04),0 2px 6px rgba(0,0,0,.05),0 10px 24px rgba(0,0,0,.07),0 24px 56px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.65)";
+const SH_D = "0 0 0 .5px rgba(0,0,0,.55),0 1px 1px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.28),0 10px 24px rgba(0,0,0,.32),0 24px 56px rgba(0,0,0,.36),inset 0 1px 0 rgba(255,255,255,.10)";
+const r = (w, h, x, y, c, stop = 70) => `radial-gradient(${w}px ${h}px at ${x} ${y},${c} 0%,transparent ${stop}%)`;
+const O = [];
+let G = '';
+const grp = g => G = g;
+const add = (name, kind, why, fit, l, d) => O.push({ group: G, name, kind, why, fit, l, d });
+const LB = '#f5f5f7', DB = '#18181a';
+
+grp('Alam & tempat');
+add('Muara', 'sungai bertemu laut', 'Toska dari kiri dan pasir hangat dari kanan bertemu di bagian atas, lalu melebur ke abu netral.', 'Paling bermakna untuk aplikasi bernama Muara.',
+  { bg: LB, layer: `${r(620,340,'0%','-40px','#d3ece8')},${r(620,340,'100%','-40px','#f3e5cf')}` },
+  { bg: DB, layer: `${r(620,340,'0%','-40px','#16302d')},${r(620,340,'100%','-40px','#2e261b')}` });
+add('Fajar tropis', 'peach dan lila', 'Peach lembut di kiri atas dan lila di kanan, seperti langit jam enam pagi.', 'Optimis dan ramah.',
+  { bg: '#f6f5f4', layer: `${r(560,320,'15%','-60px','#f8e3d2')},${r(560,300,'90%','-40px','#e8e2f4')}` },
+  { bg: DB, layer: `${r(560,320,'15%','-60px','#2d221d')},${r(560,300,'90%','-40px','#231f30')}` });
+add('Senja pantai', 'aprikot ke ungu debu', 'Gradasi diagonal aprikot pudar ke ungu debu, berhenti di sepertiga atas.', 'Romantis tanpa mencolok.',
+  { bg: '#f5f4f5', layer: `linear-gradient(165deg,#f5e2d3 0%,#ece3ef 28%,transparent 52%)` },
+  { bg: DB, layer: `linear-gradient(165deg,#2c221c 0%,#241f2b 28%,transparent 52%)` });
+add('Aurora', 'cahaya kutub', 'Dua berkas hijau-toska dan biru yang menyebar dari atas, seperti aurora tipis.', 'Paling hidup di mode gelap.',
+  { bg: '#f3f5f5', layer: `${r(460,260,'20%','-30px','#d5efe3')},${r(520,280,'65%','-60px','#d8e8f4')},${r(380,220,'95%','10px','#e3e0f3')}` },
+  { bg: '#161818', layer: `${r(460,260,'20%','-30px','#123026')},${r(520,280,'65%','-60px','#13263a')},${r(380,220,'95%','10px','#221c33')}` });
+add('Embun pagi', 'mint dan langit', 'Gumpalan mint dan biru langit yang sangat lembut tersebar di atas.', 'Segar, cocok dibuka pagi hari.',
+  { bg: '#f4f6f6', layer: `${r(400,240,'10%','30px','#dcf1ea')},${r(480,260,'70%','-20px','#dbe9f6')}` },
+  { bg: '#161818', layer: `${r(400,240,'10%','30px','#14291f')},${r(480,260,'70%','-20px','#142333')}` });
+add('Kabut lavender', 'ungu di sudut', 'Lavender pudar masuk dari dua sudut atas, tengahnya tetap netral.', 'Lembut dan personal.',
+  { bg: '#f5f4f7', layer: `${r(420,300,'0%','0%','#e7e1f4')},${r(420,300,'100%','0%','#ede4f1')}` },
+  { bg: '#18171b', layer: `${r(420,300,'0%','0%','#241e33')},${r(420,300,'100%','0%','#2a1f2e')}` });
+add('Langit Jakarta', 'biru di atas, hangat di cakrawala', 'Biru pucat di paling atas, lalu pita hangat tipis di bawahnya seperti cakrawala kota sore hari.', 'Akrab dan lokal.',
+  { bg: LB, layer: `linear-gradient(180deg,#e2eaf5 0%,#f3e8dc 22%,transparent 42%)` },
+  { bg: DB, layer: `linear-gradient(180deg,#18202e 0%,#2a2219 22%,transparent 42%)` });
+add('Kopi susu', 'karamel', 'Cahaya karamel dari kiri atas yang memudar pelan.', 'Hangat dan dewasa.',
+  { bg: '#f5f4f2', layer: `${r(800,460,'0%','-80px','#f1e2cf')}` },
+  { bg: DB, layer: `${r(800,460,'0%','-80px','#2c2319')}` });
+
+grp('Kilau & cahaya');
+add('Kilau logam', 'conic perak', 'Gradasi berputar dari pojok kanan atas seperti pantulan di aluminium MacBook.', 'Paling dekat dengan nuansa macOS.',
+  { bg: LB, layer: `conic-gradient(from 210deg at 100% 0%,#e3e6ec 0deg,#f5f5f7 50deg,#eceef2 100deg,#f5f5f7 150deg)` },
+  { bg: DB, layer: `conic-gradient(from 210deg at 100% 0%,#26282d 0deg,#18181a 50deg,#202226 100deg,#18181a 150deg)` });
+add('Mutiara', 'kilau warna-warni', 'Putaran warna sangat pudar (merah muda, biru, hijau, krem) dari tengah atas, seperti permukaan mutiara.', 'Premium dan berkelas.',
+  { bg: LB, layer: `conic-gradient(from 0deg at 50% -10%,#f3e6ee,#e4ebf6,#e3f1ec,#f4efe0,#f3e6ee)`, mask: true },
+  { bg: DB, layer: `conic-gradient(from 0deg at 50% -10%,#2a1f26,#1c2433,#1a2a24,#2b271b,#2a1f26)`, mask: true });
+add('Opal', 'pusaran pastel', 'Pusaran pastel dari pojok kiri bawah, naik pelan ke atas.', 'Unik dan lembut.',
+  { bg: LB, layer: `conic-gradient(from 90deg at 0% 100%,#f5f5f7 0deg,#e9e4f4 25deg,#e1edf3 50deg,#f5f5f7 80deg)` },
+  { bg: DB, layer: `conic-gradient(from 90deg at 0% 100%,#18181a 0deg,#231d31 25deg,#152532 50deg,#18181a 80deg)` });
+add('Sorot panggung', 'cahaya sempit', 'Satu berkas cahaya sempit turun dari tengah atas, sisi kiri dan kanan sedikit lebih gelap.', 'Dramatis; memusatkan mata ke kartu saldo.',
+  { bg: '#eeeef1', layer: `radial-gradient(260px 520px at 50% -60px,#fbfbfc 0%,transparent 75%)` },
+  { bg: '#141416', layer: `radial-gradient(260px 520px at 50% -60px,#2a2a30 0%,transparent 75%)` });
+add('Lampu meja', 'sorot hangat', 'Cahaya hangat dari pojok kiri atas, sisanya meredup seperti meja kerja malam.', 'Tenang dan mewah.',
+  { bg: '#f1f1ef', layer: `${r(720,560,'0%','0%','#fbf4e6',65)}` },
+  { bg: '#141414', layer: `${r(720,560,'0%','0%','#2b261d',65)}` });
+add('Gerhana', 'cincin cahaya', 'Cincin cahaya tipis di atas layar, tengahnya kembali netral, seperti gerhana matahari.', 'Paling tidak biasa di kelompok ini.',
+  { bg: LB, layer: `radial-gradient(circle at 50% -140px,transparent 0 180px,#e3e9f4 220px,#efe8f3 260px,transparent 340px)` },
+  { bg: DB, layer: `radial-gradient(circle at 50% -140px,transparent 0 180px,#1d2536 220px,#271f2e 260px,transparent 340px)` });
+add('Bulan terbit', 'bulatan lembut', 'Satu bulatan cahaya di kanan atas dengan tepi yang lembut.', 'Sederhana tapi berkesan.',
+  { bg: LB, layer: `radial-gradient(circle at 88% 40px,#eef0f6 0 70px,#e6eaf3 90px,transparent 220px)` },
+  { bg: DB, layer: `radial-gradient(circle at 88% 40px,#262830 0 70px,#20232c 90px,transparent 220px)` });
+add('Dasar muara', 'cahaya dari bawah', 'Kebalikan horizon: warna mengendap di bawah seperti sedimen, bagian atas bersih.', 'Hampir tidak ada aplikasi yang memakai ini; ruang atas terasa lapang.',
+  { bg: LB, layer: `radial-gradient(1100px 380px at 50% calc(100% + 120px),#dfe9e4 0%,rgba(223,233,228,.5) 40%,transparent 72%)` },
+  { bg: DB, layer: `radial-gradient(1100px 380px at 50% calc(100% + 120px),#1b2c26 0%,rgba(27,44,38,.5) 40%,transparent 72%)` });
+
+grp('Lapisan & arah');
+add('Dua kutub', 'dingin ke hangat', 'Biru dingin di kiri atas, krem hangat di kanan bawah, bertemu diagonal di tengah.', 'Seimbang; terasa bergerak.',
+  { bg: LB, layer: `${r(600,420,'0%','0%','#dfe8f5')},${r(600,420,'100%','100%','#f3eadb')}` },
+  { bg: DB, layer: `${r(600,420,'0%','0%','#172234')},${r(600,420,'100%','100%','#2a2419')}` });
+add('Mesh empat sudut', 'empat warna', 'Empat cahaya pastel di empat sudut, tengahnya netral.', 'Kaya warna tapi kartu tetap jadi fokus.',
+  { bg: LB, layer: `${r(380,300,'0%','0%','#e2eaf6')},${r(380,300,'100%','0%','#f2e6ee')},${r(380,300,'0%','100%','#e1f0ea')},${r(380,300,'100%','100%','#f3ede0')}` },
+  { bg: DB, layer: `${r(380,300,'0%','0%','#182336')},${r(380,300,'100%','0%','#2b1e28')},${r(380,300,'0%','100%','#162a22')},${r(380,300,'100%','100%','#2a2519')}` });
+add('Pita diagonal', 'sapuan lembut', 'Dua sapuan warna diagonal yang sangat lebar dan buram, seperti cat air.', 'Artistik namun rapi.',
+  { bg: LB, layer: `linear-gradient(155deg,transparent 0%,#e5ecf6 18%,transparent 34%,#f1e8f0 52%,transparent 70%)` },
+  { bg: DB, layer: `linear-gradient(155deg,transparent 0%,#1a2333 18%,transparent 34%,#271e28 52%,transparent 70%)` });
+add('Hutan bakau', 'hijau berlapis', 'Tiga lapis hijau keabuan dengan kedalaman berbeda di bagian atas.', 'Kesan aman dan tumbuh, pas untuk tabungan.',
+  { bg: '#f3f5f3', layer: `${r(500,260,'20%','-40px','#dce9dc')},${r(500,300,'80%','-80px','#e2ebe0')},${r(700,200,'50%','-60px','#e9efe7')}` },
+  { bg: '#161816', layer: `${r(500,260,'20%','-40px','#1a2b1e')},${r(500,300,'80%','-80px','#1d281c')},${r(700,200,'50%','-60px','#1f251e')}` });
+add('Laut dalam', 'toska dari bawah', 'Toska pekat naik dari bawah dan kiri, atas tetap terang.', 'Sejuk dan dalam.',
+  { bg: LB, layer: `${r(700,420,'0%','100%','#d8ebec')},linear-gradient(0deg,#ebf2f3 0%,transparent 40%)` },
+  { bg: DB, layer: `${r(700,420,'0%','100%','#132a2c')},linear-gradient(0deg,#151f20 0%,transparent 40%)` });
+add('Pasir pantai', 'krem dari bawah', 'Krem pasir di bagian bawah memudar ke putih di atas, seperti pantai dilihat dari laut.', 'Hangat dan santai.',
+  { bg: '#f7f6f3', layer: `linear-gradient(0deg,#f0e6d6 0%,transparent 55%)` },
+  { bg: DB, layer: `linear-gradient(0deg,#27211a 0%,transparent 55%)` });
+add('Matcha latte', 'hijau krem', 'Hijau matcha di kiri atas bertemu krem susu di kanan.', 'Segar dan kekinian tanpa norak.',
+  { bg: '#f5f5f2', layer: `${r(560,320,'0%','-30px','#e1ecd6')},${r(560,320,'100%','-30px','#f3ece0')}` },
+  { bg: DB, layer: `${r(560,320,'0%','-30px','#1f2b18')},${r(560,320,'100%','-30px','#29241b')}` });
+add('Persik', 'oranye lembut', 'Persik pudar di tengah atas dengan tepi lila sangat tipis.', 'Ceria dan hangat.',
+  { bg: '#f6f5f4', layer: `${r(800,320,'50%','-80px','#f7e2d2')},${r(1000,420,'50%','-80px','#efe7f2',80)}` },
+  { bg: DB, layer: `${r(800,320,'50%','-80px','#2d221b')},${r(1000,420,'50%','-80px','#221e29',80)}` });
+
+grp('Suasana & waktu');
+add('Langit malam kota', 'neon redup', 'Mode gelap jadi langit kota malam dengan cahaya ungu dan toska yang sangat redup; terang jadi lila-toska pucat.', 'Paling dramatis di mode gelap.',
+  { bg: LB, layer: `${r(500,300,'10%','-40px','#e6e0f5')},${r(500,300,'90%','-20px','#d9eef0')}` },
+  { bg: '#151517', layer: `${r(500,300,'10%','-40px','#271d3d')},${r(500,300,'90%','-20px','#11303a')}` });
+add('Holografik', 'pelangi pudar', 'Gradasi linear melintang dengan banyak warna yang sangat pudar, seperti stiker hologram.', 'Unik dan modern.',
+  { bg: LB, layer: `linear-gradient(120deg,#f0e5ef 0%,#e5e9f6 20%,#e2f1ed 40%,#f4f0e2 60%,transparent 80%)`, mask: true },
+  { bg: DB, layer: `linear-gradient(120deg,#291e28 0%,#1c2233 20%,#18291f 40%,#2a261a 60%,transparent 80%)`, mask: true });
+add('Atas dan bawah', 'dua cakrawala', 'Biru dingin di atas dan pasir hangat di bawah, tengah netral.', 'Membingkai konten dari dua sisi.',
+  { bg: LB, layer: `linear-gradient(180deg,#e3eaf5 0%,transparent 30%,transparent 70%,#f1e8da 100%)` },
+  { bg: DB, layer: `linear-gradient(180deg,#19212f 0%,transparent 30%,transparent 70%,#272118 100%)` });
+add('Spiral pojok', 'conic dari kiri bawah', 'Gradasi berputar dari pojok kiri bawah, menyapu ke kanan atas.', 'Penuh gerak; tidak umum.',
+  { bg: LB, layer: `conic-gradient(from 0deg at 0% 100%,#e5ebf5 0deg,#f5f5f7 30deg,#efe6f1 55deg,#f5f5f7 90deg)` },
+  { bg: DB, layer: `conic-gradient(from 0deg at 0% 100%,#1b2333 0deg,#18181a 30deg,#281e2b 55deg,#18181a 90deg)` });
+add('Hujan sore', 'abu kebiruan basah', 'Cahaya abu kebiruan yang buram di kiri bawah dan kanan atas, seperti kaca jendela saat hujan.', 'Teduh; cocok untuk yang suka suasana mendung Jakarta.',
+  { bg: '#f3f4f6', layer: `${r(520,360,'100%','-40px','#dfe5ee')},${r(560,380,'0%','100%','#e2e7ee')}` },
+  { bg: '#161719', layer: `${r(520,360,'100%','-40px','#1c2330')},${r(560,380,'0%','100%','#1b222b')}` });
+add('Ikut jam', 'berganti sendiri', 'Horizon berganti warna sesuai jam Jakarta: pagi biru muda, siang netral, sore jingga pucat, malam grafit. Miniatur ini versi sore.', 'Terasa hidup; sejalan dengan video login yang sudah mengikuti jam.',
+  { bg: '#f6f5f3', layer: `radial-gradient(900px 300px at 50% -90px,#f5dfca 0%,rgba(245,223,202,.4) 40%,transparent 72%)` },
+  { bg: DB, layer: `radial-gradient(900px 300px at 50% -90px,#2c241b 0%,rgba(44,36,27,.4) 40%,transparent 72%)` });
+
+// kartu tidak berubah: terang putih, gelap #232325
+const L_TOK = { sat: 2.4, card: '#ffffff', line: '#e2e2e7', line2: '#ececf0', fg: '#1d1d1f', muted: '#6e6e73', accent: '#0066cc', shadow: SH_L };
+const D_TOK = { sat: 1.7, card: '#232325', line: '#343437', line2: '#2c2c2f', fg: '#f5f5f7', muted: '#a1a1a6', accent: '#3d95ff', shadow: SH_D };
+const style = (t, dark) => {
+  const layer = t.mask ? `linear-gradient(180deg,transparent 0%,transparent 30%,${t.bg} 62%),${t.layer}` : t.layer;
+  return Object.entries({ ...(dark ? D_TOK : L_TOK), bg: t.bg, layer }).map(([k, v]) => `--${k}:${String(v).replace(/"/g, '&quot;')}`).join(';');
+};
+function app(t, dark) {
+  return `<div class="app" style="${style(t, dark)}">
+    <div class="bar"><span class="m"></span><b>Muara</b><div class="tabs"><span>Bulan</span><span class="on">Kantong</span><span>Dokumen</span></div></div>
+    <div class="body">
+      <div class="hi">Selamat sore<span>Pemilik</span></div>
+      <div class="card"><div class="k">Kekayaan bersih</div><div class="v">Rp 233.130.973</div>
+        <div class="s">kas 4,6 jt · tabungan 47,5 jt · investasi 181 jt</div>
+        <div class="bars"><i style="flex:2;background:#3b82f6"></i><i style="flex:20;background:#34c759"></i><i style="flex:78;background:#e8a33d"></i></div></div>
+      <div class="card"><div class="sec"><b>Kas & rekening harian</b><small>ketuk untuk mengubah</small></div>
+        <div class="row"><span class="av" style="background:#003D79">mdr</span><div class="n">Operasional<small>saldo awal 120 jt</small></div><span class="a">Rp 4.635.180</span></div>
+        <div class="row"><span class="av" style="background:#0060AF">BCA</span><div class="n">BCA Operasional<small>dari email</small></div><span class="a">Rp 2.000.000</span></div>
+        <div class="row"><span class="av" style="background:#E8731A">mega</span><div class="n">CC Mega<small>kartu kredit</small></div><span class="a">Rp 48.000</span></div></div>
+      <div class="btn">+ Tambah kantong</div>
+    </div><span class="tag">${dark ? 'gelap' : 'terang'}</span></div>`;
+}
+const opts = document.getElementById('opts'), jump = document.getElementById('jump');
+let last = '';
+O.forEach((o, i) => {
+  const n = i + 1;
+  if (o.group !== last) { opts.insertAdjacentHTML('beforeend', `<div class="grp">${o.group}</div>`); if (last) jump.insertAdjacentHTML('beforeend', '<i></i>'); last = o.group; }
+  opts.insertAdjacentHTML('beforeend', `<section class="opt" id="o${n}"><h2>${n} · ${o.name}<small>${o.kind}</small></h2><p class="why">${o.why}</p><p class="fit"><b>Cocok:</b> ${o.fit}</p><div class="pair">${app(o.l, false)}${app(o.d, true)}</div></section>`);
+  jump.insertAdjacentHTML('beforeend', `<a href="#o${n}" title="${o.name}">${n}</a>`);
+});
+jump.insertAdjacentHTML('beforeend', `<a class="rk" href="#rekomendasi">Rekomendasi</a>`);
+document.getElementById('tog').onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  r.dataset.theme = dark ? 'light' : 'dark';
+};
+</script>
+</body>
+</html>

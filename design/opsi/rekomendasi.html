@@ -1,0 +1,37 @@
+<style>
+.rk h2{font-size:20px;margin:24px 0 6px;letter-spacing:-.01em}
+.rk h3{font-size:14.5px;margin:22px 0 6px}
+.rk p{margin:0 0 10px;color:var(--fg2);font-size:14px;line-height:1.6}
+.rk .pick{background:var(--card);box-shadow:var(--shadow);border-radius:var(--r);padding:16px 18px;margin:12px 0 4px}
+.rk .pick b{color:var(--fg)}
+.rk .seg{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;padding:10px 0;border-top:1px solid var(--line2);font-size:13.5px}
+.rk .seg dt{font-weight:600}
+.rk .seg dd{margin:0;color:var(--fg2)}
+.rk a{color:var(--accent);font-weight:600;text-decoration:none}
+@media (max-width:560px){.rk .seg{grid-template-columns:1fr}}
+</style>
+<div class="rk">
+  <h2>Rekomendasi</h2>
+  <p>Penilaian dari sudut pandang pengguna, bukan selera visual. Ukurannya: seberapa cepat orang paham tanpa diajari, seberapa kecil peluang salah setuju, dan apakah tetap nyaman untuk mata yang kurang awas atau jempol di layar kecil.</p>
+
+  <div class="pick">
+    <p style="margin:0"><b>Pilihan utama: Setelan pakai <a href="#o1">Opsi 1</a>, Dari Email pakai <a href="#o6">Opsi 6</a>, dengan ukuran huruf minimal dari <a href="#o20">Opsi 20</a>.</b></p>
+    <p style="margin:8px 0 0">Opsi 1 meniru Setelan iPhone, pola yang sudah dihafal hampir semua orang, jadi mengatur bank tidak perlu dipelajari. Opsi 6 menaruh satu hal di depan: berapa draf yang menunggu dan tombol untuk menyetujuinya, sesuai rutinitas "buka, lihat, setujui". Dari Opsi 20 diambil batas bawahnya saja: teks utama 16px, baris minimal 48px, dan label tertulis di samping ikon, supaya tetap terbaca oleh pengguna yang lebih tua tanpa membuat tampilan terlihat seperti mode khusus.</p>
+  </div>
+
+  <h3>Per golongan pengguna</h3>
+  <dl>
+    <div class="seg"><dt>Awam teknologi</dt><dd><a href="#o1">1</a>, <a href="#o3">3</a>. Opsi 3 terasa seperti m-banking BCA atau Livin yang sudah dipakai tiap hari, jadi istilah dan tata letaknya tidak asing.</dd></div>
+    <div class="seg"><dt>Lansia, mata kurang awas</dt><dd><a href="#o20">20</a>, lalu <a href="#o3">3</a>. Tombol Setujui dan Buang tertulis jelas di tiap draf, nominal ditulis lengkap, dan tidak ada gestur tersembunyi seperti geser.</dd></div>
+    <div class="seg"><dt>Sibuk, cek sekilas</dt><dd><a href="#o6">6</a>, <a href="#o4">4</a>. Satu angka besar, satu tombol. Opsi 4 cocok kalau ingin menyetujui sebagian saja dengan mencentang.</dd></div>
+    <div class="seg"><dt>Teliti, takut salah catat</dt><dd><a href="#o8">8</a>. Satu draf satu layar memaksa setiap transaksi dilihat, cocok untuk minggu pertama memakai fitur ini, sebelum percaya pada tebakannya.</dd></div>
+    <div class="seg"><dt>Banyak rekening</dt><dd><a href="#o9">9</a>, <a href="#o19">19</a>, <a href="#o15">15</a>. Dipilah per bank atau ditandai warna bank, dan Opsi 15 menunjukkan dampak ke tiap kantong sebelum disetujui.</dd></div>
+    <div class="seg"><dt>Power user</dt><dd><a href="#o11">11</a>, <a href="#o12">12</a>. Padat, banyak informasi dalam satu layar, cocok di layar lebar.</dd></div>
+  </dl>
+
+  <h3>Yang sebaiknya dihindari untuk aplikasi umum</h3>
+  <p><a href="#o10">Opsi 10</a> (peta aliran) enak dilihat tapi sulit diubah dengan jempol, dan garis penghubungnya kacau begitu bank bertambah. <a href="#o17">Opsi 17</a> (buku kas) mengandaikan pengguna paham debit dan kredit, padahal banyak yang tertukar. <a href="#o13">Opsi 13</a> (kotak masuk) membuat orang mengira ini aplikasi email, lalu mencari tombol balas atau hapus. <a href="#o2">Opsi 2</a> (tumpukan kartu) bagus untuk satu atau dua bank, tapi tumpukannya memanjang kalau bank bertambah.</p>
+
+  <h3>Catatan untuk semua opsi</h3>
+  <p>Transfer antar rekening sendiri harus selalu tampil beda dari belanja (nominal abu-abu dan tanda ⇄), karena di situlah orang paling sering salah setuju. Logo tiruan di maket ini nanti diganti logo asli, dan semua opsi sudah bisa dicek di mode gelap lewat tombol di kanan atas.</p>
+</div>

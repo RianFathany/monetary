@@ -1,0 +1,370 @@
+<style>
+/* ---------- 6 · Ringkasan dulu ---------- */
+.o6 .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+.o6 .top{display:flex;align-items:baseline;justify-content:space-between;padding:0 4px}
+.o6 .top h3{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em}
+.o6 .top span{font-size:12px;color:var(--muted)}
+.o6 .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px}
+.o6 .chip{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;padding:8px 6px;border-radius:8px;border:1px solid var(--line2)}
+.o6 .chip .logo{width:30px;height:30px;font-size:9.5px}
+.o6 .chip b{font-size:12px;font-weight:600;line-height:1.2}
+.o6 .chip i{font-style:normal;font-size:10.5px;overflow-wrap:anywhere;color:var(--muted);line-height:1.25}
+.o6 .chip.add{border-style:dashed;border-color:var(--line);color:var(--fg2);justify-content:flex-start}
+.o6 .chip.add .pl{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--line2)}
+.o6 .acc{border-top:1px solid var(--line2)}
+.o6 .row{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 16px}
+.o6 .row + .row{border-top:1px solid var(--line2)}
+.o6 .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.o6 .em{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o6 .t{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o6 .link{color:var(--accent);font-weight:600;font-size:13px}
+.o6 .hero{padding:20px 16px 16px}
+.o6 .hero .lbl{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+.o6 .sync{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 4px;color:var(--fg2);font-size:12px}
+.o6 .big{display:flex;align-items:baseline;gap:8px;margin-top:4px}
+.o6 .big strong{font-size:56px;line-height:1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.o6 .big span{font-size:15px;color:var(--fg2)}
+.o6 .sum{margin:8px 0 16px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o6 .sum b{color:var(--fg);font-weight:600}
+.o6 .btn{display:flex;align-items:center;justify-content:center;height:46px;border-radius:var(--r);background:var(--accent);color:#fff;font-weight:600;font-size:14px}
+.o6 .d{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px}
+.o6 .d + .d{border-top:1px solid var(--line2)}
+.o6 .d .logo{width:28px;height:28px;font-size:9px}
+.o6 .d .m{flex:1;min-width:0}
+.o6 .d .m b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o6 .d .m b{display:block;font-size:13.5px;font-weight:600}
+.o6 .d .m i{display:block;font-style:normal;font-size:11.5px;color:var(--muted)}
+.o6 .amt{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.o6 .amt.mut{color:var(--muted);font-weight:500;display:inline-flex;align-items:center;gap:4px}
+
+/* ---------- 7 · Feed per hari ---------- */
+.o7 .hd{padding:0 4px}
+.o7 .hd h3{margin:0;font-size:22px;font-weight:700;letter-spacing:-.02em}
+.o7 .hd p{margin:2px 0 0;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o7 .stack{display:grid;gap:8px}
+.o7 .bk{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 16px}
+.o7 .bk .h{display:flex;align-items:center;gap:12px;min-height:40px}
+.o7 .bk .h b{flex:1;font-size:14px;font-weight:600}
+.o7 .bk .h svg{color:var(--muted)}
+.o7 .kv{display:grid;grid-template-columns:64px 1fr;gap:2px 8px;margin:8px 0 0 44px;font-size:12px}
+.o7 .kv dt{color:var(--muted)}
+.o7 .kv dd{margin:0;color:var(--fg2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o7 .kv .cc{color:var(--muted)}
+.o7 .acts{display:flex;gap:16px;padding:0 4px}
+.o7 .acts span{display:inline-flex;align-items:center;gap:6px;min-height:40px;font-size:13px;font-weight:600;color:var(--fg2)}
+.o7 .acts span:first-child{color:var(--accent)}
+.o7 .day{display:flex;justify-content:space-between;padding:8px 4px 0;font-size:12px;font-weight:600;color:var(--fg2)}
+.o7 .day em{font-style:normal;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.o7 .grp{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);margin-top:-6px}
+.o7 .tx{display:flex;align-items:center;gap:12px;min-height:60px;padding:0 8px 0 16px}
+.o7 .tx .m{flex:1;min-width:0}
+.o7 .tx .m b,.o7 .tx .m i{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o7 .tx .m b{display:block;font-size:14px;font-weight:600}
+.o7 .tx .m i{display:block;font-style:normal;font-size:11.5px;color:var(--muted)}
+.o7 .tx .a{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.o7 .tx .a.mut{color:var(--muted);font-weight:500}
+.o7 .ok{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--fg2);border:1px solid var(--line);flex:none}
+.o7 .sw{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;border:1px dashed var(--line);color:var(--muted);flex:none}
+.o7 .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:8px 8px 8px 16px}
+.o7 .bar div{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o7 .bar div b{display:block;font-size:14px;color:var(--fg)}
+.o7 .bar span{display:flex;align-items:center;height:44px;padding:0 18px;border-radius:var(--r);background:var(--accent);color:#fff;font-weight:600;font-size:14px}
+
+/* ---------- 8 · Antrean satu per satu ---------- */
+.o8 .sec{font-size:12px;color:var(--muted);padding:0 16px;margin-bottom:-8px}
+.o8 .list{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+.o8 .ac{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;font-size:13.5px;font-weight:600}
+.o8 .ac .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.o8 .ac small{margin-left:auto;font-weight:500;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.o8 .map{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 16px 0 31px;font-size:13px;color:var(--fg2)}
+.o8 .map .arr{color:var(--muted)}
+.o8 .map .k{margin-left:auto;color:var(--fg)}
+.o8 .gap{border-top:1px solid var(--line2)}
+.o8 .ft{display:flex;align-items:center;min-height:44px;padding:0 16px;font-size:13.5px;color:var(--fg2)}
+.o8 .ft + .ft{border-top:1px solid var(--line2)}
+.o8 .ft.p{color:var(--accent);font-weight:600}
+.o8 .q{display:flex;justify-content:space-between;align-items:baseline;padding:0 4px}
+.o8 .q b{font-size:17px;font-weight:700}
+.o8 .q span{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o8 .prog{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:0 4px;margin-top:-6px}
+.o8 .prog i{height:3px;border-radius:2px;background:var(--line)}
+.o8 .prog i:first-child{background:var(--fg)}
+.o8 .focus{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:20px 16px 16px}
+.o8 .meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.o8 .meta .logo{width:22px;height:22px;border-radius:6px;font-size:7.5px}
+.o8 .mer{margin:16px 0 0;font-size:15px;color:var(--fg2)}
+.o8 .amt{font-size:34px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15}
+.o8 dl{margin:16px 0;border-top:1px solid var(--line2)}
+.o8 dl div{display:flex;align-items:center;min-height:44px;border-bottom:1px solid var(--line2);font-size:13px}
+.o8 dt{color:var(--muted);width:72px;flex:none}
+.o8 dd{margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o8 dl svg{color:var(--muted);flex:none}
+.o8 .btns{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}
+.o8 .btns span{display:flex;align-items:center;justify-content:center;height:50px;border-radius:var(--r);font-weight:600;font-size:15px}
+.o8 .skip{background:var(--line2);color:var(--fg)}
+.o8 .yes{background:var(--accent);color:#fff}
+.o8 .next{padding:0 4px;font-size:12px;color:var(--muted);margin-bottom:-8px;display:flex;justify-content:space-between}
+.o8 .next u{text-decoration:none;color:var(--fg2);font-weight:600}
+.o8 .pk{display:flex;align-items:center;gap:12px;min-height:48px;padding:0 16px;font-size:13px;color:var(--fg2)}
+.o8 .pk + .pk{border-top:1px solid var(--line2)}
+.o8 .pk span{flex:1}
+.o8 .pk b{font-weight:500;font-variant-numeric:tabular-nums}
+.o8 .pk b.mut{color:var(--muted)}
+.o8 .n{width:20px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ---------- 9 · Dipilah per bank ---------- */
+.o9 h3{margin:0;padding:0 4px;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.o9 .gh{font-size:11.5px;font-weight:600;color:var(--muted);padding:0 16px;margin-bottom:-8px}
+.o9 .list{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+.o9 .r{display:flex;align-items:center;gap:12px;min-height:58px;padding:0 12px 0 16px}
+.o9 .r + .r{border-top:1px solid var(--line2)}
+.o9 .r .m{flex:1;min-width:0}
+.o9 .r .m b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o9 .r .m b{display:block;font-size:14px;font-weight:600}
+.o9 .r .m i{display:block;font-style:normal;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o9 .k{text-align:right;font-size:13px;color:var(--fg2);line-height:1.25;flex:none;max-width:110px}
+.o9 .k small{display:block;font-size:11px;color:var(--muted)}
+.o9 .chev{color:var(--muted);flex:none}
+.o9 .r.sm{min-height:44px}
+.o9 .add{display:flex;align-items:center;gap:12px;min-height:44px;padding:0 16px;border-top:1px solid var(--line2);font-size:13.5px;color:var(--fg2)}
+.o9 .add.p{color:var(--accent);font-weight:600}
+.o9 .add .ic{width:32px;display:grid;place-items:center}
+.o9 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--ok);margin-right:4px;vertical-align:1px}
+.o9 .ih{display:flex;align-items:center;justify-content:space-between;padding:0 4px}
+.o9 .ih h3{padding:0}
+.o9 .sbtn{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:var(--r);border:1px solid var(--line);color:var(--fg2);font-size:12.5px;font-weight:600}
+.o9 .seg{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;background:var(--line2);border-radius:var(--r);padding:3px;gap:2px}
+.o9 .seg span{display:flex;align-items:center;justify-content:center;gap:4px;height:40px;border-radius:8px;font-size:13px;color:var(--fg2)}
+.o9 .seg span em{font-style:normal;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o9 .seg .on{background:var(--card);box-shadow:0 0 0 .5px var(--line),0 1px 3px rgba(0,0,0,.08);color:var(--fg);font-weight:600}
+.o9 .st{font-size:12px;color:var(--muted);padding:0 4px;margin:-4px 0 -6px;font-variant-numeric:tabular-nums}
+.o9 .st b{color:var(--fg);font-weight:600}
+.o9 .dt{width:28px;flex:none;text-align:left;line-height:1.1}
+.o9 .dt b{display:block;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.o9 .dt i{font-style:normal;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.o9 .a{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.o9 .a small{display:block;font-size:11px;font-weight:500;color:var(--muted)}
+.o9 .a.mut{color:var(--muted);font-weight:500}
+.o9 .src{width:4px;align-self:stretch;margin:14px 0;border-radius:2px;flex:none}
+.o9 .src.bca{background:var(--bca)}.o9 .src.mega{background:var(--mega)}.o9 .src.mandiri{background:var(--mandiri)}
+.o9 .go{display:flex;align-items:center;justify-content:center;height:46px;border-radius:var(--r);background:var(--accent);color:#fff;font-weight:600;font-size:14px}
+
+/* ---------- 10 · Peta aliran ---------- */
+.o10 .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+.o10 .ttl{display:flex;justify-content:space-between;align-items:baseline;padding:16px 16px 0}
+.o10 .ttl b{font-size:16px;font-weight:700}
+.o10 .ttl span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o10 .flow{display:grid;grid-template-columns:104px 18px 1fr 18px 1fr;grid-template-rows:auto repeat(3,52px);padding:12px 12px 8px}
+.o10 .colh{font-size:10.5px;font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding-bottom:6px}
+.o10 .g{display:flex;flex-direction:column;justify-content:center;min-width:0;padding-right:4px}
+.o10 .g b{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.o10 .g i{font-style:normal;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.o10 .g i::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.o10 .ga{grid-column:1;grid-row:2}
+.o10 .gb{grid-column:1;grid-row:3/5}
+.o10 .ln{display:block;width:18px;height:156px;grid-row:2/5}
+.o10 .ln path{fill:none;stroke:var(--muted);stroke-width:1;opacity:.55}
+.o10 .ln1{grid-column:2}.o10 .ln2{grid-column:4}
+.o10 .b{grid-column:3;display:flex;align-items:center;gap:8px;height:40px;align-self:center;padding:0 8px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;font-weight:600;min-width:0}
+.o10 .b .logo{width:22px;height:22px;border-radius:5px;font-size:7.5px}
+.o10 .kn{grid-column:5;align-self:center;padding-left:4px;font-size:12.5px;line-height:1.25;min-width:0}
+.o10 .kn small{display:block;font-size:10.5px;color:var(--muted)}
+.o10 .r2{grid-row:2}.o10 .r3{grid-row:3}.o10 .r4{grid-row:4}
+.o10 .act{display:flex;border-top:1px solid var(--line2)}
+.o10 .act span{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;font-size:13px;font-weight:600;color:var(--fg2)}
+.o10 .act span + span{border-left:1px solid var(--line2)}
+.o10 .ih{display:flex;justify-content:space-between;align-items:flex-end;padding:0 4px}
+.o10 .ih h3{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.o10 .ih p{margin:2px 0 0;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o10 .ih span{display:inline-flex;align-items:center;min-height:40px;font-size:13.5px;font-weight:600;color:var(--accent)}
+.o10 .it{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;padding:12px 16px;min-height:64px}
+.o10 .it + .it{border-top:1px solid var(--line2)}
+.o10 .it b{font-size:14px;font-weight:600}
+.o10 .it .a{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.o10 .it .a.mut{color:var(--muted);font-weight:500}
+.o10 .it .s{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.o10 .tag{font-size:11px;color:var(--fg2);border:1px solid var(--line);border-radius:4px;padding:1px 6px;line-height:1.5}
+.o10 .tag.tf{border-style:dashed;color:var(--muted)}
+.o10 .k2{font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.o10 .foot{display:flex;justify-content:space-between;align-items:center;padding:0 16px;min-height:44px;border-top:1px solid var(--line2);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.o10 .foot b{color:var(--fg);font-weight:600}
+</style>
+
+<!-- ===================== 6 ===================== -->
+<section class="opt" id="o6"><h2>6 · Ringkasan dulu</h2><p class="why">Angka besar draf menunggu dan satu tombol; cocok untuk yang ingin beres dalam satu ketukan.</p>
+<div class="phone o6">
+  <div class="scr-label">Setelan</div>
+  <div class="top"><h3>Sumber Email</h3><span>2 Gmail · 3 bank</span></div>
+  <div class="card">
+    <div class="chips">
+      <div class="chip"><span class="logo mandiri">mdr</span><b>Livin'</b><i>→ Mandiri</i></div>
+      <div class="chip"><span class="logo bca">BCA</span><b>BCA</b><i>→ BCA Operasional</i></div>
+      <div class="chip"><span class="logo mega">mega</span><b>Mega</b><i>→ CC Mega</i></div>
+      <div class="chip add"><span class="pl"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><b>Tambah bank</b></div>
+    </div>
+    <div class="acc">
+      <div class="row"><span class="dot"></span><span class="em">mrianfathany32@gmail.com</span><span class="t">13.45</span></div>
+      <div class="row"><span class="dot"></span><span class="em">mrianfathany09@gmail.com</span><span class="t">13.45</span></div>
+      <div class="row"><span class="link">Hubungkan Gmail lain</span></div>
+    </div>
+  </div>
+
+  <div class="scr-label">Dari Email</div>
+  <div class="card hero">
+    <div class="lbl"><span>Dari Email</span><span class="sync"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Sinkron 13.45</span></div>
+    <div class="big"><strong>3</strong><span>draf menunggu</span></div>
+    <p class="sum"><b>Rp 1.298.000</b> keluar · 1 transfer antar kantong</p>
+    <div class="btn">Setujui semua</div>
+  </div>
+  <div class="card">
+    <div class="d"><span class="logo bca">BCA</span><div class="m"><b>Tokopedia</b><i>3 Okt · Belanja</i></div><span class="amt">1,25 jt</span></div>
+    <div class="d"><span class="logo mandiri">mdr</span><div class="m"><b>Mandiri → BCA Operasional</b><i>4 Okt · Transfer</i></div><span class="amt mut"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg>2 jt</span></div>
+    <div class="d"><span class="logo mega">mega</span><div class="m"><b>Grab</b><i>5 Okt · Transport</i></div><span class="amt">48 rb</span></div>
+  </div>
+</div></section>
+
+<!-- ===================== 7 ===================== -->
+<section class="opt" id="o7"><h2>7 · Feed per hari</h2><p class="why">Draf dikelompokkan per tanggal seperti mutasi rekening; cocok untuk yang mencocokkan dengan ingatan harian.</p>
+<div class="phone o7">
+  <div class="scr-label">Setelan</div>
+  <div class="hd"><h3>Sumber Email</h3><p>Sinkron terakhir 13.45</p></div>
+  <div class="stack">
+    <div class="bk">
+      <div class="h"><span class="logo mandiri">mdr</span><b>Livin' by Mandiri</b><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <dl class="kv"><dt>Kantong</dt><dd>Mandiri</dd><dt>Gmail</dt><dd>mrianfathany32@gmail.com</dd></dl>
+    </div>
+    <div class="bk">
+      <div class="h"><span class="logo bca">BCA</span><b>BCA</b><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <dl class="kv"><dt>Kantong</dt><dd>BCA Operasional</dd><dt>Gmail</dt><dd>mrianfathany09@gmail.com</dd></dl>
+    </div>
+    <div class="bk">
+      <div class="h"><span class="logo mega">mega</span><b>Bank Mega</b><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <dl class="kv"><dt>Kantong</dt><dd>CC Mega <span class="cc">· kartu kredit</span></dd><dt>Gmail</dt><dd>mrianfathany09@gmail.com</dd></dl>
+    </div>
+  </div>
+  <div class="acts">
+    <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Tambah bank</span>
+    <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>Hubungkan Gmail lain</span>
+  </div>
+
+  <div class="scr-label">Dari Email</div>
+  <div class="hd"><h3>Dari Email</h3><p>3 draf menunggu · sinkron 13.45</p></div>
+  <div class="day">Sabtu, 3 Okt<em>1.250.000</em></div>
+  <div class="grp">
+    <div class="tx"><span class="logo bca">BCA</span><div class="m"><b>Tokopedia</b><i>Belanja · BCA Operasional</i></div><span class="a">1,25 jt</span><span class="ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+  </div>
+  <div class="day">Minggu, 4 Okt<em>transfer</em></div>
+  <div class="grp">
+    <div class="tx"><span class="sw"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg></span><div class="m"><b>Mandiri → BCA Operasional</b><i>Antar kantong · Livin</i></div><span class="a mut">2 jt</span><span class="ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+  </div>
+  <div class="day">Hari ini, 5 Okt<em>48.000</em></div>
+  <div class="grp">
+    <div class="tx"><span class="logo mega">mega</span><div class="m"><b>Grab</b><i>Transport · CC Mega</i></div><span class="a">48 rb</span><span class="ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
+  </div>
+  <div class="bar"><div><b>3 draf</b>keluar Rp 1.298.000</div><span>Setujui semua</span></div>
+</div></section>
+
+<!-- ===================== 8 ===================== -->
+<section class="opt" id="o8"><h2>8 · Antrean satu per satu</h2><p class="why">Satu draf tampil penuh dengan Lewati dan Setujui; cocok untuk yang mau memeriksa tiap transaksi dengan teliti.</p>
+<div class="phone o8">
+  <div class="scr-label">Setelan</div>
+  <div class="sec">Sumber Email</div>
+  <div class="list">
+    <div class="ac"><span class="dot"></span>mrianfathany32@gmail.com<small>13.45</small></div>
+    <div class="map"><span>Livin' by Mandiri</span><span class="arr">→</span><span class="k">Mandiri</span></div>
+    <div class="gap"></div>
+    <div class="ac"><span class="dot"></span>mrianfathany09@gmail.com<small>13.45</small></div>
+    <div class="map"><span>BCA</span><span class="arr">→</span><span class="k">BCA Operasional</span></div>
+    <div class="map"><span>Bank Mega</span><span class="arr">→</span><span class="k">CC Mega</span></div>
+  </div>
+  <div class="list">
+    <div class="ft p">Tambah bank</div>
+    <div class="ft">Hubungkan Gmail lain</div>
+  </div>
+
+  <div class="scr-label">Dari Email</div>
+  <div class="q"><b>Dari Email</b><span>1 dari 3</span></div>
+  <div class="prog"><i></i><i></i><i></i></div>
+  <div class="focus">
+    <div class="meta"><span class="logo bca">BCA</span>Dari BCA · Sabtu, 3 Okt</div>
+    <p class="mer">Tokopedia</p>
+    <div class="amt">Rp 1.250.000</div>
+    <dl>
+      <div><dt>Kategori</dt><dd>Belanja</dd><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div><dt>Kantong</dt><dd>BCA Operasional</dd><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      <div><dt>Jenis</dt><dd>Pengeluaran</dd><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+    </dl>
+    <div class="btns"><span class="skip">Lewati</span><span class="yes">Setujui</span></div>
+  </div>
+  <div class="next"><span>Berikutnya</span><u>Setujui semua 3</u></div>
+  <div class="list">
+    <div class="pk"><span class="n">2</span><span>Mandiri → BCA Operasional</span><b class="mut">⇄ 2 jt</b></div>
+    <div class="pk"><span class="n">3</span><span>Grab</span><b>48 rb</b></div>
+  </div>
+</div></section>
+
+<!-- ===================== 9 ===================== -->
+<section class="opt" id="o9"><h2>9 · Dipilah per bank</h2><p class="why">Bank jadi kunci utama di setelan dan di kotak draf; cocok untuk yang memegang banyak rekening dan kartu.</p>
+<div class="phone o9">
+  <div class="scr-label">Setelan</div>
+  <h3>Sumber Email</h3>
+  <div class="gh">Bank</div>
+  <div class="list">
+    <div class="r"><span class="logo mandiri">mdr</span><div class="m"><b>Livin' by Mandiri</b><i>mrianfathany32@gmail.com</i></div><div class="k">Mandiri</div><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="r"><span class="logo bca">BCA</span><div class="m"><b>BCA</b><i>mrianfathany09@gmail.com</i></div><div class="k">BCA Operasional</div><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="r"><span class="logo mega">mega</span><div class="m"><b>Bank Mega</b><i>mrianfathany09@gmail.com</i></div><div class="k">CC Mega<small>Kartu kredit</small></div><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+    <div class="add p"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>Tambah bank</div>
+  </div>
+  <div class="gh">Gmail</div>
+  <div class="list">
+    <div class="r sm"><div class="m"><b>mrianfathany32@gmail.com</b><i><span class="dot"></span>Aktif · 1 bank · 13.45</i></div></div>
+    <div class="r sm"><div class="m"><b>mrianfathany09@gmail.com</b><i><span class="dot"></span>Aktif · 2 bank · 13.45</i></div></div>
+    <div class="add">Hubungkan Gmail lain</div>
+  </div>
+
+  <div class="scr-label">Dari Email</div>
+  <div class="ih"><h3>Dari Email</h3><span class="sbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Sinkron</span></div>
+  <div class="seg"><span class="on">Semua <em>3</em></span><span>BCA <em>1</em></span><span>Mega <em>1</em></span><span>Livin <em>1</em></span></div>
+  <p class="st"><b>3 draf menunggu</b> · terakhir 13.45</p>
+  <div class="list">
+    <div class="r"><span class="src bca"></span><div class="dt"><b>3</b><i>Okt</i></div><div class="m"><b>Tokopedia</b><i>Belanja · BCA Operasional</i></div><div class="a">1,25 jt</div></div>
+    <div class="r"><span class="src mandiri"></span><div class="dt"><b>4</b><i>Okt</i></div><div class="m"><b>Mandiri → BCA Operasional</b><i>Transfer antar kantong</i></div><div class="a mut">⇄ 2 jt</div></div>
+    <div class="r"><span class="src mega"></span><div class="dt"><b>5</b><i>Okt</i></div><div class="m"><b>Grab</b><i>Transport · CC Mega</i></div><div class="a">48 rb</div></div>
+  </div>
+  <div class="go">Setujui semua (3)</div>
+</div></section>
+
+<!-- ===================== 10 ===================== -->
+<section class="opt" id="o10"><h2>10 · Peta aliran</h2><p class="why">Setelan digambar sebagai jalur Gmail ke bank ke kantong; cocok untuk yang ingin melihat sekilas uang tercatat ke mana.</p>
+<div class="phone o10">
+  <div class="scr-label">Setelan</div>
+  <div class="card">
+    <div class="ttl"><b>Sumber Email</b><span>Sinkron 13.45</span></div>
+    <div class="flow">
+      <div class="colh">Gmail</div><div></div><div class="colh">Bank</div><div></div><div class="colh">Kantong</div>
+      <div class="g ga"><b>mrianfathany32</b><i>@gmail.com</i></div>
+      <div class="g gb"><b>mrianfathany09</b><i>@gmail.com</i></div>
+      <svg class="ln ln1" viewBox="0 0 18 156" aria-hidden="true"><path d="M0 26H18"/><path d="M0 104H8V78H18"/><path d="M8 104V130H18"/></svg>
+      <div class="b r2"><span class="logo mandiri">mdr</span>Livin'</div>
+      <div class="b r3"><span class="logo bca">BCA</span>BCA</div>
+      <div class="b r4"><span class="logo mega">mega</span>Mega</div>
+      <svg class="ln ln2" viewBox="0 0 18 156" aria-hidden="true"><path d="M0 26H17M13 22.5l4 3.5-4 3.5"/><path d="M0 78H17M13 74.5l4 3.5-4 3.5"/><path d="M0 130H17M13 126.5l4 3.5-4 3.5"/></svg>
+      <div class="kn r2">Mandiri</div>
+      <div class="kn r3">BCA Operasional</div>
+      <div class="kn r4">CC Mega<small>Kartu kredit</small></div>
+    </div>
+    <div class="act">
+      <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Tambah bank</span>
+      <span>Hubungkan Gmail lain</span>
+    </div>
+  </div>
+
+  <div class="scr-label">Dari Email</div>
+  <div class="ih"><div><h3>Dari Email</h3><p>3 draf menunggu · Sinkron 13.45</p></div><span>Setujui semua</span></div>
+  <div class="card">
+    <div class="it"><b>Tokopedia</b><span class="a">1,25 jt</span><span class="s"><span class="tag">Belanja</span>3 Okt · BCA</span><span class="k2">BCA Operasional</span></div>
+    <div class="it"><b>Mandiri → BCA Operasional</b><span class="a mut">⇄ 2 jt</span><span class="s"><span class="tag tf">Transfer</span>4 Okt · Livin</span><span class="k2">antar kantong</span></div>
+    <div class="it"><b>Grab</b><span class="a">48 rb</span><span class="s"><span class="tag">Transport</span>5 Okt · Mega</span><span class="k2">CC Mega</span></div>
+    <div class="foot"><span>Total keluar</span><b>Rp 1.298.000</b></div>
+  </div>
+</div></section>

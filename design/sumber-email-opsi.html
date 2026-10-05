@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Opsi Desain Sumber Email</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2f2f5;--card:#ffffff;--fg:#1d1d1f;--fg2:#3a3a3c;--muted:#86868b;--line:#e5e5ea;--line2:#efeff2;
+  --accent:#0066cc;--ok:#1d7a3e;--warn:#9a5b00;--r:10px;
+  --shadow:0 0 0 .5px rgba(0,0,0,.06),0 1px 1px rgba(0,0,0,.04),0 2px 6px rgba(0,0,0,.05),0 10px 24px rgba(0,0,0,.07);
+  --bca:#0060AF;--mega:#E8731A;--mandiri:#003D79;--gold:#FFB700;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1a1a1c;--card:#232325;--fg:#f5f5f7;--fg2:#d1d1d6;--muted:#a1a1a6;--line:#343437;--line2:#2c2c2f;--accent:#3d95ff;--ok:#30d158;--warn:#ffb340;
+  --shadow:0 0 0 .5px rgba(255,255,255,.06),0 10px 24px rgba(0,0,0,.4)}}
+:root[data-theme="dark"]{--bg:#1a1a1c;--card:#232325;--fg:#f5f5f7;--fg2:#d1d1d6;--muted:#a1a1a6;--line:#343437;--line2:#2c2c2f;--accent:#3d95ff;--ok:#30d158;--warn:#ffb340;
+  --shadow:0 0 0 .5px rgba(255,255,255,.06),0 10px 24px rgba(0,0,0,.4)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 "Plus Jakarta Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+header{max-width:1240px;margin:0 auto;padding:28px 16px 8px;display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font-size:22px;letter-spacing:-.01em}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.tog{border:0;background:var(--card);color:var(--fg);box-shadow:var(--shadow);border-radius:999px;padding:8px 14px;font:600 12.5px inherit;font-family:inherit;cursor:pointer}
+.grid{max-width:1240px;margin:0 auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:28px}
+.opt h2{margin:0 0 2px;font-size:15px}
+.opt .why{margin:0 0 12px;color:var(--muted);font-size:12.5px;min-height:38px}
+.phone{width:100%;max-width:375px;margin:0 auto;background:var(--bg);border-radius:34px;padding:14px 12px 18px;
+  box-shadow:0 0 0 1px var(--line),0 30px 60px rgba(0,0,0,.12);display:grid;gap:12px}
+.lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:4px 6px -4px}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+.logo{flex:none;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:10px;letter-spacing:-.01em}
+.logo.bca{background:var(--bca)}.logo.mega{background:var(--mega)}.logo.mandiri{background:var(--mandiri);color:var(--gold)}
+.logo.sm{width:22px;height:22px;border-radius:6px;font-size:7.5px}
+.muted{color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:999px;background:var(--ok);display:inline-block}
+.amt{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.amt.in{color:var(--ok)}
+.btn{border:0;border-radius:var(--r);height:42px;font:600 14px inherit;font-family:inherit;cursor:pointer;width:100%}
+.btn.pri{background:var(--fg);color:var(--bg)}
+.btn.soft{background:color-mix(in srgb,var(--fg) 6%,transparent);color:var(--fg)}
+.chev{color:var(--muted);font-size:18px;line-height:1}
+
+/* Opsi A — daftar bergrup (gaya Setelan iOS) */
+.A .row{display:flex;align-items:center;gap:12px;padding:11px 14px;min-height:52px}
+.A .row+.row{border-top:1px solid var(--line2)}
+.A .row .t{flex:1;min-width:0}
+.A .row .t b{display:block;font-weight:600;font-size:14px}
+.A .row .t span{font-size:12px;color:var(--muted)}
+.A .add{color:var(--accent);font-weight:600}
+.A .add .plus{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 10%,transparent);font-size:18px}
+.A .banner{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.A .banner b{flex:1}
+
+/* Opsi B — kartu ringkasan (gaya aplikasi bank digital) */
+.B .hero{padding:16px}
+.B .hero .k{font-size:12px;color:var(--muted)}
+.B .hero .n{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;margin:2px 0 12px}
+.B .hero .n small{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:0}
+.B .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px 16px}
+.B .tile{border-radius:var(--r);padding:10px;background:color-mix(in srgb,var(--fg) 4%,transparent);display:grid;gap:8px}
+.B .tile b{font-size:12.5px}
+.B .tile>span:last-child{font-size:11px;color:var(--muted);margin-top:-6px}
+.B .tile.add{place-items:center;color:var(--muted);font-weight:600;font-size:12px;box-shadow:inset 0 0 0 1px var(--line);background:none}
+.B .acc{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line2);font-size:12.5px}
+.B .acc b{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.B .list .row{display:flex;align-items:center;gap:12px;padding:12px 16px}
+.B .list .row+.row{border-top:1px solid var(--line2)}
+.B .list .t{flex:1;min-width:0}.B .list .t b{display:block;font-weight:600;font-size:13.5px}.B .list .t span{font-size:12px;color:var(--muted)}
+
+/* Opsi C — garis tipis, tanpa kartu di dalam kartu (gaya Linear) */
+.C .card{box-shadow:0 0 0 1px var(--line)}
+.C .bar{display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:13px}
+.C .bar b{flex:1}
+.C .pill{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--fg);color:var(--bg)}
+.C .row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 14px;border-top:1px solid var(--line2)}
+.C .row b{font-weight:600;font-size:13.5px}
+.C .row .m{font-size:12px;color:var(--muted);white-space:nowrap}
+.C .foot{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line2)}
+.C .link{flex:1;text-align:center;font-size:12.5px;font-weight:600;color:var(--fg2);padding:6px;border-radius:8px;background:color-mix(in srgb,var(--fg) 5%,transparent)}
+.note{max-width:1240px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Sumber Email · tiga opsi</h1>
+    <p>Data contoh sesuai kasusmu: Livin → Mandiri, BCA → BCA Operasional, Mega → CC Mega. Logo masih tiruan; versi asli dari Logo.dev.</p>
+  </div>
+  <button class="tog" onclick="const r=document.documentElement;r.dataset.theme=(r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme: dark)').matches))?'light':'dark'">Terang / gelap</button>
+</header>
+
+<div class="grid">
+
+  <!-- A -->
+  <section class="opt A">
+    <h2>A · Daftar bersih</h2>
+    <p class="why">Gaya Setelan iPhone. Paling tenang dan paling familiar, satu baris satu bank, tanpa hiasan.</p>
+    <div class="phone">
+      <div class="card banner"><span class="logo mandiri" style="background:var(--fg);color:var(--bg)">3</span><b>3 draf menunggu</b><span class="chev">›</span></div>
+
+      <div class="lbl">mrianfathany32@gmail.com <span class="dot"></span></div>
+      <div class="card">
+        <div class="row"><span class="logo mandiri">mdr</span><div class="t"><b>Livin' by Mandiri</b><span>Mandiri</span></div><span class="chev">›</span></div>
+        <div class="row add"><span class="plus">+</span>Tambah bank</div>
+      </div>
+
+      <div class="lbl">mrianfathany09@gmail.com <span class="dot"></span></div>
+      <div class="card">
+        <div class="row"><span class="logo bca">BCA</span><div class="t"><b>BCA</b><span>BCA Operasional</span></div><span class="chev">›</span></div>
+        <div class="row"><span class="logo mega">mega</span><div class="t"><b>Bank Mega</b><span>CC Mega</span></div><span class="chev">›</span></div>
+        <div class="row add"><span class="plus">+</span>Tambah bank</div>
+      </div>
+
+      <div class="card"><div class="row add" style="justify-content:center">Hubungkan Gmail lain</div></div>
+    </div>
+  </section>
+
+  <!-- B -->
+  <section class="opt B">
+    <h2>B · Ringkasan dulu</h2>
+    <p class="why">Gaya aplikasi bank digital. Yang pertama terlihat adalah hal yang perlu dikerjakan; bank tampil sebagai ubin logo.</p>
+    <div class="phone">
+      <div class="card">
+        <div class="hero">
+          <div class="k">Dari email · sinkron 13.45</div>
+          <div class="n">3 <small>draf menunggu</small></div>
+          <button class="btn pri">Periksa &amp; setujui</button>
+        </div>
+        <div class="tiles">
+          <div class="tile"><span class="logo mandiri">mdr</span><b>Livin</b><span>→ Mandiri</span></div>
+          <div class="tile"><span class="logo bca">BCA</span><b>BCA</b><span>→ Operasional</span></div>
+          <div class="tile"><span class="logo mega">mega</span><b>Mega</b><span>→ CC Mega</span></div>
+        </div>
+        <div class="acc"><span class="dot"></span><b>2 Gmail tersambung</b><span class="muted">Kelola ›</span></div>
+      </div>
+
+      <div class="lbl">Draf terbaru</div>
+      <div class="card list">
+        <div class="row"><span class="logo bca">BCA</span><div class="t"><b>Tokopedia</b><span>3 Okt · Belanja</span></div><span class="amt">1,25 jt</span></div>
+        <div class="row"><span class="logo mandiri">mdr</span><div class="t"><b>Mandiri → BCA</b><span>4 Okt · transfer</span></div><span class="amt muted">2 jt</span></div>
+        <div class="row"><span class="logo mega">mega</span><div class="t"><b>Grab</b><span>5 Okt · Transport</span></div><span class="amt">48 rb</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- C -->
+  <section class="opt C">
+    <h2>C · Padat &amp; tegas</h2>
+    <p class="why">Gaya alat kerja (Linear, Notion). Satu panel, garis tipis, banyak informasi dalam ruang kecil.</p>
+    <div class="phone">
+      <div class="card">
+        <div class="bar"><b>Sumber Email</b><span class="pill">3 draf</span></div>
+        <div class="row"><span class="logo sm mandiri">mdr</span><div><b>Livin' by Mandiri</b><div class="m">…32@gmail.com</div></div><span class="m">→ Mandiri</span></div>
+        <div class="row"><span class="logo sm bca">BCA</span><div><b>BCA</b><div class="m">…09@gmail.com</div></div><span class="m">→ Operasional</span></div>
+        <div class="row"><span class="logo sm mega">mega</span><div><b>Bank Mega</b><div class="m">…09@gmail.com</div></div><span class="m">→ CC Mega</span></div>
+        <div class="foot"><span class="link">+ Bank</span><span class="link">+ Gmail</span><span class="link">↻ Sinkron</span></div>
+      </div>
+
+      <div class="card">
+        <div class="bar"><b>Draf</b><span class="muted" style="font-size:12px">Setujui semua</span></div>
+        <div class="row"><span class="logo sm bca">BCA</span><div><b>Tokopedia</b><div class="m">3 Okt · Belanja</div></div><span class="amt">1,25 jt</span></div>
+        <div class="row"><span class="logo sm mandiri">mdr</span><div><b>Mandiri → BCA</b><div class="m">4 Okt · transfer</div></div><span class="amt muted">2 jt</span></div>
+        <div class="row"><span class="logo sm mega">mega</span><div><b>Grab</b><div class="m">5 Okt · Transport</div></div><span class="amt">48 rb</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<p class="note">Ini maket statis, bukan aplikasi. Hasil pilihanmu yang nanti dipasang di Setelan dan Dokumen → Dari Email.</p>
+</body>
+</html>
