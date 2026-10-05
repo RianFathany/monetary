@@ -6,7 +6,12 @@
   <small>{{ docs | length }} {{ _('dokumen tersimpan') }}</small>
 </div>
 
-<a class="btn primary impbtn" href="/impor">
+<nav class="mstrip" aria-label="{{ _('Dokumen') }}">
+  <a href="/dokumen" class="chip on">{{ _('Berkas') }} <b>{{ docs | length }}</b></a>
+  <a href="/dokumen/email" class="chip">{{ _('Dari Email') }}{% if email_pending %} <b>{{ email_pending }}</b>{% endif %}</a>
+</nav>
+
+<a class="btn primary impbtn" href="/impor" style="margin-top:10px">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
   <span>{{ _('Impor berkas baru') }}</span>
 </a>

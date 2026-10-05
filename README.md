@@ -125,8 +125,28 @@ Sekali saja di [console.cloud.google.com](https://console.cloud.google.com):
 8. `GOOGLE_ALLOWED` berisi email yang mewarisi buku pemilik (pisahkan dengan koma).
    Email lain yang mendaftar dapat buku kosong sendiri.
 
-Yang dipakai hanya scope `openid email profile`; aplikasi tidak meminta akses apa pun ke
-data Google lain. Email harus berstatus terverifikasi di Google dan ada di daftar izin.
+Untuk masuk, yang dipakai hanya scope `openid email profile`. Email harus berstatus
+terverifikasi di Google dan ada di daftar izin.
+
+### Sumber Email (Gmail → draf transaksi)
+
+Fitur terpisah dan opsional: pengguna menyambungkan satu atau beberapa Gmail di
+**Setelan → Sumber Email**, membuat aturan pengirim → kantong, lalu email notifikasi bank
+yang cocok jadi draf di **Dokumen → Dari Email**. Draf baru menjadi transaksi setelah
+disetujui satu per satu. OAuth client-nya sama dengan login. Yang perlu disiapkan:
+
+1. **APIs & Services → Library → Gmail API → Enable.**
+2. **OAuth consent screen → Data access → Add scope** `.../auth/gmail.readonly`.
+   Scope ini *restricted*: selama aplikasi belum lolos verifikasi Google (plus security
+   assessment), layar izinnya menampilkan peringatan "unverified" dan penggunanya
+   dibatasi 100 akun.
+3. Tambahkan redirect URI `https://muara.rianfathany.com/email/callback` dan
+   `http://127.0.0.1:8765/email/callback` di OAuth client yang sama.
+4. `fly secrets set EMAIL_TOKEN_KEY=<acak, mis. python -c "import secrets;print(secrets.token_urlsafe(32))">`.
+   Kunci ini mengenkripsi refresh token di file buku (yang ikut terbawa cadangan). Tanpa
+   kunci, fitur ini mati. Kalau kuncinya diganti, semua Gmail perlu disambung ulang.
+
+Parser per bank ada di `app/mailparse.py` (profil BCA, Bank Mega, Livin, dan umum).
 
 **Kalau sesi habis** (30 hari), halaman yang sedang terbuka tidak dilempar keluar: muncul
 popup untuk mengisi password lagi, dan kiriman form yang tertahan dilanjutkan setelah itu.

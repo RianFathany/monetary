@@ -20,8 +20,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup
 
-from . import (auth, backup, budget, csrf, documents, guide, i18n, legal, mailer, money,
-               oauth, report, statement, suggest, users)
+from . import (auth, backup, budget, csrf, documents, gmail, guide, i18n, inbox, legal, mailer, mailparse,
+               money, oauth, report, statement, suggest, users)
 from .i18n import t
 from .db import (ASSET_TYPES, CASH_TYPES, DEBT_TYPES, accounts, asset_view, balance_upto, balances,
                  book_currency, emergency_ids, get_db, get_setting, set_book_currency,
@@ -1091,7 +1091,7 @@ def account_delete(request: Request, aid: int):
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", mail: str = "",
-                  verify: str = "", verified: str = "", bk: str = ""):
+                  verify: str = "", verified: str = "", bk: str = "", em: str = ""):
     if (r := require_login(request)):
         return r
     with get_db() as db:
@@ -1104,10 +1104,14 @@ def settings_page(request: Request, pw: str = "", g: str = "", adm: str = "", ma
         accs = accounts(db)
         first_month = get_setting(db, "first_month", "")
         review_count = db.execute(f"SELECT COUNT(*) c FROM transactions t WHERE {REVIEW_WHERE}").fetchone()["c"]
+        email_sources = inbox.sources(db)
         mc = mailer.config()
     u = me(request)
     return render(request, "settings.html", mail=mail, verify=verify, verified=bool(verified),
                   bk=bk, backup_cfg=backup.config(), backup_status=backup.status(),
+                  em=em, email_sources=email_sources, email_enabled=gmail.is_enabled(),
+                  email_missing=gmail.missing(), email_parsers=mailparse.PROFILES,
+                  email_redirect=gmail.redirect_uri(request),
                   mail_aktif=mailer.is_enabled(),
                   review_count=review_count, has_password=bool(u and (u["password_hash"] or u["is_owner"])),
                   recurring=rec, cats=cats, used=used, accounts=accs,
@@ -1235,6 +1239,9 @@ def settings_account_delete(request: Request):
     u = me(request)
     if not u or u["is_owner"]:
         return RedirectResponse("/settings", status_code=303)
+    with get_db() as db:                            # izin Gmail dicabut di Google, bukan hanya dibuang
+        for s in inbox.sources(db):
+            inbox.delete_source(db, s["id"])
     users.delete(u["id"])
     resp = RedirectResponse("/login?bye=1", status_code=303)
     resp.delete_cookie(auth.COOKIE)
@@ -1497,7 +1504,34 @@ def documents_page(request: Request):
     if (r := require_login(request)):
         return r
     with get_db() as db:
-        return render(request, "documents.html", docs=documents.daftar(db), page="dokumen")
+        return render(request, "documents.html", docs=documents.daftar(db), page="dokumen",
+                      email_pending=inbox.pending_count(db))
+
+
+# Harus terdaftar sebelum /dokumen/{doc_id}: kalau tidak, 'email' dibaca sebagai id dan ditolak 422.
+@app.get("/dokumen/email", response_class=HTMLResponse)
+def email_inbox(request: Request, s: str = "", n: str = "", u: str = "", f: str = "", ok: str = "", err: str = ""):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        if not s and gmail.is_enabled() and inbox.is_stale(db):
+            res = inbox.sync(db)                    # hanya draf; tidak ada angka yang berubah
+            s, n, u, f = "1", str(res["new"]), str(res["unread"]), str(res["failed"] + res["reauth"])
+        rows = inbox.drafts(db)
+        srcs = inbox.sources(db)
+        cats_exp, cats_inc = categories(db, "expense"), categories(db, "income")
+        avail = {"expense": {c["name"]: c["id"] for c in cats_exp}, "income": {c["name"]: c["id"] for c in cats_inc}}
+        items = []
+        for d in rows:
+            sid, _ = suggest.suggest(d["description"] or d["subject"] or "", d["type"], avail.get(d["type"], {}))
+            items.append(dict(d=d, sug=sid))
+        accs = accounts(db)
+        doc_count = db.execute("SELECT COUNT(*) c FROM documents").fetchone()["c"]
+    return render(request, "email_inbox.html", items=items, sources=srcs, accounts=accs,
+                  cats_exp=cats_exp, cats_inc=cats_inc, page="email", enabled=gmail.is_enabled(),
+                  synced=bool(s), n_new=int(n or 0) if n.isdigit() else 0,
+                  n_unread=int(u or 0) if u.isdigit() else 0, n_failed=int(f or 0) if f.isdigit() else 0,
+                  ok=ok, err=err, doc_count=doc_count, pending=len(items))
 
 
 @app.get("/dokumen/{doc_id}", response_class=HTMLResponse)
@@ -1519,6 +1553,120 @@ def document_delete(request: Request, doc_id: int):
     with get_db() as db:
         documents.hapus(db, doc_id)
     return RedirectResponse("/dokumen", status_code=303)
+
+
+# ---------- sumber email (Gmail) ----------
+#
+# Sambungan Gmail terpisah dari login Google: izinnya lain (gmail.readonly),
+# dan akun yang disambungkan boleh berbeda dari akun yang dipakai masuk.
+# Sinkron hanya menulis draf; transaksi baru lahir saat draf disetujui.
+
+@app.get("/email/connect")
+def email_connect(request: Request, hint: str = ""):
+    if (r := require_login(request)):
+        return r
+    if not gmail.is_enabled():
+        return RedirectResponse("/settings?em=off#email", status_code=303)
+    url, blob = gmail.start(request, hint if users.valid_email(hint) else "")
+    resp = RedirectResponse(url, status_code=303)
+    resp.set_cookie(gmail.STATE_COOKIE, auth.sign(blob), max_age=gmail.STATE_MAX_AGE, httponly=True,
+                    samesite="lax", secure=cookie_secure(request))
+    return resp
+
+
+@app.get("/email/callback")
+def email_callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    if (r := require_login(request)):
+        return r
+    blob = auth.unsign(request.cookies.get(gmail.STATE_COOKIE, ""), max_age=gmail.STATE_MAX_AGE)
+
+    def back(flag: str):
+        resp = RedirectResponse(f"/settings?em={flag}#email", status_code=303)
+        resp.delete_cookie(gmail.STATE_COOKIE)
+        return resp
+
+    if error == "access_denied":
+        return back("denied")
+    if error or not code or not blob or not secrets.compare_digest(state or "", blob.get("state", "")):
+        return back("fail")
+    try:
+        got = gmail.exchange(code, blob["verifier"], request)
+    except gmail.Gagal as e:
+        return back("scope" if "dicentang" in str(e) else "fail")
+    except Exception:                               # token cacat, konfigurasi salah
+        return back("fail")
+    with get_db() as db:
+        inbox.save_source(db, got["email"], got["refresh_token"])
+    return back("ok")
+
+
+@app.post("/email/source/{sid}/delete")
+def email_source_delete(request: Request, sid: int):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        inbox.delete_source(db, sid)
+    return RedirectResponse("/settings?em=gone#email", status_code=303)
+
+
+@app.post("/email/rule")
+def email_rule_add(request: Request, source_id: str = Form(...), sender: str = Form(""),
+                   keywords: str = Form(""), parser: str = Form("umum"), account_id: str = Form("")):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        try:
+            inbox.add_rule(db, int(source_id) if source_id.isdigit() else 0, sender, keywords, parser,
+                           int(account_id) if account_id.isdigit() else None)
+        except ValueError:
+            return RedirectResponse("/settings?em=rule#email", status_code=303)
+    return RedirectResponse("/settings?em=ruleok#email", status_code=303)
+
+
+@app.post("/email/rule/{rid}/delete")
+def email_rule_delete(request: Request, rid: int):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        inbox.delete_rule(db, rid)
+    return RedirectResponse("/settings#email", status_code=303)
+
+
+@app.post("/email/sync")
+def email_sync(request: Request):
+    if (r := require_login(request)):
+        return r
+    if not gmail.is_enabled():
+        return RedirectResponse("/dokumen/email", status_code=303)
+    with get_db() as db:
+        res = inbox.sync(db)
+    return RedirectResponse(f"/dokumen/email?s=1&n={res['new']}&u={res['unread']}"
+                            f"&f={res['failed'] + res['reauth']}", status_code=303)
+
+
+@app.post("/email/draft/{did}/approve")
+def email_draft_approve(request: Request, did: int, type: str = Form("expense"), amount: str = Form(""),
+                        tx_date: str = Form(""), description: str = Form(""), account_id: str = Form(""),
+                        category_id: str = Form("")):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        try:
+            inbox.approve(db, did, type, parse_amount(amount), clean_date(tx_date) or "", description,
+                          int(account_id) if account_id.isdigit() else 0,
+                          int(category_id) if category_id.isdigit() else None)
+        except ValueError:
+            return RedirectResponse(f"/dokumen/email?s=1&err={did}#d{did}", status_code=303)
+    return RedirectResponse("/dokumen/email?s=1&ok=1", status_code=303)
+
+
+@app.post("/email/draft/{did}/dismiss")
+def email_draft_dismiss(request: Request, did: int):
+    if (r := require_login(request)):
+        return r
+    with get_db() as db:
+        inbox.dismiss(db, did)
+    return RedirectResponse("/dokumen/email?s=1", status_code=303)
 
 
 @app.get("/review", response_class=HTMLResponse)

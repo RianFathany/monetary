@@ -9,7 +9,7 @@ Kolom ledger_id ada sejak sekarang dan selalu 1. Multi-user nanti tinggal
 mengisinya, tanpa membongkar tabel lagi.
 """
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 MONEY_SCALE = 100        # nominal disimpan dalam satuan perseratus (app/money.py)
 
 SCHEMA = """
@@ -170,6 +170,59 @@ CREATE TABLE IF NOT EXISTS reports (
     UNIQUE(ledger_id, month_key, engine)
 );
 
+-- Gmail yang disambungkan untuk membaca notifikasi transaksi bank. Token
+-- disimpan terenkripsi (app/gmail.py, kunci EMAIL_TOKEN_KEY di environment),
+-- jadi berkas buku yang ikut terbawa cadangan tidak membawa akses ke Gmail.
+-- status: 'ok', atau 'reauth' kalau Google menolak tokennya (dicabut/kedaluwarsa).
+CREATE TABLE IF NOT EXISTS email_sources (
+    id           INTEGER PRIMARY KEY,
+    email        TEXT NOT NULL UNIQUE,
+    token_enc    TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'ok',
+    last_sync_at TEXT,
+    last_error   TEXT,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Aturan: email dari pengirim ini, dengan kata kunci subjek ini, dibaca parser
+-- bank ini, lalu drafnya diarahkan ke kantong ini.
+CREATE TABLE IF NOT EXISTS email_rules (
+    id         INTEGER PRIMARY KEY,
+    source_id  INTEGER NOT NULL REFERENCES email_sources(id) ON DELETE CASCADE,
+    sender     TEXT NOT NULL,
+    keywords   TEXT NOT NULL DEFAULT '',
+    parser     TEXT NOT NULL DEFAULT 'umum',
+    account_id INTEGER REFERENCES accounts(id),
+    active     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Hasil baca email, menunggu keputusan pemilik buku. Tidak ada satu pun draf
+-- yang masuk ke transactions tanpa disetujui. Yang dibuang tetap disimpan
+-- (status 'dismissed') supaya email yang sama tidak muncul lagi saat sinkron.
+-- amount kosong = email lolos filter tapi nominalnya tidak terbaca.
+CREATE TABLE IF NOT EXISTS email_drafts (
+    id          INTEGER PRIMARY KEY,
+    source_id   INTEGER REFERENCES email_sources(id) ON DELETE SET NULL,
+    rule_id     INTEGER REFERENCES email_rules(id) ON DELETE SET NULL,
+    gmail_id    TEXT NOT NULL,
+    source_email TEXT NOT NULL,
+    received_at TEXT,
+    sender      TEXT,
+    subject     TEXT,
+    snippet     TEXT,
+    type        TEXT NOT NULL DEFAULT 'expense' CHECK (type IN ('income','expense')),
+    tx_date     TEXT,
+    amount      INTEGER,                      -- satuan perseratus
+    description TEXT,
+    account_id  INTEGER REFERENCES accounts(id),
+    status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','dismissed')),
+    tx_id       INTEGER REFERENCES transactions(id),
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(source_email, gmail_id)
+);
+CREATE INDEX IF NOT EXISTS idx_email_drafts_status ON email_drafts(status, received_at);
+
 CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT
@@ -307,6 +360,9 @@ MIGRATIONS: dict = {
     # apply_schema (ADDED_COLUMNS); tidak ada data lama yang perlu diisi, karena
     # 0 memang berarti "belum ditentukan targetnya".
     7: [],
+    # v8 — sumber email (Gmail), aturannya, dan draf transaksi dari email.
+    # Tabelnya lahir dari apply_schema; tidak ada data lama yang perlu diubah.
+    8: [],
 }
 
 # Skala nominal dijaga penanda sendiri, bukan nomor versi skema. Nomor versi bisa

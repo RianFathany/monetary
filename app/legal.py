@@ -6,7 +6,7 @@ siapa yang bisa melihat, dan bagaimana menghapusnya.
 """
 from .i18n import t
 
-UPDATED = "23 September 2026"
+UPDATED = "5 Oktober 2026"
 CONTACT = "mrianfathany08@gmail.com"
 
 
@@ -17,11 +17,23 @@ def _p(*paragraphs) -> str:
 def privacy(host: str) -> str:
     return (
         f"<h3>{t('Data apa yang disimpan')}</h3>"
-        + _p(t("Dari Google, aplikasi hanya menerima <b>alamat email</b> dan <b>nama</b> Anda. "
-               "Tidak ada akses ke Gmail, Drive, Kontak, atau layanan Google lain — izin yang diminta "
-               "hanya <code>openid</code>, <code>email</code>, dan <code>profile</code>."),
+        + _p(t("Dari Google, aplikasi hanya menerima <b>alamat email</b> dan <b>nama</b> Anda saat masuk. "
+               "Izin yang diminta untuk masuk hanya <code>openid</code>, <code>email</code>, dan <code>profile</code>."),
              t("Selebihnya adalah data yang Anda masukkan sendiri: transaksi, kategori, kantong, "
                "nilai aset, dan catatan bulanan."))
+        + f"<h3>{t('Akses Gmail (opsional)')}</h3>"
+        + _p(t("Kalau Anda menyambungkan Gmail lewat Setelan → Sumber Email, aplikasi meminta izin "
+               "<code>gmail.readonly</code> untuk akun itu saja. Yang dibaca hanya email yang cocok dengan "
+               "aturan yang Anda buat sendiri (alamat pengirim dan kata di subjek), untuk diubah menjadi draf "
+               "transaksi. Tidak ada email yang dikirim, dihapus, atau ditandai."),
+             t("Dari email yang cocok, yang disimpan hanya pengirim, subjek, potongan isi, dan hasil bacaannya "
+               "(nominal, tanggal, keterangan) di file database Anda. Token akses disimpan terenkripsi. Data dari "
+               "Gmail tidak dipakai untuk iklan, tidak dijual, tidak dibagikan, dan tidak dipakai untuk melatih "
+               "model AI apa pun."),
+             t('Penggunaan informasi yang diterima dari Google API mematuhi <a href="https://developers.google.com/'
+               'terms/api-services-user-data-policy">Google API Services User Data Policy</a>, termasuk ketentuan '
+               'Limited Use. Memutus sambungan di Setelan mencabut izinnya di Google dan menghapus token beserta '
+               'aturannya.'))
         + f"<h3>{t('Di mana disimpan')}</h3>"
         + _p(t("Di satu server di Singapura (Fly.io), dalam <b>file database terpisah milik Anda sendiri</b>. "
                "Pengguna lain memakai file yang berbeda, jadi catatan keuangan Anda tidak pernah tercampur "
@@ -32,7 +44,7 @@ def privacy(host: str) -> str:
         + f"<h3>{t('Apa yang tidak dilakukan')}</h3>"
         + _p(t("Tidak ada iklan, tidak ada pelacak pihak ketiga, tidak ada analitik. Data Anda tidak dijual, "
                "tidak dibagikan, dan tidak dikirim ke layanan lain. Satu-satunya panggilan keluar adalah ke "
-               "Google saat Anda masuk, dan ke layanan cuaca terbuka (Open-Meteo) untuk menampilkan cuaca "
+               "Google saat Anda masuk atau menyinkronkan Gmail yang Anda sambungkan, dan ke layanan cuaca terbuka (Open-Meteo) untuk menampilkan cuaca "
                "di halaman masuk."))
         + f"<h3>{t('Cookie')}</h3>"
         + _p(t("Satu cookie sesi bertanda tangan supaya Anda tetap masuk selama 30 hari, dan penyimpanan "

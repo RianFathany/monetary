@@ -77,6 +77,67 @@
   <div class="actions" style="margin-top:8px"><button type="button" data-open="sheet-tpl">{{ _('+ Tambah template') }}</button></div>
 </section>
 
+<section class="card" id="email" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Sumber Email') }}</h2><small>{{ _('notifikasi bank jadi draf transaksi') }}</small></div>
+  {% if em=='ok' %}<div class="note ok">{{ _('Gmail tersambung. Tambahkan aturan pengirim di bawahnya.') }}</div>
+  {% elif em=='ruleok' %}<div class="note ok">{{ _('Aturan disimpan.') }}</div>
+  {% elif em=='gone' %}<div class="note ok">{{ _('Gmail diputus dan izinnya dicabut.') }}</div>
+  {% elif em=='denied' %}<div class="note bad">{{ _('Izin tidak diberikan di layar Google.') }}</div>
+  {% elif em=='scope' %}<div class="note bad">{{ _('Centang izin “Lihat pesan email” di layar Google, lalu coba lagi.') }}</div>
+  {% elif em=='rule' %}<div class="note bad">{{ _('Pengirim wajib diisi.') }}</div>
+  {% elif em=='fail' %}<div class="note bad">{{ _('Gagal menyambungkan Gmail. Coba lagi.') }}</div>
+  {% elif em=='off' %}<div class="note bad">{{ _('Sumber email belum aktif di server ini.') }}</div>{% endif %}
+
+  <p class="hint" style="margin:0 0 8px">{{ _('Muara hanya membaca email yang cocok dengan aturan Anda (pengirim + kata di subjek). Tidak ada email yang dikirim, dihapus, atau ditandai. Setiap transaksi yang terbaca masuk sebagai draf di Dokumen → Dari Email dan baru dicatat setelah Anda setujui.') }}</p>
+
+  {% for s in email_sources %}
+  <div class="sw" data-del="/email/source/{{ s.id }}/delete" data-del-title="{{ s.email }}" data-del-sub="{{ s.rules | length }} {{ _('aturan') }}"
+       data-del-note="{{ _('Izin Gmail dicabut, aturan dan draf yang menunggu ikut dihapus. Transaksi yang sudah dicatat tetap ada.') }}"><div class="sw-track">
+  <div class="row static">
+    <span class="av {{ 'in' if s.status=='ok' and not s.last_error else 'out' }}" style="--h:{{ s.email | hue }}">{{ s.email[:2] }}</span>
+    <div class="main">
+      <div class="name">{{ s.email }}</div>
+      <div class="meta">
+        <span>{{ _('sinkron') }}: {{ s.last_sync_at | stamp if s.last_sync_at else _('belum pernah') }}</span>
+        {% if s.pending %}<span>{{ s.pending }} {{ _('draf') }}</span>{% endif %}
+        {% if s.status=='reauth' %}<span class="pill warn">{{ _('perlu disambung ulang') }}</span>
+        {% elif s.last_error %}<span class="pill warn">{{ s.last_error }}</span>{% endif %}
+      </div>
+    </div>
+    {% if s.status=='reauth' and email_enabled %}<a class="btn sm" href="/email/connect?hint={{ s.email | urlencode }}">{{ _('Sambung ulang') }}</a>{% endif %}
+  </div>
+  {% include "_swact.html" %}</div></div>
+  <div class="panel-wrap" style="padding:0 0 0 18px">
+    {% for r in s.rules %}
+    <div class="sw" data-del="/email/rule/{{ r.id }}/delete" data-del-title="{{ r.sender }}" data-del-sub="{{ r.account or '—' }}"
+         data-del-note="{{ _('Aturan dihapus; draf yang sudah ada tidak ikut terhapus.') }}"><div class="sw-track">
+    <div class="row static" style="grid-template-columns:minmax(0,1fr)">
+      <div class="main">
+        <div class="name" style="font-size:13px">{{ r.sender }}</div>
+        <div class="meta">
+          <span>→ {{ r.account or _('kantong belum dipilih') }}</span>
+          <span>{{ email_parsers[r.parser].label if r.parser in email_parsers else r.parser }}</span>
+          {% if r.keywords %}<span>{{ _('subjek') }}: {{ r.keywords }}</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% include "_swact.html" %}</div></div>
+    {% endfor %}
+    <div class="actions" style="margin:4px 0 8px"><button type="button" class="sm" data-open="sheet-rule" data-fill='{{ {"source_id": s.id} | tojson }}'>{{ _('+ Aturan pengirim') }}</button></div>
+  </div>
+  {% endfor %}
+
+  {% if email_enabled %}
+  <a class="btn tall" href="/email/connect" style="margin-top:4px;width:100%"><b>{{ _('Hubungkan Gmail') }}</b><span>{{ _('bisa lebih dari satu akun, tidak harus akun yang dipakai masuk') }}</span></a>
+  <p class="hint">{{ _('Google akan menampilkan peringatan “aplikasi belum diverifikasi” selama Muara belum lolos verifikasi Google. Pilih Lanjutan → Buka Muara untuk melanjutkan.') }}</p>
+  {% elif is_owner %}
+  <p class="hint">{{ _('Belum aktif. Isi environment berikut di server, lalu aktifkan Gmail API dan scope gmail.readonly di Google Cloud:') }} <code>{{ email_missing | join(', ') }}</code></p>
+  <p class="hint">{{ _('URI callback:') }} <code>{{ email_redirect }}</code></p>
+  {% else %}
+  <p class="hint">{{ _('Fitur ini belum diaktifkan oleh pengelola aplikasi.') }}</p>
+  {% endif %}
+</section>
+
 <section class="card" style="margin-top:10px">
   <div class="sec"><h2>{{ _('Buku') }}</h2><small>{{ _('kantong & saldo awal diatur di') }} <a href="/accounts">{{ _('Kantong') }}</a></small></div>
   <form method="post" action="/settings/opening" class="sform">{{ csrf_field }}
@@ -281,6 +342,21 @@
       <div><label>{{ _('Kantong') }}</label><select name="account_id">{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
       <div><label>{{ _('Ke kantong (transfer)') }}</label><select name="to_account_id"><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
     </div>
+    <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
+  </form>
+</div></dialog>
+
+<dialog class="sheet" id="sheet-rule"><div class="panel"><div class="grab"></div>
+  <h3>{{ _('Aturan pengirim') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
+  <form method="post" action="/email/rule">{{ csrf_field }}
+    <input type="hidden" name="source_id">
+    <label>{{ _('Alamat pengirim') }}</label><input name="sender" placeholder="{{ _('mis. notifikasi@bank.co.id') }}" required autocomplete="off">
+    <label>{{ _('Kata di subjek (pisahkan dengan koma, opsional)') }}</label><input name="keywords" placeholder="{{ _('mis. transaksi, transfer, pembayaran') }}" autocomplete="off">
+    <div class="f2">
+      <div><label>{{ _('Format bank') }}</label><select name="parser" data-plain>{% for k, p in email_parsers.items() %}<option value="{{ k }}">{{ p.label }}</option>{% endfor %}</select></div>
+      <div><label>{{ _('Masuk ke kantong') }}</label><select name="account_id"><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+    </div>
+    <p class="hint">{{ _('Pengirim bisa alamat lengkap atau domainnya saja. Kata kunci subjek menyaring email promo dari bank yang sama.') }}</p>
     <div class="actions"><button class="primary" type="submit">{{ _('Simpan') }}</button></div>
   </form>
 </div></dialog>

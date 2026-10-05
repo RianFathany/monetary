@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Dari Email') }} · Muara{% endblock %}
+{% block content %}
+
+<div class="sec"><h2 style="font-size:18px">{{ _('Dokumen') }}</h2>
+  <small>{{ pending }} {{ _('draf menunggu') }}</small>
+</div>
+
+<nav class="mstrip" aria-label="{{ _('Dokumen') }}">
+  <a href="/dokumen" class="chip">{{ _('Berkas') }} <b>{{ doc_count }}</b></a>
+  <a href="/dokumen/email" class="chip on">{{ _('Dari Email') }} <b>{{ pending }}</b></a>
+</nav>
+
+{% if ok %}<div class="note ok" style="margin-top:10px">{{ _('Transaksi dicatat.') }}</div>{% endif %}
+{% if err %}<div class="note bad" style="margin-top:10px">{{ _('Belum bisa dicatat: periksa nominal, tanggal, dan kantongnya.') }}</div>{% endif %}
+{% if synced and (n_new or n_failed) %}
+<div class="note {{ 'bad' if n_failed else 'ok' }}" style="margin-top:10px">
+  {% if n_new %}{{ _('{n} email baru dibaca.') | replace('{n}', n_new) }}{% endif %}
+  {% if n_unread %}{{ _('{n} di antaranya nominalnya tidak terbaca.') | replace('{n}', n_unread) }}{% endif %}
+  {% if n_failed %}{{ _('Ada sumber yang gagal dibaca — lihat Setelan → Sumber Email.') }}{% endif %}
+</div>
+{% endif %}
+
+{% if not enabled and not sources %}
+<section class="card" style="margin-top:10px">
+  <div class="empty"><b>{{ _('Sumber email belum aktif.') }}</b><span>{{ _('Fitur ini perlu diaktifkan dulu di server. Detailnya ada di Setelan → Sumber Email.') }}</span></div>
+</section>
+{% elif not sources %}
+<section class="card" style="margin-top:10px">
+  <div class="empty"><b>{{ _('Belum ada Gmail yang disambungkan.') }}</b><span>{{ _('Sambungkan Gmail yang menerima notifikasi bank, lalu atur pengirim mana yang dibaca.') }}</span></div>
+  <div class="actions" style="margin-top:8px"><a class="btn primary" href="/settings#email" style="width:100%">{{ _('Buka Sumber Email') }}</a></div>
+</section>
+{% else %}
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Sumber') }}</h2><small><a href="/settings#email">{{ _('atur') }}</a></small></div>
+  {% for s in sources %}
+  <div class="row static" style="padding:6px 0">
+    <span class="av {{ 'in' if s.status=='ok' and not s.last_error else 'out' }}" style="--h:{{ s.email | hue }}">{{ s.email[:2] }}</span>
+    <div class="main">
+      <div class="name">{{ s.email }}</div>
+      <div class="meta">
+        <span>{{ s.rules | length }} {{ _('aturan') }}</span>
+        <span>{{ _('sinkron') }}: {{ s.last_sync_at | stamp if s.last_sync_at else _('belum pernah') }}</span>
+        {% if s.status=='reauth' %}<span class="pill warn">{{ _('perlu disambung ulang') }}</span>
+        {% elif s.last_error %}<span class="pill warn">{{ s.last_error }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% if enabled %}
+  <form method="post" action="/email/sync" class="actions" style="margin-top:6px">{{ csrf_field }}
+    <button type="submit" style="width:100%">{{ _('Sinkron sekarang') }}</button>
+  </form>
+  {% endif %}
+  <p class="hint">{{ _('Sinkron hanya membuat draf. Saldo dan laporan tidak berubah sampai draf disetujui.') }}</p>
+</section>
+
+<section class="card" style="margin-top:10px">
+  <div class="sec"><h2>{{ _('Draf') }}</h2><small>{{ _('ketuk untuk memeriksa · geser kiri untuk membuang') }}</small></div>
+  {% if items %}
+  <div class="panel-wrap" style="padding:0">
+  {% for it in items %}{% set d = it.d %}
+  <div class="sw" id="d{{ d.id }}" data-del="/email/draft/{{ d.id }}/dismiss" data-del-title="{{ d.description or d.subject or '—' }}"
+       data-del-sub="{{ d.amount | rupiah if d.amount else _('nominal tidak terbaca') }}" data-del-note="{{ _('Draf dibuang. Email yang sama tidak akan muncul lagi.') }}"><div class="sw-track">
+  <div class="row draft" style="--i:{{ loop.index0 }};cursor:pointer" data-open="sheet-draft"
+       data-action="/email/draft/{{ d.id }}/approve" data-snippet="{{ d.snippet or '' }}" data-subject="{{ d.subject or '' }}"
+       data-type="{{ d.type }}"
+       data-fill='{{ {"amount": (d.amount | plain) if d.amount else "", "tx_date": d.tx_date or "",
+                     "description": d.description or d.subject or "", "account_id": d.account_id or "",
+                     "category_id": it.sug or ""} | tojson }}'>
+    <span class="av {{ 'in' if d.type=='income' }}" style="--h:{{ (d.description or d.subject or 'X') | hue }}">{{ (d.description or d.subject or '·')[:2] }}</span>
+    <div class="main">
+      <div class="name">{{ d.description or d.subject or '—' }}</div>
+      <div class="meta">
+        {% if d.tx_date %}<span>{{ d.tx_date | fmt_date }}</span>{% endif %}
+        <span>{{ d.account or _('kantong belum dipilih') }}</span>
+        <span>{{ d.source_email }}</span>
+        {% if not d.amount %}<span class="pill warn">{{ _('nominal tidak terbaca') }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="amt num {{ 'in' if d.type=='income' }}">{{ d.amount | short if d.amount else '—' }}</div>
+  </div>
+  {% include "_swact.html" %}</div></div>
+  {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><b>{{ _('Tidak ada draf.') }}</b><span>{{ _('Email transaksi baru akan muncul di sini setelah sinkron.') }}</span></div>
+  {% endif %}
+</section>
+{% endif %}
+
+<dialog class="sheet" id="sheet-draft"><div class="panel"><div class="grab"></div>
+  <h3>{{ _('Periksa draf') }}</h3><button class="sm ghost close" data-close type="button" aria-label="{{ _('Tutup') }}">✕</button>
+  <form method="post" action="" id="draft-form">{{ csrf_field }}
+    <details class="acc" style="margin-top:6px">
+      <summary id="draft-subject">{{ _('Isi email') }}</summary>
+      <p class="hint" id="draft-snippet" style="word-break:break-word"></p>
+    </details>
+    <div class="seg" style="margin-top:8px">
+      <label><input type="radio" name="type" value="expense" checked><span>{{ _('Keluar') }}</span></label>
+      <label><input type="radio" name="type" value="income"><span>{{ _('Masuk') }}</span></label>
+    </div>
+    <label>{{ _('Jumlah') }}</label><input class="money num" name="amount" inputmode="numeric" placeholder="0" required autocomplete="off">
+    <label>{{ _('Deskripsi') }}</label><input name="description" autocomplete="off">
+    <div class="f2">
+      <div><label>{{ _('Tanggal') }}</label><input type="date" name="tx_date" required></div>
+      <div><label>{{ _('Kantong') }}</label><select name="account_id" required><option value="">—</option>{% for a in accounts %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></div>
+    </div>
+    <label>{{ _('Kategori') }}</label>
+    <select name="category_id"><option value="">{{ _('— tanpa kategori (masuk Rapikan) —') }}</option>
+      <optgroup label="{{ _('Keluar') }}">{% for c in cats_exp %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</optgroup>
+      <optgroup label="{{ _('Masuk') }}">{% for c in cats_inc %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</optgroup>
+    </select>
+    <div class="actions"><button class="primary" type="submit" style="width:100%">{{ _('Setujui & catat') }}</button></div>
+    <p class="hint">{{ _('Kategori yang tidak cocok dengan jenisnya diabaikan, dan transaksinya masuk antrean Rapikan.') }}</p>
+  </form>
+</div></dialog>
+
+<script>
+// Radio jenis tidak diisi openSheet (nama sama untuk dua input), jadi diisi di sini
+// bersama action form dan cuplikan email.
+document.addEventListener('click', e => {
+  const r = e.target.closest('.row.draft'); if (!r) return;
+  const f = document.getElementById('draft-form');
+  f.action = r.dataset.action;
+  f.querySelectorAll('input[name=type]').forEach(i => i.checked = i.value === r.dataset.type);
+  document.getElementById('draft-subject').textContent = r.dataset.subject || '{{ _('Isi email') }}';
+  document.getElementById('draft-snippet').textContent = r.dataset.snippet;
+}, true);
+</script>
+
+{% endblock %}
